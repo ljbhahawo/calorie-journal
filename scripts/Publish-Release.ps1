@@ -40,6 +40,7 @@ foreach ($library in $assets.libraries.PSObject.Properties) {
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Rollback-Version.ps1') -Destination (Join-Path $releaseRoot '回滚版本.ps1')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-Journal.ps1') -Destination (Join-Path $releaseRoot '启动软件.ps1')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/使用说明.md') -Destination (Join-Path $releaseRoot '使用说明.md')
+Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/版本记录.md') -Destination (Join-Path $releaseRoot '版本记录.md')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/第三方说明.md') -Destination (Join-Path $releaseRoot '第三方说明.md')
 $sourceRoot = Join-Path $projectRoot ('workspace/source_' + $ReleaseVersion)
 if (Test-Path -LiteralPath $sourceRoot) { throw '源码暂存目录已存在，停止以保护已有文件。' }

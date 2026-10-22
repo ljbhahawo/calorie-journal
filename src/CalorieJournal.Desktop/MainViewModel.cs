@@ -30,6 +30,7 @@ public sealed partial class MainViewModel : ObservableObject
     private DateOnly appliedHistoryTo = DateOnly.FromDateTime(DateTime.Today);
     private string savedSource = "用户录入";
     private Guid? savedFoodId;
+    private long? sourceUnitKcal;
     public string DataDirectory { get; }
     public string VersionText => "版本 " + typeof(MainViewModel).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion + " · 数据库 1 · 备份格式 1";
     public string FoodAttribution => "内置数据来源：USDA FoodData Central / SR Legacy 2018-04 · CC0\n中文名称为应用整理，数值按每100克可食部分。请区分生熟、品牌和实际份量。";
@@ -135,6 +136,7 @@ public sealed partial class MainViewModel : ObservableObject
     public IRelayCommand TodayCommand { get; }
     public IRelayCommand NewEntryCommand { get; }
     public IRelayCommand EditEntryCommand { get; }
+    public IRelayCommand CopyEntryCommand { get; }
     public IRelayCommand DeleteEntryCommand { get; }
     public IRelayCommand SaveEntryCommand { get; }
     public IRelayCommand ClearFoodCommand { get; }
@@ -157,6 +159,13 @@ public sealed partial class MainViewModel : ObservableObject
         TodayCommand = new RelayCommand(() => Run(() => SelectedDate = DateTime.Today));
         NewEntryCommand = new RelayCommand(() => Run(() => { if (ConfirmEntryDiscard()) { entryDirty = false; RefreshClockDate(); ResetEntry(); } }));
         EditEntryCommand = new RelayCommand(() => Run(EditEntry));
+        CopyEntryCommand = new RelayCommand(() => Run(() =>
+        {
+            Validation.Require(SelectedEntry is not null, "请先选择一条摄入记录。");
+            if (!ConfirmEntryDiscard()) return;
+            LoadEntry(SelectedEntry, true);
+            Status = "已复制到今天的新增表单。请核对日期、餐次和数值，再点击保存摄入；原记录保持不变。";
+        }));
         SaveEntryCommand = new RelayCommand(() => Run(SaveEntry));
         DeleteEntryCommand = new RelayCommand(() => Run(() =>
         {
@@ -168,7 +177,7 @@ public sealed partial class MainViewModel : ObservableObject
         }));
         ClearFoodCommand = new RelayCommand(() =>
         {
-            ChosenFood = null; savedFoodId = null; savedSource = "用户录入"; entryDirty = true; OnPropertyChanged(nameof(EntrySource));
+            ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; savedSource = "用户录入"; entryDirty = true; OnPropertyChanged(nameof(EntrySource));
         });
         NewFoodCommand = new RelayCommand(() => Run(() =>
         {
@@ -237,6 +246,7 @@ public sealed partial class MainViewModel : ObservableObject
         EntryName = value.Name; EntryPreparation = value.Preparation;
         UnitKcal = value.KcalPer100g.ToString("0.00", CultureInfo.InvariantCulture); WeightMode = true;
         savedFoodId = value.Id; savedSource = value.SourceSummary + " " + value.SourceUrl;
+        sourceUnitKcal = value.KcalPer100gHundredths;
         OnPropertyChanged(nameof(EntrySource));
     }
     private void LoadMeal(MealCategory? value)
@@ -323,7 +333,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         loading = true;
         var mealId = EntryMeal?.Id;
-        editingEntry = null; ChosenFood = null; savedFoodId = null; savedSource = "用户录入";
+        editingEntry = null; ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; savedSource = "用户录入";
         EntryDate = SelectedDate; EntryTime = ""; EntryName = ""; EntryPreparation = ""; EntryNote = "";
         DirectKcal = ""; Weight = ""; UnitKcal = ""; WeightUnit = "g"; WeightMode = false;
         RefreshMeals(); EntryMeal = EntryMeals.FirstOrDefault(x => x.Id == mealId) ?? EntryMeals.FirstOrDefault();
@@ -335,15 +345,32 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Validation.Require(SelectedEntry is not null, "请先选择一条摄入记录。");
         if (!ConfirmEntryDiscard()) return;
-        var row = SelectedEntry;
-        loading = true; editingEntry = row; ChosenFood = null; savedFoodId = row.FoodId; savedSource = row.SourceSnapshot;
-        RefreshMeals(); EntryMeal = EntryMeals.Single(x => x.Id == row.MealCategoryId);
-        EntryDate = row.EntryDate.ToDateTime(TimeOnly.MinValue); EntryTime = row.LocalTime;
-        EntryName = row.FoodNameSnapshot; EntryPreparation = row.PreparationSnapshot; EntryNote = row.Note;
-        WeightMode = row.InputMode == "weight"; DirectKcal = row.EnergyKcal.ToString("0.0", CultureInfo.InvariantCulture);
-        Weight = (row.WeightGramsTenths / 10m)?.ToString("0.0", CultureInfo.InvariantCulture) ?? "";
-        UnitKcal = (row.KcalPer100gHundredthsSnapshot / 100m)?.ToString("0.00", CultureInfo.InvariantCulture) ?? ""; WeightUnit = "g";
-        loading = false; entryDirty = false;
+        LoadEntry(SelectedEntry, false);
+    }
+
+    private void LoadEntry(IntakeEntry row, bool asNew)
+    {
+        var missingFood = asNew && row.FoodId is not null && !journal.Foods().Any(x => x.Id == row.FoodId);
+        loading = true;
+        try
+        {
+            editingEntry = asNew ? null : row; ChosenFood = null;
+            savedFoodId = missingFood ? null : row.FoodId;
+            sourceUnitKcal = row.KcalPer100gHundredthsSnapshot;
+            savedSource = row.SourceSnapshot + (missingFood ? " · 复制历史快照（原食物已删除，未关联食物库）" : "");
+            RefreshMeals();
+            EntryMeal = asNew
+                ? EntryMeals.FirstOrDefault(x => x.Id == row.MealCategoryId) ?? EntryMeals.First()
+                : EntryMeals.Single(x => x.Id == row.MealCategoryId);
+            EntryDate = asNew ? DateTime.Today : row.EntryDate.ToDateTime(TimeOnly.MinValue);
+            EntryTime = asNew ? "" : row.LocalTime;
+            EntryName = row.FoodNameSnapshot; EntryPreparation = row.PreparationSnapshot; EntryNote = row.Note;
+            WeightMode = row.InputMode == "weight"; DirectKcal = row.EnergyKcal.ToString("0.0", CultureInfo.InvariantCulture);
+            Weight = (row.WeightGramsTenths / 10m)?.ToString("0.0", CultureInfo.InvariantCulture) ?? "";
+            UnitKcal = (row.KcalPer100gHundredthsSnapshot / 100m)?.ToString("0.00", CultureInfo.InvariantCulture) ?? ""; WeightUnit = "g";
+            entryDirty = asNew;
+        }
+        finally { loading = false; }
         OnPropertyChanged(nameof(EntryHeading)); OnPropertyChanged(nameof(EntrySource));
     }
 
@@ -360,7 +387,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Validation.Require(EntryMeal is not null, "请选择餐次。");
         var source = savedSource;
-        if (ChosenFood is not null && WeightMode && ReadUnitKcal() != ChosenFood.KcalPer100gHundredths) source += " · 本次单位热量已调整";
+        if (sourceUnitKcal is not null && WeightMode && ReadUnitKcal() != sourceUnitKcal && !source.Contains("本次单位热量已调整", StringComparison.Ordinal)) source += " · 本次单位热量已调整";
         var entry = new IntakeEntry
         {
             Id = editingEntry?.Id ?? Guid.NewGuid(), EntryDate = DateOnly.FromDateTime(EntryDate), LocalTime = EntryTime.Trim(),

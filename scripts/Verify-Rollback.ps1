@@ -1,6 +1,7 @@
 param(
     [string]$OldVersion = '1.0.0-rc.1',
-    [string]$NewVersion = '1.0.0-rc.2'
+    [string]$NewVersion = '1.0.0-rc.2',
+    [string]$FixtureDatabase
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
@@ -10,9 +11,16 @@ $newRoot = Join-Path $projectRoot ('artifacts/releases/' + $newVersion)
 $testRoot = Join-Path $projectRoot ('workspace/rollback_check_' + [Guid]::NewGuid().ToString('N'))
 $dataRoot = Join-Path $testRoot '数据'
 New-Item -ItemType Directory -Path $dataRoot -Force | Out-Null
-$fixture = Get-ChildItem -LiteralPath (Join-Path $projectRoot 'workspace/tests') -Directory -Filter 'OnlineDatabaseBackupIsAnIndependentReadableDatabase_*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $fixture) { throw '请先运行集成测试。' }
-Copy-Item -LiteralPath (Join-Path $fixture.FullName 'journal.db') -Destination (Join-Path $dataRoot 'journal.db')
+if ($FixtureDatabase) {
+    $fixturePath = [IO.Path]::GetFullPath($FixtureDatabase)
+    $allowedFixtureRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot 'workspace/tests')) + [IO.Path]::DirectorySeparatorChar
+    if (-not $fixturePath.StartsWith($allowedFixtureRoot, [StringComparison]::OrdinalIgnoreCase)) { throw '只允许使用workspace/tests中的明确测试数据库。' }
+} else {
+    $fixture = Get-ChildItem -LiteralPath (Join-Path $projectRoot 'workspace/tests') -Directory -Filter 'OnlineDatabaseBackupIsAnIndependentReadableDatabase_*' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if (-not $fixture) { throw '请先运行集成测试。' }
+    $fixturePath = Join-Path $fixture.FullName 'journal.db'
+}
+Copy-Item -LiteralPath $fixturePath -Destination (Join-Path $dataRoot 'journal.db')
 function Invoke-Version([string]$ReleaseRoot, [string[]]$Arguments) {
     $argumentText = ($Arguments | ForEach-Object { '"' + $_ + '"' }) -join ' '
     $process = Start-Process -FilePath (Join-Path $ReleaseRoot 'app/CalorieJournal.exe') -ArgumentList $argumentText -WindowStyle Hidden -PassThru
@@ -31,6 +39,15 @@ $extra.FoodId = $null; $extra.FoodNameSnapshot = '跨候选版回滚的明确测
 $extra.WeightGramsTenths = $null; $extra.KcalPer100gHundredthsSnapshot = $null; $extra.EnergyKcalTenths = 1234
 $extra.SourceSnapshot = '软件回滚验证的明确输入，不是真实用户摄入'
 $original.Entries = @($original.Entries) + @($extra)
+$expectedEntries = @($original.Entries)
+$expectedCount = $expectedEntries.Count
+function Assert-Entries($Snapshot) {
+    if ($Snapshot.Entries.Count -ne $expectedCount) { throw '回滚前后记录数量不同。' }
+    foreach ($expectedEntry in $expectedEntries) {
+        $actualEntry = $Snapshot.Entries | Where-Object { $_.Id -eq $expectedEntry.Id }
+        if (-not $actualEntry -or ($actualEntry | ConvertTo-Json -Depth 6 -Compress) -cne ($expectedEntry | ConvertTo-Json -Depth 6 -Compress)) { throw '回滚前后某条记录或保存时的快照不同。' }
+    }
+}
 $threePath = Join-Path $testRoot '三条明确测试输入.calorie-backup.json'
 $original | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $threePath -Encoding utf8
 Invoke-Version $newRoot @('--data-dir',$dataRoot,'--restore-backup',$threePath,'--confirm-restore')
@@ -39,11 +56,11 @@ $rollback = Join-Path $newRoot '回滚版本.ps1'
 & $rollback -TargetReleaseDirectory $oldRoot -CurrentReleaseDirectory $newRoot -DataDirectory $dataRoot -NoLaunch -Confirm:$false
 Invoke-Version $oldRoot @('--data-dir',$dataRoot,'--startup-check')
 $oldView = Export-Snapshot $oldRoot '退回旧候选后的记录'
-if ($oldView.Entries.Count -ne 3 -or $oldView.Entries.Id -notcontains $extra.Id) { throw '回滚后新增记录未保留。' }
+Assert-Entries $oldView
 & $rollback -TargetReleaseDirectory $newRoot -CurrentReleaseDirectory $oldRoot -DataDirectory $dataRoot -NoLaunch -Confirm:$false
 Invoke-Version $newRoot @('--data-dir',$dataRoot,'--startup-check')
 $newView = Export-Snapshot $newRoot '重新启用新候选后的记录'
-if ($newView.Entries.Count -ne 3 -or $newView.Entries.Id -notcontains $extra.Id) { throw '重新启用新版后记录不一致。' }
+Assert-Entries $newView
 
 $empty = Get-Content -LiteralPath $threePath -Raw | ConvertFrom-Json
 $empty.Entries = @()
@@ -54,9 +71,9 @@ $restoredOld = Export-Snapshot $oldRoot '显式恢复旧快照后的记录'
 if ($restoredOld.Entries.Count -ne 0) { throw '显式旧快照恢复失败。' }
 $pointer = Get-Content -LiteralPath (Join-Path $dataRoot 'active-version.json') -Raw | ConvertFrom-Json
 $archived = Get-Content -LiteralPath $pointer.RecoveryBackup -Raw | ConvertFrom-Json
-if ($archived.Entries.Count -ne 3 -or $archived.Entries.Id -notcontains $extra.Id) { throw '恢复旧快照前没有完整归档新记录。' }
+Assert-Entries $archived
 & $rollback -TargetReleaseDirectory $newRoot -CurrentReleaseDirectory $oldRoot -DataDirectory $dataRoot -SnapshotPath $pointer.RecoveryBackup -NoLaunch -Confirm:$false
-if ((Export-Snapshot $newRoot '归档重新恢复后的记录').Entries.Count -ne 3) { throw '新版归档恢复失败。' }
+Assert-Entries (Export-Snapshot $newRoot '归档重新恢复后的记录')
 
 $pointerPath = Join-Path $dataRoot 'active-version.json'
 $safePointer = Get-Content -LiteralPath $pointerPath -Raw
@@ -69,9 +86,9 @@ try {
 catch { if ($_.Exception.Message -notlike '*归属不明*') { throw } }
 if (@(Get-ChildItem -LiteralPath (Join-Path $dataRoot 'recovery') -File).Count -ne $beforeCount) { throw '预检查失败后不应开始数据操作。' }
 $safePointer | Set-Content -LiteralPath $pointerPath -Encoding utf8
-if ((Export-Snapshot $newRoot '错误拒绝后的记录').Entries.Count -ne 3) { throw '预检查失败影响了数据。' }
+Assert-Entries (Export-Snapshot $newRoot '错误拒绝后的记录')
 
-$result = @{From=$newVersion; To=$oldVersion; Return=$newVersion; CurrentRecordsRetained=3; CompatibleProgramRollback=$true; ExplicitSnapshotRestore=$true; NewDataArchivedAndRestored=$true; UnknownPointerRejectedBeforeChanges=$true; SchemaVersionsActuallyTested=@(1); PreviousVersionStability=(Get-Content -LiteralPath (Join-Path $oldRoot 'manifest.json') -Raw | ConvertFrom-Json).Stability; TestRoot=$testRoot}
+$result = @{From=$newVersion; To=$oldVersion; Return=$newVersion; CurrentRecordsRetained=$expectedCount; EntrySnapshotsIdentical=$true; CompatibleProgramRollback=$true; ExplicitSnapshotRestore=$true; NewDataArchivedAndRestored=$true; UnknownPointerRejectedBeforeChanges=$true; SchemaVersionsActuallyTested=@(1); PreviousVersionStability=(Get-Content -LiteralPath (Join-Path $oldRoot 'manifest.json') -Raw | ConvertFrom-Json).Stability; TestRoot=$testRoot}
 $reportName = if ($oldVersion -eq '1.0.0-rc.1' -and $newVersion -eq '1.0.0-rc.2') { 'cross-candidate-rollback.json' } else { "cross-rollback_$($newVersion)_to_$($oldVersion).json" }
 $result | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $projectRoot ('artifacts/test-results/' + $reportName)) -Encoding utf8
 $result | ConvertTo-Json -Depth 5

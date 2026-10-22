@@ -41,7 +41,7 @@ internal static class WindowLayoutChecks
             root.LayoutTransform = new ScaleTransform(factor, factor);
             foreach (var (tab, names) in new[]
             {
-                (0, new[] { "SaveEntryButton", "NewEntryButton", "DeleteEntryButton" }),
+                (0, new[] { "SaveEntryButton", "NewEntryButton", "CopyEntryButton", "DeleteEntryButton" }),
                 (1, new[] { "SaveFoodButton", "DeleteFoodButton", "UseFoodButton" }),
                 (2, new[] { "HistoryQueryButton", "OpenHistoryDayButton" }),
                 (3, new[] { "ExportBackupButton", "RestoreBackupButton", "SaveMealButton", "NewMealButton" })
