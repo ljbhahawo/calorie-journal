@@ -1,10 +1,7 @@
 using System.Globalization;
-using System.ComponentModel;
 using System.IO.Compression;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CalorieJournal.Core;
@@ -20,7 +17,8 @@ public sealed class FoodLookupService(string catalogDirectory, string cacheDirec
 
     public FoodReferenceCatalog[] Load(bool bundledOnly = false)
     {
-        var usda = LoadOne(Path.Combine(catalogDirectory, "usda.json"), "USDA SR Legacy");
+        var usdaPath = Path.Combine(catalogDirectory, "usda.json");
+        var usda = ChineseFoodIndex.Apply(LoadOne(usdaPath, "USDA SR Legacy"), Path.Combine(catalogDirectory, "usda-zh.json"), usdaPath);
         var tfda = LoadOne(!bundledOnly && File.Exists(cachePath) ? cachePath : Path.Combine(catalogDirectory, "tfda.json"), "TFDA");
         return [usda, tfda];
     }
@@ -33,23 +31,7 @@ public sealed class FoodLookupService(string catalogDirectory, string cacheDirec
         return Normalize(catalog);
     }
 
-    public static string Simplify(string text)
-    {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("简繁转换需要Windows。");
-        if (text.Length == 0) return text;
-        // 直接调用Windows NLS，避免.NET使用ICU时VisualBasic.StrConv不支持中文转换。
-        const uint simplifiedChinese = 0x02000000;
-        var size = LCMapStringEx("zh-CN", simplifiedChinese, text, text.Length, null, 0, 0, 0, 0);
-        if (size == 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows简繁转换失败。");
-        var buffer = new char[size];
-        var written = LCMapStringEx("zh-CN", simplifiedChinese, text, text.Length, buffer, buffer.Length, 0, 0, 0);
-        if (written == 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "Windows简繁转换失败。");
-        return new string(buffer, 0, written).Normalize(NormalizationForm.FormKC);
-    }
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern int LCMapStringEx(string localeName, uint flags, string source, int sourceLength,
-        [Out] char[]? destination, int destinationLength, nint version, nint reserved, nint sortHandle);
+    public static string Simplify(string text) => FoodSearch.Simplify(text);
 
     private static FoodReferenceCatalog Normalize(FoodReferenceCatalog catalog) => catalog with
     {

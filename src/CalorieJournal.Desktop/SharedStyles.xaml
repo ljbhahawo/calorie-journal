@@ -5,6 +5,7 @@
     <SolidColorBrush x:Key="Muted" Color="#65766C" />
     <SolidColorBrush x:Key="Line" Color="#DFE7E1" />
     <Style TargetType="Window">
+      <Setter Property="Icon" Value="pack://application:,,,/CalorieJournal;component/Assets/app-icon.ico" />
       <Setter Property="FontFamily" Value="Microsoft YaHei UI" /><Setter Property="FontSize" Value="14" />
       <Setter Property="Foreground" Value="{StaticResource Ink}" /><Setter Property="Background" Value="#F3F6F2" />
       <Setter Property="UseLayoutRounding" Value="True" /><Setter Property="TextOptions.TextFormattingMode" Value="Display" />

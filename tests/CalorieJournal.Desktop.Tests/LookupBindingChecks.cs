@@ -21,12 +21,21 @@ internal static class LookupBindingChecks
         var lookup = new FoodLookupService(Path.Combine(AppContext.BaseDirectory, "data", "lookup"), Path.Combine(directory, "lookup"));
         var vm = new FoodLookupViewModel(lookup);
         var window = new FoodLookupWindow(vm); window.Show(); Pump();
+        IconChecks.Verify(window);
         var query = (TextBox)window.FindName("LookupQueryBox"); query.Text = "香蕉"; Pump();
         ((Button)window.FindName("LookupSearchButton")).Command.Execute(null); Pump();
         Assert.AreEqual(2, vm.Results.Select(x => x.Provider).Distinct().Count(), vm.Status);
         ((DataGrid)window.FindName("LookupResultsGrid")).SelectedItem = vm.Results.First(x => x.Provider == "TFDA"); Pump();
         Assert.IsTrue(((TextBox)window.FindName("LookupDetailsBox")).Text.Contains("https://data.gov.tw/dataset/8543"));
         Assert.IsTrue(((Button)window.FindName("LookupSourceButton")).IsEnabled);
+        query.Text = "去皮雞脯 生"; vm.Provider = "USDA SR Legacy";
+        vm.SearchCommand.Execute(null); Pump();
+        var chineseHit = vm.Results.Single(x => x.Food.SourceId == "171077");
+        vm.Selected = chineseHit; Pump();
+        Assert.IsTrue(((TextBox)window.FindName("LookupDetailsBox")).Text.Contains(chineseHit.Food.OriginalName));
+        var resultsGrid = (DataGrid)window.FindName("LookupResultsGrid");
+        Assert.IsTrue(resultsGrid.Columns.Any(x => x.Header.ToString() == "英文 / 原始名称"));
+        query.Text = "香蕉"; vm.Provider = "TFDA"; vm.SearchCommand.Execute(null); vm.Selected = vm.Results.First(); Pump();
         var checks = new List<object>(); var grid = (Grid)window.Content;
         foreach (var factor in new[] { 1.0, 1.25, 1.5, 2.0 })
         {
@@ -63,6 +72,17 @@ internal static class LookupBindingChecks
         main.Weight = "150"; main.SaveEntryCommand.Execute(null); Pump();
         var entry = store.ReadSnapshot().Entries.Single(); Assert.IsTrue(entry.SourceSnapshot.Contains(saved.SourceUrl));
         Assert.AreEqual(Validation.CalculateEnergy(1500, saved.KcalPer100gHundredths), entry.EnergyKcalTenths);
+        ConfirmationChecks.Respond(() => main.ApplyFoodReference(chineseHit), true); Pump();
+        Assert.AreEqual(chineseHit.Food.OriginalName, main.FoodOriginalName);
+        Assert.AreEqual(1, ConfirmationChecks.Respond(() => main.SaveFoodCommand.Execute(null), true)); Pump();
+        var usdaSaved = journal.Foods().Single(x => x.SourceId == chineseHit.Food.SourceId && x.BuiltinKey.Length == 0);
+        Assert.AreEqual(chineseHit.Food.OriginalName, usdaSaved.OriginalName);
+        Assert.AreEqual(chineseHit.Food.KcalPer100gHundredths, usdaSaved.KcalPer100gHundredths);
+        Assert.IsNotEmpty(journal.Foods("去皮鸡脯生"));
+        main.SelectedLibraryFood = main.LibraryFoods.Single(x => x.Id == usdaSaved.Id); main.UseFoodCommand.Execute(null);
+        main.Weight = "100"; main.SaveEntryCommand.Execute(null); Pump();
+        Assert.HasCount(2, store.ReadSnapshot().Entries);
+        Assert.AreEqual(entry, store.FindEntry(entry.Id));
         mainWindow.Close();
         File.WriteAllText(Path.Combine(directory, "lookup-checks.json"), JsonSerializer.Serialize(new
         {

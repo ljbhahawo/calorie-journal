@@ -1,4 +1,6 @@
 using System.Text;
+using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace CalorieJournal.Core;
 
@@ -23,6 +25,7 @@ public sealed record FoodReferenceCatalog
     public required string SourceUrl { get; init; }
     public required string LicenseUrl { get; init; }
     public required string ArchiveSha256 { get; init; }
+    [JsonIgnore] public string ChineseIndexVersion { get; init; } = "";
     public required FoodReference[] Foods { get; init; }
 
     public void Validate()
@@ -67,18 +70,20 @@ public sealed record FoodReferenceHit(FoodReferenceCatalog Catalog, FoodReferenc
 
 public static class FoodReferenceSearch
 {
+    private sealed record IndexedFood(FoodReferenceHit Hit, FoodSearch.Document Document);
+    private static readonly ConditionalWeakTable<FoodReferenceCatalog, IndexedFood[]> Indexes = new();
+
     public static FoodReferenceHit[] Search(IEnumerable<FoodReferenceCatalog> catalogs, string query, string provider, out int total)
     {
         query = query.Trim().Normalize(NormalizationForm.FormKC);
         Validation.Require(query.Length is > 0 and <= 100, "请输入1至100字的食物关键词。");
         Validation.Require(provider is "全部来源" or "USDA SR Legacy" or "TFDA", "请选择有效资料来源。");
-        var terms = query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        var search = FoodSearch.PrepareQuery(query);
         var matches = catalogs.Where(x => provider == "全部来源" || x.Provider == provider)
-            .SelectMany(catalog => catalog.Foods.Select(food => new FoodReferenceHit(catalog, food)))
-            .Where(hit => terms.All(term => string.Join(' ', hit.Name, hit.Food.OriginalName, hit.Food.Aliases, hit.Preparation, hit.Food.Category, hit.Food.SourceId)
-                .Normalize(NormalizationForm.FormKC).Contains(term, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(hit => hit.Name.Equals(query, StringComparison.OrdinalIgnoreCase) ? 0 : hit.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 1 : 2)
-            .ThenBy(hit => hit.Provider).ThenBy(hit => hit.Name).ToArray();
+            .SelectMany(catalog => Indexes.GetValue(catalog, value => value.Foods.Select(food => new IndexedFood(new FoodReferenceHit(value, food),
+                FoodSearch.PrepareDocument(food.Name, food.Aliases, food.OriginalName, food.Preparation, food.Category, food.SourceId))).ToArray()))
+            .Where(item => item.Document.Matches(search)).OrderBy(item => item.Document.Rank(search))
+            .ThenBy(item => item.Hit.Provider).ThenBy(item => item.Hit.Name).Select(item => item.Hit).ToArray();
         total = matches.Length;
         // 每个来源保留最多100项，使较大的目录不会挤掉另一个来源的结果。
         return matches.GroupBy(x => x.Provider).SelectMany(x => x.Take(100)).ToArray();

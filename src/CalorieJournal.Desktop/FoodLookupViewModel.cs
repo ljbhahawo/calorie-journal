@@ -24,7 +24,7 @@ public sealed partial class FoodLookupViewModel : ObservableObject
     [ObservableProperty] private string status = "输入中文或英文关键词，点击搜索。每个来源最多显示100项，可增加关键词缩小范围。";
     public string CatalogStatus => string.Join("；", catalogs.Select(x => x.Provider == "TFDA"
         ? $"TFDA {x.Foods.Length}项 · 获取{x.RetrievedAtUtc.ToLocalTime():yyyy-MM-dd}"
-        : $"{x.Provider} {x.Foods.Length}项 · {x.Version} · 获取{x.RetrievedAtUtc.ToLocalTime():yyyy-MM-dd}"));
+        : $"{x.Provider} {x.Foods.Length}项 · {x.Version} · 中文{x.ChineseIndexVersion}"));
     public string SelectedDetails => Selected?.Details ?? "选择一项，查看原名、加工状态、来源编号及原始链接。\n不同来源和状态的数值各自独立，请选择与你的食物一致的条目。";
     public bool NotBusy => !IsBusy;
     public IRelayCommand SearchCommand { get; }

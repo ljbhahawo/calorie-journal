@@ -1,0 +1,48 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.6.0",
+  "Success": true,
+  "VerificationDate": "2026-10-23",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 1,
+  "BackupFormatVersion": 1,
+  "FoodPackageVersion": "usda-sr-2018-04.zh.1",
+  "ReferenceFormatVersion": 1,
+  "ChineseIndexVersion": "usda-zh-2026-10-23.3",
+  "SearchAliasesVersion": "food-aliases-2026-10-23.3",
+  "UsdaReferenceCount": 7793,
+  "TfdaReferenceCount": 2213,
+  "Package": {
+    "Bytes": 69137153,
+    "Sha256": "2E525854DD5AB27BA07E92CBFCBA842D75035D2404CB759FAC4A55121D430F1B",
+    "FileName": "每日热量记录_1.6.0_win-x64.zip"
+  },
+  "Checks": {
+    "PreviousStablePackagesUnchanged": true,
+    "ChineseKeywordDescriptions": 7793,
+    "BusinessAndRealSqliteTestsPassed": 38,
+    "RealDesktopOperations": true,
+    "DependencyLocksUnchanged": true,
+    "ImportWindowLayoutChecks": 40,
+    "FoodsAndMealsRetained": true,
+    "EnglishNamesAndNutritionUnchanged": true,
+    "ExeAndSystemWindowIconPixelsVerified": true,
+    "NewCacheReadByActual15Assembly": true,
+    "ChineseQueryCasesPassed": 140,
+    "ContinuousListLayoutChecks": 28,
+    "SelfContainedStartupAndBackupRestore": true,
+    "MainWindowLayoutChecks": 60,
+    "LookupWindowLayoutChecks": 28,
+    "RollbackTo": "1.5.0",
+    "FullEntrySnapshotsRetained": 3,
+    "ArchivedSourceRebuild": true
+  },
+  "EnvironmentLimits": {
+    "CrossMonitorDpiSwitchTested": false,
+    "OtherCleanWindowsMachineTested": false,
+    "ActualMonitorDpiX": 144,
+    "EmptyDependencyCacheTested": false,
+    "ChineseIsKeywordAidNotFullTranslation": true,
+    "SeparateTaskbarVisualObserved": false
+  }
+}

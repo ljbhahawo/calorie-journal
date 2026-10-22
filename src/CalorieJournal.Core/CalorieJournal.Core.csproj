@@ -1,1 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk" />
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <EmbeddedResource Include="../../data/search/aliases.json" LogicalName="CalorieJournal.Core.search-aliases.json" />
+    <EmbeddedResource Include="../../data/search/usda-terms.json" LogicalName="CalorieJournal.Core.search-terms.json" />
+  </ItemGroup>
+</Project>

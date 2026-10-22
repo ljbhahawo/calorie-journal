@@ -19,9 +19,10 @@ public sealed class JournalService(IJournalStore store)
 {
     public FoodItem[] Foods(string query = "")
     {
-        var terms = query.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return store.ReadFoods().Where(x => terms.All(t => $"{x.Name} {x.OriginalName} {x.Aliases} {x.Category} {x.Preparation}".Contains(t, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(x => x.Category).ThenBy(x => x.Name).ToArray();
+        var search = FoodSearch.PrepareQuery(query);
+        return store.ReadFoods().Select(food => (Food: food, Document: FoodSearch.PrepareDocument(food.Name, food.Aliases, food.OriginalName, food.Category, food.Preparation)))
+            .Where(x => x.Document.Matches(search)).OrderBy(x => x.Document.Rank(search))
+            .ThenBy(x => x.Food.Category).ThenBy(x => x.Food.Name).Select(x => x.Food).ToArray();
     }
 
     public MealCategory[] Meals() => store.ReadMeals().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToArray();

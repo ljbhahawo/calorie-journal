@@ -71,7 +71,9 @@ foreach ($sourceFile in @('README.md','AGENTS.md','.gitignore','global.json','Di
 $files = @(Get-ChildItem -LiteralPath $releaseRoot -Recurse -File | ForEach-Object {
     @{Path=[IO.Path]::GetRelativePath($releaseRoot,$_.FullName); Sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}
 })
-@{Application='CalorieJournal'; Version=$ReleaseVersion; Stability=$Stability; SdkVersion=(Get-Content -LiteralPath (Join-Path $projectRoot 'global.json') -Raw | ConvertFrom-Json).sdk.version; SchemaVersion=1; BackupFormatVersion=1; FoodPackageVersion='usda-sr-2018-04.zh.1'; BuiltAtUtc=[DateTimeOffset]::UtcNow.ToString('O'); Files=$files} |
+$chineseIndex = Get-Content -LiteralPath (Join-Path $projectRoot 'data/lookup/usda-zh.json') -Raw | ConvertFrom-Json
+$searchAliases = Get-Content -LiteralPath (Join-Path $projectRoot 'data/search/aliases.json') -Raw | ConvertFrom-Json
+@{Application='CalorieJournal'; Version=$ReleaseVersion; Stability=$Stability; SdkVersion=(Get-Content -LiteralPath (Join-Path $projectRoot 'global.json') -Raw | ConvertFrom-Json).sdk.version; SchemaVersion=1; BackupFormatVersion=1; FoodPackageVersion='usda-sr-2018-04.zh.1'; ReferenceFormatVersion=1; ChineseIndexVersion=$chineseIndex.Version; SearchAliasesVersion=$searchAliases.Version; BuiltAtUtc=[DateTimeOffset]::UtcNow.ToString('O'); Files=$files} |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $releaseRoot 'manifest.json') -Encoding utf8
 $packagePath = Join-Path (Split-Path $releaseRoot -Parent) ("每日热量记录_" + $ReleaseVersion + '_win-x64.zip')
 [IO.Compression.ZipFile]::CreateFromDirectory($releaseRoot, $packagePath)
