@@ -8,10 +8,20 @@ if ($ReleaseVersion -notmatch '^\d+\.\d+\.\d+(?:-[a-z0-9.]+)?$') { throw '版本
 if ($Stability -eq 'stable' -and $ReleaseVersion.Contains('-')) { throw '预发布版本不能标记为稳定版。' }
 $releaseRoot = Join-Path $projectRoot "artifacts/releases/$ReleaseVersion"
 if (Test-Path -LiteralPath $releaseRoot) { throw '该版本目录已存在，不允许覆盖。请使用新版本号。' }
+$lockHashes = @{}
+Get-ChildItem -LiteralPath (Join-Path $projectRoot 'src'),(Join-Path $projectRoot 'tests') -Recurse -File -Filter packages.lock.json | ForEach-Object {
+    $lockHashes[$_.FullName] = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
+}
+$desktopProject = Join-Path $projectRoot 'src/CalorieJournal.Desktop/CalorieJournal.Desktop.csproj'
+& (Join-Path $PSScriptRoot 'dotnet.ps1') restore $desktopProject --locked-mode -r win-x64 '-p:SelfContained=true' '-p:Configuration=Release' '-m:1'
+if ($LASTEXITCODE -ne 0) { throw '发布依赖锁定还原失败，不创建版本目录。' }
 $appRoot = Join-Path $releaseRoot 'app'
 New-Item -ItemType Directory -Path $appRoot -Force | Out-Null
-& (Join-Path $PSScriptRoot 'dotnet.ps1') publish (Join-Path $projectRoot 'src/CalorieJournal.Desktop/CalorieJournal.Desktop.csproj') -c Release -r win-x64 --self-contained true '-m:1' '-p:UseSharedCompilation=false' "-p:Version=$ReleaseVersion" '-p:PublishTrimmed=false' -o $appRoot
+& (Join-Path $PSScriptRoot 'dotnet.ps1') publish $desktopProject --no-restore -c Release -r win-x64 --self-contained true '-m:1' '-p:UseSharedCompilation=false' "-p:Version=$ReleaseVersion" '-p:PublishTrimmed=false' -o $appRoot
 if ($LASTEXITCODE -ne 0) { throw '发布构建失败，该目录不能视为可用版本。' }
+foreach ($lockPath in $lockHashes.Keys) {
+    if ((Get-FileHash -LiteralPath $lockPath -Algorithm SHA256).Hash -ne $lockHashes[$lockPath]) { throw '发布修改了依赖锁文件，停止归档。' }
+}
 $licenseRoot = Join-Path $releaseRoot 'licenses'
 New-Item -ItemType Directory -Path $licenseRoot | Out-Null
 foreach ($noticeFile in @('LICENSE.txt','ThirdPartyNotices.txt')) {

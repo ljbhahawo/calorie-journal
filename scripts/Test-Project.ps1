@@ -3,6 +3,8 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 $env:CALORIE_TEST_ROOT = Join-Path $projectRoot 'workspace/tests'
 New-Item -ItemType Directory -Path (Join-Path $projectRoot 'artifacts/test-results') -Force | Out-Null
 $testLogName = 'integration_' + (Get-Date -Format 'yyyyMMdd_HHmmss') + '.trx'
+& (Join-Path $PSScriptRoot 'dotnet.ps1') restore (Join-Path $projectRoot 'CalorieJournal.slnx') --locked-mode '-m:1'
+if ($LASTEXITCODE -ne 0) { throw '锁定依赖还原失败，不继续测试。' }
 & (Join-Path $PSScriptRoot 'dotnet.ps1') test (Join-Path $projectRoot 'CalorieJournal.slnx') --no-restore '-m:1' '-p:UseSharedCompilation=false' --blame-hang-timeout 30s --blame-hang-dump-type none --logger "trx;LogFilePrefix=$testLogName" --results-directory (Join-Path $projectRoot 'artifacts/test-results')
 if ($LASTEXITCODE -ne 0) { throw '测试失败，请查看实际输出和TRX报告。' }
 & (Join-Path $PSScriptRoot 'dotnet.ps1') build (Join-Path $projectRoot 'tests/CalorieJournal.Desktop.Tests/CalorieJournal.Desktop.Tests.csproj') --no-restore '-m:1' '-p:UseSharedCompilation=false'
