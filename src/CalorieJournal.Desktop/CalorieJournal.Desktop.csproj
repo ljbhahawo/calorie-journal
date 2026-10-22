@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>CalorieJournal</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../CalorieJournal.Core/CalorieJournal.Core.csproj" />
+    <ProjectReference Include="../CalorieJournal.Infrastructure/CalorieJournal.Infrastructure.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Content Include="../../data/builtin/foods.json" Link="data/foods.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../data/builtin/sources.json" Link="data/sources.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CalorieJournal.Core/CalorieJournal.Core.csproj" />
+    <Project Path="src/CalorieJournal.Desktop/CalorieJournal.Desktop.csproj" />
+    <Project Path="src/CalorieJournal.Infrastructure/CalorieJournal.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CalorieJournal.Desktop.Tests/CalorieJournal.Desktop.Tests.csproj" />
+    <Project Path="tests/CalorieJournal.Tests/CalorieJournal.Tests.csproj" />
+  </Folder>
+</Solution>

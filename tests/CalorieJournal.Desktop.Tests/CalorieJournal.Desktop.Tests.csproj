@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><OutputType>Exe</OutputType><IsTestProject>false</IsTestProject><IsPackable>false</IsPackable><StartupObject>CalorieJournal.Desktop.Tests.BindingCheckProgram</StartupObject><GenerateProgramFile>false</GenerateProgramFile></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="MSTest" Version="4.5.1" />
+    <ProjectReference Include="../../src/CalorieJournal.Desktop/CalorieJournal.Desktop.csproj" />
+    <Content Include="../../data/builtin/foods.json" Link="data/foods.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

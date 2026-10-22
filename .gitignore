@@ -1,0 +1,21 @@
+# 本机工具、依赖和生成物
+.tools/
+.nuget/
+.dotnet-home/
+.vs/
+**/bin/
+**/obj/
+TestResults/
+artifacts/
+workspace/
+
+# 实际用户数据与备份不得进入源码管理
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.calorie-backup.json
+*.log
+*.user
+*.suo

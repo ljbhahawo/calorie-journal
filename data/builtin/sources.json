@@ -1,0 +1,431 @@
+{
+  "source": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+  "license": "CC0-1.0",
+  "archiveSha256": "b80817294b8850530aaedf2e515c02593b1824f763a0ff356e5c2081643e6fd0",
+  "retrievedAtUtc": "2026-10-21T18:19:04.043483+00:00",
+  "energyNutrientId": "1008",
+  "basis": "kcal per 100g edible portion",
+  "count": 60,
+  "foods": [
+    {
+      "ndb": "01077",
+      "fdcId": "171265",
+      "name": "全脂牛奶（3.25%脂肪）",
+      "originalName": "Milk, whole, 3.25% milkfat, with added vitamin D",
+      "kcalPer100g": "61"
+    },
+    {
+      "ndb": "01079",
+      "fdcId": "171267",
+      "name": "低脂牛奶（2%脂肪）",
+      "originalName": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
+      "kcalPer100g": "50"
+    },
+    {
+      "ndb": "01085",
+      "fdcId": "171269",
+      "name": "脱脂牛奶",
+      "originalName": "Milk, nonfat, fluid, with added vitamin A and vitamin D (fat free or skim)",
+      "kcalPer100g": "34"
+    },
+    {
+      "ndb": "01009",
+      "fdcId": "173414",
+      "name": "切达奶酪",
+      "originalName": "Cheese, cheddar (Includes foods for USDA's Food Distribution Program)",
+      "kcalPer100g": "403"
+    },
+    {
+      "ndb": "01123",
+      "fdcId": "171287",
+      "name": "鸡蛋（生）",
+      "originalName": "Egg, whole, raw, fresh",
+      "kcalPer100g": "143"
+    },
+    {
+      "ndb": "01129",
+      "fdcId": "173424",
+      "name": "鸡蛋（水煮）",
+      "originalName": "Egg, whole, cooked, hard-boiled",
+      "kcalPer100g": "155"
+    },
+    {
+      "ndb": "20044",
+      "fdcId": "168877",
+      "name": "长粒白米（生）",
+      "originalName": "Rice, white, long-grain, regular, raw, enriched",
+      "kcalPer100g": "365"
+    },
+    {
+      "ndb": "20045",
+      "fdcId": "168878",
+      "name": "长粒白米饭（熟）",
+      "originalName": "Rice, white, long-grain, regular, enriched, cooked",
+      "kcalPer100g": "130"
+    },
+    {
+      "ndb": "20040",
+      "fdcId": "169706",
+      "name": "中粒糙米（生）",
+      "originalName": "Rice, brown, medium-grain, raw (Includes foods for USDA's Food Distribution Program)",
+      "kcalPer100g": "362"
+    },
+    {
+      "ndb": "20041",
+      "fdcId": "168875",
+      "name": "中粒糙米饭（熟）",
+      "originalName": "Rice, brown, medium-grain, cooked (Includes foods for USDA's Food Distribution Program)",
+      "kcalPer100g": "112"
+    },
+    {
+      "ndb": "20081",
+      "fdcId": "168894",
+      "name": "通用白面粉",
+      "originalName": "Wheat flour, white, all-purpose, enriched, bleached",
+      "kcalPer100g": "364"
+    },
+    {
+      "ndb": "08120",
+      "fdcId": "173904",
+      "name": "燕麦片（干）",
+      "originalName": "Cereals, oats, regular and quick, not fortified, dry",
+      "kcalPer100g": "379"
+    },
+    {
+      "ndb": "18069",
+      "fdcId": "174924",
+      "name": "白面包",
+      "originalName": "Bread, white, commercially prepared (includes soft bread crumbs)",
+      "kcalPer100g": "266"
+    },
+    {
+      "ndb": "11352",
+      "fdcId": "170026",
+      "name": "土豆（生，带皮）",
+      "originalName": "Potatoes, flesh and skin, raw",
+      "kcalPer100g": "77"
+    },
+    {
+      "ndb": "11367",
+      "fdcId": "170440",
+      "name": "土豆（水煮，去皮）",
+      "originalName": "Potatoes, boiled, cooked without skin, flesh, without salt",
+      "kcalPer100g": "86"
+    },
+    {
+      "ndb": "11507",
+      "fdcId": "168482",
+      "name": "红薯（生）",
+      "originalName": "Sweet potato, raw, unprepared (Includes foods for USDA's Food Distribution Program)",
+      "kcalPer100g": "86"
+    },
+    {
+      "ndb": "11124",
+      "fdcId": "170393",
+      "name": "胡萝卜（生）",
+      "originalName": "Carrots, raw",
+      "kcalPer100g": "41"
+    },
+    {
+      "ndb": "11090",
+      "fdcId": "170379",
+      "name": "西兰花（生）",
+      "originalName": "Broccoli, raw",
+      "kcalPer100g": "34"
+    },
+    {
+      "ndb": "11529",
+      "fdcId": "170457",
+      "name": "番茄（生）",
+      "originalName": "Tomatoes, red, ripe, raw, year round average",
+      "kcalPer100g": "18"
+    },
+    {
+      "ndb": "11109",
+      "fdcId": "169975",
+      "name": "卷心菜（生）",
+      "originalName": "Cabbage, raw",
+      "kcalPer100g": "25"
+    },
+    {
+      "ndb": "11457",
+      "fdcId": "168462",
+      "name": "菠菜（生）",
+      "originalName": "Spinach, raw",
+      "kcalPer100g": "23"
+    },
+    {
+      "ndb": "11205",
+      "fdcId": "168409",
+      "name": "黄瓜（生，带皮）",
+      "originalName": "Cucumber, with peel, raw",
+      "kcalPer100g": "15"
+    },
+    {
+      "ndb": "11252",
+      "fdcId": "169248",
+      "name": "球生菜（生）",
+      "originalName": "Lettuce, iceberg (includes crisphead types), raw",
+      "kcalPer100g": "14"
+    },
+    {
+      "ndb": "11260",
+      "fdcId": "169251",
+      "name": "白蘑菇（生）",
+      "originalName": "Mushrooms, white, raw",
+      "kcalPer100g": "22"
+    },
+    {
+      "ndb": "11052",
+      "fdcId": "169961",
+      "name": "四季豆（生）",
+      "originalName": "Beans, snap, green, raw",
+      "kcalPer100g": "31"
+    },
+    {
+      "ndb": "16057",
+      "fdcId": "173757",
+      "name": "鹰嘴豆（水煮）",
+      "originalName": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+      "kcalPer100g": "164"
+    },
+    {
+      "ndb": "09003",
+      "fdcId": "171688",
+      "name": "苹果（生，带皮）",
+      "originalName": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",
+      "kcalPer100g": "52"
+    },
+    {
+      "ndb": "09040",
+      "fdcId": "173944",
+      "name": "香蕉（生）",
+      "originalName": "Bananas, raw",
+      "kcalPer100g": "89"
+    },
+    {
+      "ndb": "09200",
+      "fdcId": "169097",
+      "name": "橙子（生）",
+      "originalName": "Oranges, raw, all commercial varieties",
+      "kcalPer100g": "47"
+    },
+    {
+      "ndb": "09266",
+      "fdcId": "169124",
+      "name": "菠萝（生）",
+      "originalName": "Pineapple, raw, all varieties",
+      "kcalPer100g": "50"
+    },
+    {
+      "ndb": "09316",
+      "fdcId": "167762",
+      "name": "草莓（生）",
+      "originalName": "Strawberries, raw",
+      "kcalPer100g": "32"
+    },
+    {
+      "ndb": "09132",
+      "fdcId": "174683",
+      "name": "葡萄（生）",
+      "originalName": "Grapes, red or green (European type, such as Thompson seedless), raw",
+      "kcalPer100g": "69"
+    },
+    {
+      "ndb": "09050",
+      "fdcId": "171711",
+      "name": "蓝莓（生）",
+      "originalName": "Blueberries, raw",
+      "kcalPer100g": "57"
+    },
+    {
+      "ndb": "09150",
+      "fdcId": "167746",
+      "name": "柠檬（生，去皮）",
+      "originalName": "Lemons, raw, without peel",
+      "kcalPer100g": "29"
+    },
+    {
+      "ndb": "09038",
+      "fdcId": "171706",
+      "name": "牛油果（生，加州品种）",
+      "originalName": "Avocados, raw, California",
+      "kcalPer100g": "167"
+    },
+    {
+      "ndb": "12061",
+      "fdcId": "170567",
+      "name": "扁桃仁",
+      "originalName": "Nuts, almonds",
+      "kcalPer100g": "579"
+    },
+    {
+      "ndb": "12155",
+      "fdcId": "170187",
+      "name": "核桃仁（普通核桃）",
+      "originalName": "Nuts, walnuts, english",
+      "kcalPer100g": "654"
+    },
+    {
+      "ndb": "16087",
+      "fdcId": "172430",
+      "name": "花生仁（生）",
+      "originalName": "Peanuts, all types, raw",
+      "kcalPer100g": "567"
+    },
+    {
+      "ndb": "04053",
+      "fdcId": "171413",
+      "name": "橄榄油",
+      "originalName": "Oil, olive, salad or cooking",
+      "kcalPer100g": "884"
+    },
+    {
+      "ndb": "04047",
+      "fdcId": "171412",
+      "name": "椰子油",
+      "originalName": "Oil, coconut",
+      "kcalPer100g": "892"
+    },
+    {
+      "ndb": "04044",
+      "fdcId": "171411",
+      "name": "大豆油",
+      "originalName": "Oil, soybean, salad or cooking",
+      "kcalPer100g": "884"
+    },
+    {
+      "ndb": "19335",
+      "fdcId": "169655",
+      "name": "白砂糖",
+      "originalName": "Sugars, granulated",
+      "kcalPer100g": "387"
+    },
+    {
+      "ndb": "19296",
+      "fdcId": "169640",
+      "name": "蜂蜜",
+      "originalName": "Honey",
+      "kcalPer100g": "304"
+    },
+    {
+      "ndb": "02047",
+      "fdcId": "173468",
+      "name": "食盐",
+      "originalName": "Salt, table",
+      "kcalPer100g": "0"
+    },
+    {
+      "ndb": "14411",
+      "fdcId": "173647",
+      "name": "饮用水",
+      "originalName": "Beverages, water, tap, drinking",
+      "kcalPer100g": "0"
+    },
+    {
+      "ndb": "14209",
+      "fdcId": "171890",
+      "name": "黑咖啡（冲煮）",
+      "originalName": "Beverages, coffee, brewed, prepared with tap water",
+      "kcalPer100g": "1"
+    },
+    {
+      "ndb": "14121",
+      "fdcId": "174842",
+      "name": "无糖苏打水",
+      "originalName": "Beverages, carbonated, club soda",
+      "kcalPer100g": "0"
+    },
+    {
+      "ndb": "16070",
+      "fdcId": "172421",
+      "name": "兵豆（水煮）",
+      "originalName": "Lentils, mature seeds, cooked, boiled, without salt",
+      "kcalPer100g": "116"
+    },
+    {
+      "ndb": "16127",
+      "fdcId": "172449",
+      "name": "嫩豆腐（石膏及卤水制）",
+      "originalName": "Tofu, soft, prepared with calcium sulfate and magnesium chloride (nigari)",
+      "kcalPer100g": "61"
+    },
+    {
+      "ndb": "16015",
+      "fdcId": "173735",
+      "name": "黑芸豆（水煮）",
+      "originalName": "Beans, black, mature seeds, cooked, boiled, without salt",
+      "kcalPer100g": "132"
+    },
+    {
+      "ndb": "05064",
+      "fdcId": "171477",
+      "name": "鸡胸肉（烤熟，纯肉）",
+      "originalName": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+      "kcalPer100g": "165"
+    },
+    {
+      "ndb": "05062",
+      "fdcId": "171077",
+      "name": "鸡胸肉（生，去皮去骨）",
+      "originalName": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, raw",
+      "kcalPer100g": "120"
+    },
+    {
+      "ndb": "15076",
+      "fdcId": "173686",
+      "name": "大西洋鲑鱼（野生，生）",
+      "originalName": "Fish, salmon, Atlantic, wild, raw",
+      "kcalPer100g": "142"
+    },
+    {
+      "ndb": "15121",
+      "fdcId": "173709",
+      "name": "淡色金枪鱼（水浸罐头，沥干）",
+      "originalName": "Fish, tuna, light, canned in water, drained solids (Includes foods for USDA's Food Distribution Program)",
+      "kcalPer100g": "86"
+    },
+    {
+      "ndb": "10060",
+      "fdcId": "168249",
+      "name": "猪里脊肉（生，纯瘦肉）",
+      "originalName": "Pork, fresh, loin, tenderloin, separable lean only, raw",
+      "kcalPer100g": "109"
+    },
+    {
+      "ndb": "11282",
+      "fdcId": "170000",
+      "name": "洋葱（生）",
+      "originalName": "Onions, raw",
+      "kcalPer100g": "40"
+    },
+    {
+      "ndb": "11215",
+      "fdcId": "169230",
+      "name": "大蒜（生）",
+      "originalName": "Garlic, raw",
+      "kcalPer100g": "149"
+    },
+    {
+      "ndb": "11477",
+      "fdcId": "169291",
+      "name": "西葫芦（生，带皮）",
+      "originalName": "Squash, summer, zucchini, includes skin, raw",
+      "kcalPer100g": "17"
+    },
+    {
+      "ndb": "11167",
+      "fdcId": "169998",
+      "name": "黄甜玉米（生）",
+      "originalName": "Corn, sweet, yellow, raw",
+      "kcalPer100g": "86"
+    },
+    {
+      "ndb": "11168",
+      "fdcId": "169999",
+      "name": "黄甜玉米（水煮）",
+      "originalName": "Corn, sweet, yellow, cooked, boiled, drained, without salt",
+      "kcalPer100g": "96"
+    }
+  ]
+}

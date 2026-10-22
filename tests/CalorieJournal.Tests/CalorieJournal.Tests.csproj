@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="MSTest" Version="4.5.1" />
+    <ProjectReference Include="../../src/CalorieJournal.Core/CalorieJournal.Core.csproj" />
+    <ProjectReference Include="../../src/CalorieJournal.Infrastructure/CalorieJournal.Infrastructure.csproj" />
+    <Content Include="../../data/builtin/foods.json" Link="data/foods.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
