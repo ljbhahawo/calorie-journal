@@ -23,6 +23,7 @@ public sealed partial class MainViewModel : ObservableObject
     private bool mealDirty;
     private IntakeEntry? editingEntry;
     private FoodItem? editingFood;
+    private FoodItem? newFoodTemplate;
     private FoodItem? librarySelection;
     private DateTime selectedDate = DateTime.Today;
     private DateTime lastToday = DateTime.Today;
@@ -151,6 +152,7 @@ public sealed partial class MainViewModel : ObservableObject
     public IAsyncRelayCommand ExportCommand { get; }
     public IAsyncRelayCommand RestoreCommand { get; }
     public IRelayCommand OpenImportCommand { get; }
+    public IRelayCommand OpenFoodLookupCommand { get; }
 
     public MainViewModel(JournalService journal, BackupService backups, string dataDirectory)
     {
@@ -221,6 +223,13 @@ public sealed partial class MainViewModel : ObservableObject
             if (!viewModel.Imported) return;
             RefreshDay(); RefreshHistory();
             Status = "历史记录已导入；导入前备份：" + viewModel.RecoveryPath;
+        }));
+        OpenFoodLookupCommand = new RelayCommand(() => Run(() =>
+        {
+            var lookup = new FoodLookupViewModel(new FoodLookupService(Path.Combine(AppContext.BaseDirectory, "data", "lookup"), Path.Combine(DataDirectory, "lookup")));
+            var window = new FoodLookupWindow(lookup) { Owner = Application.Current.MainWindow };
+            window.ShowDialog();
+            if (window.Chosen is not null) ApplyFoodReference(window.Chosen);
         }));
         InitializeBrowse();
         RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory(); LoadFood(null);
@@ -429,18 +438,29 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void LoadFood(FoodItem? value)
     {
-        loading = true; editingFood = value;
+        loading = true; editingFood = value; newFoodTemplate = null;
         FoodName = value?.Name ?? ""; FoodOriginalName = value?.OriginalName ?? ""; FoodAliases = value?.Aliases ?? "";
         FoodPreparation = value?.Preparation ?? ""; FoodCategory = value?.Category ?? "";
         FoodUnitKcal = value?.KcalPer100g.ToString("0.00", CultureInfo.InvariantCulture) ?? "";
-        FoodSourceNote = value?.SourceNote ?? ""; FoodSource = value?.SourceSummary ?? "用户录入";
+        FoodSourceNote = value?.SourceNote ?? ""; FoodSource = value is null ? "用户录入" : value.SourceSummary + " " + value.SourceUrl;
         loading = false; foodDirty = false; OnPropertyChanged(nameof(FoodHeading));
+    }
+
+    public void ApplyFoodReference(FoodReferenceHit hit)
+    {
+        if (foodDirty && !Confirm("食物修改尚未保存，是否放弃修改并带入所选资料？")) return;
+        var template = hit.CreateFood();
+        LoadFood(template); editingFood = null; newFoodTemplate = template;
+        librarySelection = null; OnPropertyChanged(nameof(SelectedLibraryFood)); OnPropertyChanged(nameof(FoodHeading));
+        foodDirty = true;
+        Status = "已带入新增食物，尚未保存。请核对名称、加工状态和每100克大卡，再点击保存食物。" +
+            (template.Name.Length > 100 || template.Preparation.Length > 200 ? " 原文较长，请将名称缩短至100字、加工状态缩短至200字；原始名称及来源继续保留。" : "");
     }
 
     private void SaveFood()
     {
         if (editingFood is null && journal.Foods().Any(x => x.Name.Equals(FoodName.Trim(), StringComparison.OrdinalIgnoreCase)) && !Confirm("已有同名食物，是否仍新增为独立条目？")) return;
-        var food = (editingFood ?? new FoodItem { Id = Guid.NewGuid(), Name = "", KcalPer100gHundredths = 0 }) with
+        var food = (editingFood ?? newFoodTemplate ?? new FoodItem { Id = Guid.NewGuid(), Name = "", KcalPer100gHundredths = 0 }) with
         {
             Name = FoodName, Aliases = FoodAliases, Preparation = FoodPreparation, Category = FoodCategory,
             KcalPer100gHundredths = Validation.Scaled(Validation.Number(FoodUnitKcal, "每100克大卡"), 100, 0, 10000, "每100克大卡"),

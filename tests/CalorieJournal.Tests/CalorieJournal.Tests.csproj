@@ -6,5 +6,7 @@
     <ProjectReference Include="../../src/CalorieJournal.Core/CalorieJournal.Core.csproj" />
     <ProjectReference Include="../../src/CalorieJournal.Infrastructure/CalorieJournal.Infrastructure.csproj" />
     <Content Include="../../data/builtin/foods.json" Link="data/foods.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../data/lookup/*.json" Link="data/lookup/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="fixtures/tfda-sample.zip" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

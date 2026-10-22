@@ -28,7 +28,7 @@ public sealed class BindingTests
         store.Initialize(JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data", "foods.json")));
         var service = new JournalService(store);
         Trace("创建WPF应用资源");
-        var app = new App(); app.InitializeComponent();
+        _ = new TestApplication();
         Trace("创建真实ViewModel");
         var vm = new MainViewModel(service, new BackupService(store, Path.Combine(directory, "recovery")), directory);
         Trace("ViewModel已创建");

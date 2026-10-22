@@ -226,7 +226,7 @@
                   <TextBlock Text="没有找到匹配的食物" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="试试其他关键词，或在左侧新增食物" Style="{StaticResource Caption}" Margin="0,8,0,0" />
                 </StackPanel>
               </Grid>
-              <Border Grid.Row="2" Padding="20,14" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"><WrapPanel><Button x:Name="UseFoodButton" Content="用选中食物记录摄入" Command="{Binding UseFoodCommand}" Style="{StaticResource PrimaryButton}" /></WrapPanel></Border>
+              <Border Grid.Row="2" Padding="20,14" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"><WrapPanel><Button x:Name="UseFoodButton" Content="用选中食物记录摄入" Command="{Binding UseFoodCommand}" Style="{StaticResource PrimaryButton}" /><Button x:Name="OpenFoodLookupButton" Content="查找热量资料" Command="{Binding OpenFoodLookupCommand}" /></WrapPanel></Border>
             </Grid>
           </Border>
         </Grid>

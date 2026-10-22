@@ -73,7 +73,7 @@ internal static class WindowLayoutChecks
             foreach (var (tab, names) in new[]
             {
                 (0, new[] { "SaveEntryButton", "NewEntryButton", "CopyEntryButton", "DeleteEntryButton" }),
-                (1, new[] { "SaveFoodButton", "DeleteFoodButton", "UseFoodButton" }),
+                (1, new[] { "SaveFoodButton", "DeleteFoodButton", "UseFoodButton", "OpenFoodLookupButton" }),
                 (2, new[] { "HistoryQueryButton", "OpenHistoryDayButton" }),
                 (3, new[] { "ExportBackupButton", "RestoreBackupButton", "OpenImportButton", "SaveMealButton", "NewMealButton" })
             })

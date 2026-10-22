@@ -1,6 +1,6 @@
 # 架构与技术设计
 
-用途：规定软件实现边界及后续升级方式。状态：2026-10-22 已交付1.4.0，三个生产项目、归档源码重建及版本回滚通过验证；详细证据见开发进度。产品范围见 [需求说明](requirements.md)。
+用途：规定软件实现边界及后续升级方式。状态：2026-10-23 已完成1.5.0多来源查询、本机程序交付、归档源码重建及返回1.4.0验证；详细证据见开发进度。产品范围见 [需求说明](requirements.md)。
 
 ## 1. 技术选择
 
@@ -33,11 +33,13 @@ flowchart TD
 
 当前实现用`JournalService`集中处理摄入、汇总、食物搜索维护及餐次，通过`IJournalStore`访问存储；`BackupService`处理完整备份恢复，`SqliteJournalStore.Initialize`检查应用标识、初始化和结构版本。构造函数注入依赖，事务边界围绕一次完整写操作。当前规模不额外建立只有转发调用的服务类。
 
-1.2界面使用`App.xaml`集中维护颜色与控件样式，`MainWindow.xaml`组织四页布局；表单内容滚动而保存区域固定。导航模板保留`PART_SelectedContentHost`供辅助技术访问内容，选中文字颜色只作用于导航标题。空白状态及历史未记录样式直接绑定现有集合与记录数，不修改业务计算或存储。
+界面使用`SharedStyles.xaml`集中维护颜色与控件样式，由`App.xaml`加载，`MainWindow.xaml`组织四页布局；表单内容滚动而保存区域固定。导航模板保留`PART_SelectedContentHost`供辅助技术访问内容，选中文字颜色只作用于导航标题。空白状态及历史未记录样式直接绑定现有集合与记录数，不修改业务计算或存储。WPF绑定测试用独立Application加载相同样式资源，不运行生产启动入口；实际EXE另用明确隔离目录验证。
 
 1.3导入使用Core中的`IntakeTextParser`和`ImportPlanner`产生与校验草稿；复制表格由.NET标准库`TextFieldParser`处理引号、分隔和换行。独立`ImportWindow`/`ImportViewModel`负责核对与确认，调用`BackupService.CreateImportBackup`后由`JournalService.ImportEntries`和存储的`AppendEntries`在单个事务中追加；不覆盖旧条目，不改变结构版本。具体边界见[历史记录导入](历史记录导入.md)。
 
 1.4连续列表位于每日页面右侧，与单日视图共享左侧摄入表单。`JournalService.BrowseDays`一次读取区间明细，按日期倒序组织每天的有序摄入与合计；不增加存储表和缓存总数。`MainViewModel`用独立的已应用查询区间维护列表，失败的筛选不影响保存后的刷新；每次摄入写入、恢复或导入后同步刷新。列表采用有界区间与日期容器虚拟化，鼠标滚轮交给外层列表，避免嵌套表格截断滚动。列表按钮传递明确的日期或摄入对象，复用现有确认、编辑和删除逻辑，保留食物与导入来源快照。
+
+1.5的`FoodReferenceCatalog`和`FoodReferenceSearch`负责独立参考目录与按来源查询；`FoodLookupService`负责官方档案、Windows NLS简繁转换、主动联网更新及原子替换缓存。`FoodLookupWindow`/`FoodLookupViewModel`显示查询与来源；`MainViewModel.ApplyFoodReference`将选中结果作为待保存的新食物，保留完整来源且保护原草稿。普通记账、启动和查询不联网。详情、限制及验收见[热量资料查询](热量资料查询.md)。
 
 ## 3. 计划目录
 

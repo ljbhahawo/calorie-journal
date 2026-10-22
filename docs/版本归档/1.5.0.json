@@ -1,0 +1,42 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.5.0",
+  "Success": true,
+  "VerificationDate": "2026-10-23",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 1,
+  "BackupFormatVersion": 1,
+  "FoodPackageVersion": "usda-sr-2018-04.zh.1",
+  "ReferenceFormatVersion": 1,
+  "UsdaReferenceCount": 7793,
+  "TfdaReferenceCount": 2213,
+  "Package": {
+    "Bytes": 67657041,
+    "FileName": "每日热量记录_1.5.0_win-x64.zip",
+    "Sha256": "0AA82FB435CEF8ECDEC87FC9917D00D5E2FB37DE597118506E2603E8F8D91CB0"
+  },
+  "Checks": {
+    "MainWindowLayoutChecks": 60,
+    "CanceledUpdateRetainsCache": true,
+    "ArchivedSourceRebuild": true,
+    "DependencyLocksUnchanged": true,
+    "CacheWriteFailureRetainsCache": true,
+    "PreviousStablePackagesUnchanged": true,
+    "LookupWindowLayoutChecks": 28,
+    "FoodsAndMealsRetained": true,
+    "BusinessAndRealSqliteTestsPassed": 31,
+    "FullEntrySnapshotsRetained": 3,
+    "ActualOfficialDownload": true,
+    "RollbackTo": "1.4.0",
+    "SelfContainedStartupAndBackupRestore": true,
+    "ImportWindowLayoutChecks": 40,
+    "RealDesktopOperations": true,
+    "ContinuousListLayoutChecks": 28
+  },
+  "EnvironmentLimits": {
+    "ActualMonitorDpiX": 144,
+    "OtherCleanWindowsMachineTested": false,
+    "CrossMonitorDpiSwitchTested": false,
+    "EmptyDependencyCacheTested": false
+  }
+}

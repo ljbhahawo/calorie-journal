@@ -11,5 +11,6 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <Content Include="../../data/builtin/foods.json" Link="data/foods.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../data/builtin/sources.json" Link="data/sources.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../data/lookup/*.json" Link="data/lookup/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
