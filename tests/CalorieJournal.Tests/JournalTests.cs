@@ -87,6 +87,43 @@ public sealed class JournalTests
     }
 
     [TestMethod]
+    public void BrowseIncludesEmptyDaysAndExactZeroAndUsesMealTimeOrder()
+    {
+        var first = Direct(0, Today.AddDays(-2)) with { LocalTime = "10:30" };
+        var second = Direct(101, Today.AddDays(-2)) with { LocalTime = "08:00" };
+        var third = Direct(205, Today.AddDays(-2)) with { MealCategoryId = service.Meals()[1].Id, MealNameSnapshot = service.Meals()[1].Name };
+        service.SaveEntry(first); service.SaveEntry(second); service.SaveEntry(third);
+        service.SaveEntry(Direct(0));
+        var days = service.BrowseDays(Today.AddDays(-2), Today);
+        CollectionAssert.AreEqual(new[] { Today, Today.AddDays(-1), Today.AddDays(-2) }, days.Select(x => x.Date).ToArray());
+        Assert.AreEqual("0.0 大卡 · 1 项", days[0].Summary);
+        Assert.AreEqual("未记录", days[1].Summary);
+        Assert.AreEqual(306L, days[2].EnergyKcalTenths);
+        CollectionAssert.AreEqual(new[] { second.Id, first.Id, third.Id }, days[2].Entries.Select(x => x.Id).ToArray());
+        service.SaveEntry(second with { EntryDate = Today, EnergyKcalTenths = 404 });
+        service.DeleteEntry(third.Id);
+        var reopened = new JournalService(new SqliteJournalStore(store.DatabasePath));
+        var after = reopened.BrowseDays(Today.AddDays(-2), Today);
+        Assert.AreEqual(404L, after[0].EnergyKcalTenths);
+        Assert.HasCount(1, after[2].Entries);
+        Assert.AreEqual(first.Id, after[2].Entries[0].Id);
+    }
+
+    [TestMethod]
+    public void BrowseRejectsInvalidIntervalsAndKeepsSnapshotsAfterFoodChanges()
+    {
+        var rice = Rice(); service.SaveEntry(rice);
+        var before = store.FindEntry(rice.Id);
+        service.DeleteFood(service.Foods("长粒白米饭").Single());
+        Assert.AreEqual(before, service.BrowseDays(Today, Today).Single().Entries.Single());
+        Assert.AreEqual(366, service.BrowseDays(Today.AddDays(-365), Today).Length);
+        Assert.Throws<ValidationException>(() => service.BrowseDays(Today.AddDays(-366), Today));
+        Assert.Throws<ValidationException>(() => service.BrowseDays(Today, Today.AddDays(-1)));
+        Assert.Throws<ValidationException>(() => service.BrowseDays(Today, Today.AddDays(1)));
+        Assert.HasCount(1, store.ReadSnapshot().Entries);
+    }
+
+    [TestMethod]
     public void FoodChangesDeletionAndReinitializationKeepHistoricalSnapshots()
     {
         var entry = Rice(); service.SaveEntry(entry);

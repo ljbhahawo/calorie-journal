@@ -100,8 +100,8 @@ public sealed partial class MainViewModel : ObservableObject
         set
         {
             if (value.Date == selectedDate.Date) return;
-            if (!ConfirmEntryDiscard()) { OnPropertyChanged(); return; }
             if (value.Date > DateTime.Today) { Status = "记录日期不能晚于今天。"; OnPropertyChanged(); return; }
+            if (!ConfirmEntryDiscard()) { OnPropertyChanged(); return; }
             SetProperty(ref selectedDate, value.Date);
             ResetEntry();
             RefreshDay();
@@ -155,8 +155,8 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel(JournalService journal, BackupService backups, string dataDirectory)
     {
         this.journal = journal; this.backups = backups; DataDirectory = dataDirectory;
-        PreviousDayCommand = new RelayCommand(() => Run(() => SelectedDate = SelectedDate.AddDays(-1)));
-        NextDayCommand = new RelayCommand(() => Run(() => SelectedDate = SelectedDate.AddDays(1)));
+        PreviousDayCommand = new RelayCommand(() => Run(() => SelectedDate = SelectedDate.AddDays(-1)), () => SelectedDate.Date > DateTime.MinValue.Date);
+        NextDayCommand = new RelayCommand(() => Run(() => SelectedDate = SelectedDate.AddDays(1)), () => SelectedDate.Date < DateTime.Today);
         TodayCommand = new RelayCommand(() => Run(() => SelectedDate = DateTime.Today));
         NewEntryCommand = new RelayCommand(() => Run(() => { if (ConfirmEntryDiscard()) { entryDirty = false; RefreshClockDate(); ResetEntry(); } }));
         EditEntryCommand = new RelayCommand(() => Run(EditEntry));
@@ -168,14 +168,7 @@ public sealed partial class MainViewModel : ObservableObject
             Status = "已复制到今天的新增表单。请核对日期、餐次和数值，再点击保存摄入；原记录保持不变。";
         }));
         SaveEntryCommand = new RelayCommand(() => Run(SaveEntry));
-        DeleteEntryCommand = new RelayCommand(() => Run(() =>
-        {
-            Validation.Require(SelectedEntry is not null, "请先选择一条摄入记录。");
-            if (!Confirm($"删除“{SelectedEntry.FoodNameSnapshot}”这条记录？")) return;
-            journal.DeleteEntry(SelectedEntry.Id);
-            if (editingEntry?.Id == SelectedEntry.Id) ResetEntry();
-            RefreshDay(); RefreshHistory(); Status = "已删除指定摄入记录。";
-        }));
+        DeleteEntryCommand = new RelayCommand(() => Run(() => DeleteEntry(SelectedEntry)));
         ClearFoodCommand = new RelayCommand(() =>
         {
             ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; savedSource = "用户录入"; entryDirty = true; OnPropertyChanged(nameof(EntrySource));
@@ -229,6 +222,7 @@ public sealed partial class MainViewModel : ObservableObject
             RefreshDay(); RefreshHistory();
             Status = "历史记录已导入；导入前备份：" + viewModel.RecoveryPath;
         }));
+        InitializeBrowse();
         RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory(); LoadFood(null);
     }
 
@@ -236,6 +230,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         base.OnPropertyChanged(e);
         if (e.PropertyName == nameof(IsBusy)) OnPropertyChanged(nameof(NotBusy));
+        if (e.PropertyName == nameof(SelectedDate)) { NextDayCommand?.NotifyCanExecuteChanged(); PreviousDayCommand?.NotifyCanExecuteChanged(); }
         if (e.PropertyName is nameof(Weight) or nameof(WeightUnit) or nameof(UnitKcal) or nameof(DirectKcal) or nameof(WeightMode))
             OnPropertyChanged(nameof(EnergyPreview));
         if (loading) return;
@@ -281,6 +276,8 @@ public sealed partial class MainViewModel : ObservableObject
             selectedDate = DateTime.Today; OnPropertyChanged(nameof(SelectedDate)); ResetEntry(); RefreshDay();
         }
         lastToday = DateTime.Today;
+        OnPropertyChanged(nameof(TodayDate));
+        NextDayCommand.NotifyCanExecuteChanged();
     }
 
     private static bool Expected(Exception ex) => ex is ValidationException or IOException or UnauthorizedAccessException or JsonException or Microsoft.Data.Sqlite.SqliteException;
@@ -326,7 +323,11 @@ public sealed partial class MainViewModel : ObservableObject
         MealTotals = string.Join("    ", rows.GroupBy(x => x.MealNameSnapshot).Select(x => $"{x.Key} {x.Sum(e => e.EnergyKcalTenths) / 10m:0.0}"));
     }
 
-    private void RefreshHistory() => Fill(HistoryRows, journal.History(appliedHistoryFrom, appliedHistoryTo));
+    private void RefreshHistory()
+    {
+        Fill(HistoryRows, journal.History(appliedHistoryFrom, appliedHistoryTo));
+        if (ContinuousMode) RefreshBrowse();
+    }
 
     private void LoadHistory()
     {
@@ -356,6 +357,15 @@ public sealed partial class MainViewModel : ObservableObject
         Validation.Require(SelectedEntry is not null, "请先选择一条摄入记录。");
         if (!ConfirmEntryDiscard()) return;
         LoadEntry(SelectedEntry, false);
+    }
+
+    private void DeleteEntry(IntakeEntry? row)
+    {
+        Validation.Require(row is not null, "请先选择一条摄入记录。");
+        if (!Confirm($"删除{row.EntryDate:yyyy-MM-dd}的“{row.FoodNameSnapshot}”这条记录？")) return;
+        journal.DeleteEntry(row.Id);
+        if (editingEntry?.Id == row.Id) ResetEntry();
+        RefreshDay(); RefreshHistory(); Status = "已删除指定摄入记录。";
     }
 
     private void LoadEntry(IntakeEntry row, bool asNew)
@@ -411,7 +421,10 @@ public sealed partial class MainViewModel : ObservableObject
         journal.SaveEntry(entry);
         entryDirty = false;
         if (SelectedDate.Date != EntryDate.Date) { selectedDate = EntryDate.Date; OnPropertyChanged(nameof(SelectedDate)); }
-        ResetEntry(); RefreshDay(); RefreshHistory(); Status = "摄入已保存，可以继续添加下一项。";
+        ResetEntry(); RefreshDay(); RefreshHistory();
+        Status = ContinuousMode && (entry.EntryDate < appliedBrowseFrom || entry.EntryDate > appliedBrowseTo)
+            ? "摄入已保存；日期在当前连续列表区间外，可调整查询区间查看。"
+            : "摄入已保存，可以继续添加下一项。";
     }
 
     private void LoadFood(FoodItem? value)

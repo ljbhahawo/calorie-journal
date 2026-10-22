@@ -1,0 +1,34 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.4.0",
+  "VerificationDate": "2026-10-22",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 1,
+  "BackupFormatVersion": 1,
+  "FoodPackageVersion": "usda-sr-2018-04.zh.1",
+  "Package": {
+    "FileName": "每日热量记录_1.4.0_win-x64.zip",
+    "Bytes": 66864118,
+    "Sha256": "21B2B9B2BFDD8D49464D09ED76468F8F37E2B0A69BCCD7D6A1DB23171EAFF7F0"
+  },
+  "Checks": {
+    "BusinessAndRealSqliteTestsPassed": 26,
+    "MainWindowLayoutChecks": 56,
+    "ImportWindowLayoutChecks": 40,
+    "ContinuousListLayoutChecks": 28,
+    "RealDesktopOperations": true,
+    "ArchivedSourceRebuild": true,
+    "SelfContainedStartupAndBackupRestore": true,
+    "RollbackTo": "1.3.0",
+    "FullEntrySnapshotsRetained": 4,
+    "FoodsAndMealsRetained": true,
+    "DependencyLocksUnchanged": true,
+    "PreviousStablePackagesUnchanged": true
+  },
+  "EnvironmentLimits": {
+    "ActualMonitorDpiX": 144,
+    "OtherCleanWindowsMachineTested": false,
+    "CrossMonitorDpiSwitchTested": false,
+    "EmptyDependencyCacheTested": false
+  }
+}

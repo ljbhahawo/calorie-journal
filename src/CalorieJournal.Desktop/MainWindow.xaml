@@ -35,7 +35,7 @@
               <ScrollViewer x:Name="EntryFormScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20,0,17,0">
                 <StackPanel>
                   <TextBlock Text="记录日期" Style="{StaticResource FieldLabel}" />
-                  <DatePicker x:Name="EntryDatePicker" SelectedDate="{Binding EntryDate}" SelectedDateFormat="Short" AutomationProperties.Name="记录日期" />
+                  <DatePicker x:Name="EntryDatePicker" SelectedDate="{Binding EntryDate}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" SelectedDateFormat="Short" AutomationProperties.Name="记录日期" />
                   <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                     <StackPanel Margin="0,0,10,0"><TextBlock Text="餐次" Style="{StaticResource FieldLabel}" /><ComboBox x:Name="EntryMealBox" ItemsSource="{Binding EntryMeals}" SelectedItem="{Binding EntryMeal}" DisplayMemberPath="Name" AutomationProperties.Name="餐次" /></StackPanel>
@@ -69,12 +69,25 @@
             </Grid>
           </Border>
           <Grid Grid.Column="2">
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
+            <WrapPanel Margin="0,0,0,12">
+              <Button x:Name="SingleViewButton" Content="单日" Command="{Binding ShowSingleCommand}">
+                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Style.Triggers><DataTrigger Binding="{Binding ContinuousMode}" Value="False"><Setter Property="Background" Value="#DDEBDD" /><Setter Property="BorderBrush" Value="#90AB95" /></DataTrigger></Style.Triggers></Style></Button.Style>
+              </Button>
+              <Button x:Name="ContinuousViewButton" Content="连续列表" Command="{Binding ShowContinuousCommand}">
+                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Style.Triggers><DataTrigger Binding="{Binding ContinuousMode}" Value="True"><Setter Property="Background" Value="#DDEBDD" /><Setter Property="BorderBrush" Value="#90AB95" /></DataTrigger></Style.Triggers></Style></Button.Style>
+              </Button>
+              <TextBlock Text="在右侧浏览，在左侧添加或修改" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,6" />
+            </WrapPanel>
+          <ScrollViewer x:Name="SingleDayPanel" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer.Style><Style TargetType="ScrollViewer"><Style.Triggers><DataTrigger Binding="{Binding ContinuousMode}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></ScrollViewer.Style>
+          <Grid Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" MinHeight="460">
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
             <DockPanel Margin="0,0,0,14" LastChildFill="False">
               <TextBlock Text="当日概览" Style="{StaticResource Heading}" VerticalAlignment="Center" Margin="0,0,12,0" />
               <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                 <Button x:Name="PreviousDayButton" Content="‹" FontSize="21" Padding="11,2" Command="{Binding PreviousDayCommand}" ToolTip="前一天" AutomationProperties.Name="前一天" Margin="0,0,6,0" />
-                <DatePicker x:Name="SelectedDatePicker" SelectedDate="{Binding SelectedDate}" SelectedDateFormat="Short" Width="146" Margin="0,0,6,0" AutomationProperties.Name="查看日期" />
+                <DatePicker x:Name="SelectedDatePicker" SelectedDate="{Binding SelectedDate}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" SelectedDateFormat="Short" Width="146" Margin="0,0,6,0" AutomationProperties.Name="查看日期" />
                 <Button x:Name="NextDayButton" Content="›" FontSize="21" Padding="11,2" Command="{Binding NextDayCommand}" ToolTip="后一天" AutomationProperties.Name="后一天" Margin="0,0,6,0" />
                 <Button x:Name="TodayButton" Content="今天" Command="{Binding TodayCommand}" Margin="0" />
               </StackPanel>
@@ -117,6 +130,57 @@
                 </WrapPanel></Border>
               </Grid>
             </Border>
+          </Grid>
+          </ScrollViewer>
+          <Border x:Name="ContinuousPanel" Grid.Row="1" Padding="0" Background="Transparent">
+            <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding ContinuousMode}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Border.Style>
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+              <StackPanel Margin="0,0,0,8">
+                <WrapPanel>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="开始日期" Style="{StaticResource FieldLabel}" /><DatePicker x:Name="BrowseFromPicker" SelectedDate="{Binding BrowseFrom}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="132" Margin="0,0,0,6" AutomationProperties.Name="连续列表开始日期" /></StackPanel>
+                  <StackPanel Margin="0,0,8,0"><TextBlock Text="结束日期" Style="{StaticResource FieldLabel}" /><DatePicker x:Name="BrowseToPicker" SelectedDate="{Binding BrowseTo}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="132" Margin="0,0,0,6" AutomationProperties.Name="连续列表结束日期" /></StackPanel>
+                  <Button x:Name="BrowseQueryButton" Content="查询" Command="{Binding LoadBrowseCommand}" VerticalAlignment="Bottom" Margin="0,0,0,6" />
+                </WrapPanel>
+                <TextBlock Text="{Binding BrowseRangeText}" Style="{StaticResource Caption}" />
+              </StackPanel>
+              <ListBox x:Name="ContinuousDaysList" Grid.Row="1" ItemsSource="{Binding BrowseDays}" BorderThickness="0" Background="Transparent" Padding="0" HorizontalContentAlignment="Stretch"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True"
+                       VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" AutomationProperties.Name="按日期连续浏览摄入">
+                <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0,0,0,12" /><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><ContentPresenter /></ControlTemplate></Setter.Value></Setter></Style></ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate><DataTemplate>
+                  <Border Style="{StaticResource Card}" Padding="14">
+                    <StackPanel>
+                      <DockPanel LastChildFill="True">
+                        <Button x:Name="AddListedEntryButton" DockPanel.Dock="Right" Content="添加" Padding="10,5" MinHeight="32" Margin="8,0,0,0" Command="{Binding DataContext.AddListedEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" AutomationProperties.Name="{Binding Date, StringFormat=为{0:yyyy-MM-dd}添加摄入}" />
+                        <StackPanel><TextBlock Text="{Binding Date, StringFormat=yyyy-MM-dd · dddd}" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="{Binding Summary}" Foreground="{StaticResource Accent}" Margin="0,5,0,0" /></StackPanel>
+                      </DockPanel>
+                      <TextBlock Text="点击添加，为这一天记录摄入" Margin="0,12,0,0">
+                        <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Entries.Length}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                      </TextBlock>
+                      <ItemsControl ItemsSource="{Binding Entries}" Margin="0,6,0,0"><ItemsControl.ItemTemplate><DataTemplate>
+                        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="0,10,0,6" Margin="0,4,0,0">
+                          <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,8,0">
+                              <TextBlock Text="{Binding FoodNameSnapshot}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                              <WrapPanel Margin="0,4,0,0"><TextBlock Text="{Binding MealNameSnapshot}" Style="{StaticResource Caption}" Margin="0,0,10,0" /><TextBlock Text="{Binding LocalTime}" Style="{StaticResource Caption}" Margin="0,0,10,0" /><TextBlock Text="{Binding EnergyKcal, StringFormat={}{0:0.0} 大卡}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" /></WrapPanel>
+                              <TextBlock Text="{Binding Calculation}" Style="{StaticResource Caption}" Margin="0,4,0,0" />
+                              <TextBlock Text="{Binding PreparationSnapshot}" Style="{StaticResource Caption}" />
+                              <TextBlock Text="{Binding Note}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" MaxHeight="38" ToolTip="{Binding Note}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                              <Button x:Name="EditListedEntryButton" Content="修改" Command="{Binding DataContext.EditListedEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="10,5" MinHeight="32" Margin="0,0,0,6" AutomationProperties.Name="{Binding FoodNameSnapshot, StringFormat=修改{0}}" />
+                              <Button x:Name="DeleteListedEntryButton" Content="删除" Command="{Binding DataContext.DeleteListedEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Style="{StaticResource DangerButton}" Padding="10,5" MinHeight="32" Margin="0" AutomationProperties.Name="{Binding FoodNameSnapshot, StringFormat=删除{0}}" />
+                            </StackPanel>
+                          </Grid>
+                        </Border>
+                      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
+              <WrapPanel Grid.Row="2" Margin="0,8,0,0"><Button x:Name="LoadEarlierButton" Content="加载更早30天" Command="{Binding LoadEarlierCommand}" /><TextBlock Text="滚轮浏览 · 最多连续366天" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="0,6" /></WrapPanel>
+            </Grid>
+          </Border>
           </Grid>
         </Grid>
       </TabItem>

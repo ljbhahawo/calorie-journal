@@ -79,3 +79,9 @@ public sealed record DailySummary(DateOnly Date, long EnergyKcalTenths, int Coun
     public decimal EnergyKcal => EnergyKcalTenths / 10m;
     public string State => Count == 0 ? "未记录" : $"已记录 {Count} 项";
 }
+
+public sealed record DailyIntake(DateOnly Date, IntakeEntry[] Entries)
+{
+    public long EnergyKcalTenths => Entries.Sum(x => x.EnergyKcalTenths);
+    public string Summary => Entries.Length == 0 ? "未记录" : $"{EnergyKcalTenths / 10m:0.0} 大卡 · {Entries.Length} 项";
+}

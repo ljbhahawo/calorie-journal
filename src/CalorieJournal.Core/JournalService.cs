@@ -43,6 +43,17 @@ public sealed class JournalService(IJournalStore store)
         }).Reverse().ToArray();
     }
 
+    public DailyIntake[] BrowseDays(DateOnly from, DateOnly to)
+    {
+        Validation.Require(to >= from && to.DayNumber - from.DayNumber <= 365, "连续列表区间须有效且不超过366天。");
+        Validation.Require(to <= DateOnly.FromDateTime(DateTime.Today), "连续列表日期不能晚于今天。");
+        var order = Meals().ToDictionary(x => x.Id, x => x.SortOrder);
+        var groups = store.ReadEntries(from, to).GroupBy(x => x.EntryDate).ToDictionary(x => x.Key,
+            x => x.OrderBy(e => order[e.MealCategoryId]).ThenBy(e => e.LocalTime).ThenBy(e => e.CreatedAtUtc).ToArray());
+        return Enumerable.Range(0, to.DayNumber - from.DayNumber + 1).Reverse()
+            .Select(i => { var day = from.AddDays(i); return new DailyIntake(day, groups.GetValueOrDefault(day) ?? []); }).ToArray();
+    }
+
     public void SaveFood(FoodItem value)
     {
         value = value with { Name = Validation.Text(value.Name, "食物名称", 100, true), UpdatedAtUtc = DateTimeOffset.UtcNow };

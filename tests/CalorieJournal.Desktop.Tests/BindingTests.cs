@@ -34,8 +34,7 @@ public sealed class BindingTests
         Trace("ViewModel已创建");
         var window = new MainWindow(vm);
         Trace("Window已创建");
-        // 本项目测试绑定和用例，不在未显示的Window上强制布局；实际渲染由独立启动检查验证。
-        Pump(); Trace("绑定初始化完成");
+        window.Show(); Pump(); Trace("真实窗口显示与绑定初始化完成");
 
         var entryName = (TextBox)window.FindName("EntryNameBox");
         var directKcal = (TextBox)window.FindName("DirectKcalBox");
@@ -67,9 +66,10 @@ public sealed class BindingTests
         var tabs = (TabControl)window.FindName("MainTabs"); tabs.SelectedIndex = 1; Pump();
         var foodGrid = (DataGrid)window.FindName("FoodsGrid");
         foodGrid.SelectedItem = vm.LibraryFoods.Single(x => x.Name == "长粒白米饭（熟）"); Pump();
+        Assert.AreEqual(foodGrid.SelectedItem, vm.SelectedLibraryFood);
         ((TextBox)window.FindName("FoodUnitKcalBox")).Text = "200"; Pump();
         vm.SaveFoodCommand.Execute(null); Pump();
-        Assert.AreEqual(200m, service.Foods("长粒白米饭").Single().KcalPer100g);
+        Assert.AreEqual(200m, service.Foods("长粒白米饭").Single().KcalPer100g, vm.Status);
         Assert.AreEqual(195m, store.ReadSnapshot().Entries.Single(x => x.InputMode == "weight").EnergyKcal);
 
         ((TextBox)window.FindName("FoodNameBox")).Text = "WPF自建食物";

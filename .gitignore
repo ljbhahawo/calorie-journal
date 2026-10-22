@@ -19,3 +19,14 @@ workspace/
 *.log
 *.user
 *.suo
+
+# 本机凭据和编辑器状态
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+*.pem
+.idea/
+.vscode/
