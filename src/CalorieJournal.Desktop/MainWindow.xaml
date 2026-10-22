@@ -2,131 +2,226 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="每日热量记录" Width="1240" Height="820" MinWidth="920" MinHeight="600"
-        WindowStartupLocation="CenterScreen" Language="zh-CN">
-  <Grid Margin="20">
-    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-    <DockPanel Margin="0,0,0,16">
-      <TextBlock Text="每日热量记录" FontSize="26" FontWeight="SemiBold" Foreground="{StaticResource Accent}" />
-      <TextBlock Text="本机保存 · 离线使用" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#67766D" />
-    </DockPanel>
-    <TabControl x:Name="MainTabs" Grid.Row="1" SelectedIndex="{Binding TabIndex}" IsEnabled="{Binding NotBusy}" Padding="12" Background="Transparent">
-      <TabItem Header="  每日记录  ">
-        <Grid Margin="0,12,0,0">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="340" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-          <Border Style="{StaticResource Card}">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <StackPanel>
+        WindowStartupLocation="CenterScreen" Language="zh-CN" Style="{StaticResource {x:Type Window}}">
+  <Grid Margin="24,18,24,14">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <Grid Margin="0,0,0,22">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+      <Border Width="46" Height="46" CornerRadius="13" Background="{StaticResource Accent}" Margin="0,0,13,0">
+        <Path Data="M 13 29 C 6 18 13 8 32 7 C 33 23 25 33 13 29 M 13 29 L 25 16" Stroke="#F5F8EE" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="38" Height="38" />
+      </Border>
+      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+        <TextBlock Text="每日热量记录" FontSize="23" FontWeight="SemiBold" />
+        <TextBlock Text="记录每一餐，了解每天的摄入" Style="{StaticResource Caption}" Margin="0,3,0,0" />
+      </StackPanel>
+      <Border Grid.Column="2" CornerRadius="16" Background="#E5EDE1" Padding="12,7" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal"><Ellipse Width="6" Height="6" Fill="{StaticResource Accent}" Margin="0,0,7,0" /><TextBlock Text="本机保存 · 离线使用" FontSize="12" Foreground="{StaticResource Accent}" /></StackPanel>
+      </Border>
+    </Grid>
+
+    <TabControl x:Name="MainTabs" Grid.Row="1" SelectedIndex="{Binding TabIndex}" IsEnabled="{Binding NotBusy}">
+      <TabItem Header="每日记录">
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="318" /><ColumnDefinition Width="18" /><ColumnDefinition /></Grid.ColumnDefinitions>
+          <Border Style="{StaticResource Card}" Padding="0">
+            <Grid>
+              <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+              <StackPanel Margin="20,18,20,14">
                 <TextBlock Text="{Binding EntryHeading}" Style="{StaticResource Heading}" />
-                <TextBlock Text="记录日期" />
-                <DatePicker x:Name="EntryDatePicker" SelectedDate="{Binding EntryDate}" SelectedDateFormat="Short" />
-                <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                  <StackPanel Margin="0,0,8,0"><TextBlock Text="餐次" /><ComboBox x:Name="EntryMealBox" ItemsSource="{Binding EntryMeals}" SelectedItem="{Binding EntryMeal}" DisplayMemberPath="Name" /></StackPanel>
-                  <StackPanel Grid.Column="1"><TextBlock Text="时间（可选 HH:mm）" /><TextBox x:Name="EntryTimeBox" Text="{Binding EntryTime, UpdateSourceTrigger=PropertyChanged}" MaxLength="5" /></StackPanel>
-                </Grid>
-                <TextBlock Text="搜索食物库" />
-                <TextBox x:Name="EntrySearchBox" Text="{Binding EntryFoodQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="支持中文、别名和英文；多个词以空格分隔" />
-                <ComboBox x:Name="FoodChoiceBox" ItemsSource="{Binding FoodChoices}" SelectedItem="{Binding ChosenFood}" DisplayMemberPath="Name" ToolTip="选择后带入单位热量；修改只影响本次记录" />
-                <TextBlock Text="食物名称" /><TextBox x:Name="EntryNameBox" Text="{Binding EntryName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" />
-                <TextBlock Text="状态（生熟、品牌等）" /><TextBox x:Name="EntryPreparationBox" Text="{Binding EntryPreparation, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" />
-                <CheckBox x:Name="WeightModeBox" Content="按重量和每100克热量计算" IsChecked="{Binding WeightMode}" Margin="0,4,0,10" />
-                <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="85" /></Grid.ColumnDefinitions>
-                  <StackPanel Margin="0,0,8,0"><TextBlock Text="重量" /><TextBox x:Name="WeightBox" Text="{Binding Weight, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" /></StackPanel>
-                  <StackPanel Grid.Column="1"><TextBlock Text="单位" /><ComboBox x:Name="WeightUnitBox" ItemsSource="{Binding WeightUnits}" SelectedItem="{Binding WeightUnit}" IsEnabled="{Binding WeightMode}" /></StackPanel>
-                </Grid>
-                <TextBlock Text="每100克大卡" /><TextBox x:Name="UnitKcalBox" Text="{Binding UnitKcal, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" />
-                <TextBlock Text="直接输入本项大卡（未勾选按重量时）" /><TextBox x:Name="DirectKcalBox" Text="{Binding DirectKcal, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Text="{Binding EnergyPreview}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" Margin="0,0,0,10" TextWrapping="Wrap" />
-                <TextBlock Text="备注（可选）" /><TextBox x:Name="EntryNoteBox" Text="{Binding EntryNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="55" MaxLength="1000" TextWrapping="Wrap" />
-                <WrapPanel>
-                  <Button x:Name="SaveEntryButton" Content="保存摄入" Command="{Binding SaveEntryCommand}" />
-                  <Button x:Name="NewEntryButton" Content="新建 / 取消修改" Command="{Binding NewEntryCommand}" />
-                </WrapPanel>
-                <Button Content="改为手动来源" Command="{Binding ClearFoodCommand}" HorizontalAlignment="Left" />
-                <TextBlock Text="{Binding EntrySource}" FontSize="11" Foreground="#67766D" TextWrapping="Wrap" />
+                <TextBlock Text="选择食物计算，或直接填写大卡" Style="{StaticResource Caption}" />
               </StackPanel>
-            </ScrollViewer>
+              <ScrollViewer x:Name="EntryFormScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20,0,17,0">
+                <StackPanel>
+                  <TextBlock Text="记录日期" Style="{StaticResource FieldLabel}" />
+                  <DatePicker x:Name="EntryDatePicker" SelectedDate="{Binding EntryDate}" SelectedDateFormat="Short" AutomationProperties.Name="记录日期" />
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,10,0"><TextBlock Text="餐次" Style="{StaticResource FieldLabel}" /><ComboBox x:Name="EntryMealBox" ItemsSource="{Binding EntryMeals}" SelectedItem="{Binding EntryMeal}" DisplayMemberPath="Name" AutomationProperties.Name="餐次" /></StackPanel>
+                    <StackPanel Grid.Column="1"><TextBlock Text="时间 · 可选 HH:mm" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryTimeBox" Text="{Binding EntryTime, UpdateSourceTrigger=PropertyChanged}" MaxLength="5" AutomationProperties.Name="时间" /></StackPanel>
+                  </Grid>
+                  <TextBlock Text="从食物库查找" Style="{StaticResource FieldLabel}" />
+                  <TextBox x:Name="EntrySearchBox" Text="{Binding EntryFoodQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="支持中文、别名和英文；多个词以空格分隔" AutomationProperties.Name="搜索食物库" Margin="0,5,0,5" />
+                  <ComboBox x:Name="FoodChoiceBox" ItemsSource="{Binding FoodChoices}" SelectedItem="{Binding ChosenFood}" DisplayMemberPath="Name" ToolTip="选择后带入单位热量；修改只影响本次记录" AutomationProperties.Name="选择食物" />
+                  <TextBlock Text="食物名称" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryNameBox" Text="{Binding EntryName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" AutomationProperties.Name="食物名称" />
+                  <TextBlock Text="生熟、品牌或加工状态" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryPreparationBox" Text="{Binding EntryPreparation, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" AutomationProperties.Name="食物状态" />
+                  <Button Content="改为手动来源" Command="{Binding ClearFoodCommand}" HorizontalAlignment="Left" FontSize="12" MinHeight="30" Padding="10,5" Margin="0,0,0,14" />
+                  <CheckBox x:Name="WeightModeBox" Content="按重量计算热量" IsChecked="{Binding WeightMode}" />
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="78" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,10,0"><TextBlock Text="重量" Style="{StaticResource FieldLabel}" /><TextBox x:Name="WeightBox" Text="{Binding Weight, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="重量" /></StackPanel>
+                    <StackPanel Grid.Column="1"><TextBlock Text="单位" Style="{StaticResource FieldLabel}" /><ComboBox x:Name="WeightUnitBox" ItemsSource="{Binding WeightUnits}" SelectedItem="{Binding WeightUnit}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="重量单位" /></StackPanel>
+                  </Grid>
+                  <TextBlock Text="每100克大卡" Style="{StaticResource FieldLabel}" /><TextBox x:Name="UnitKcalBox" Text="{Binding UnitKcal, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="每100克大卡" />
+                  <TextBlock Text="直接输入本项大卡 · 非重量模式" Style="{StaticResource FieldLabel}" /><TextBox x:Name="DirectKcalBox" Text="{Binding DirectKcal, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="本项大卡" />
+                  <Border Background="#EFF5EB" CornerRadius="7" Padding="12,10" Margin="0,0,0,10"><TextBlock Text="{Binding EnergyPreview}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" /></Border>
+                  <TextBlock Text="{Binding EntrySource}" Style="{StaticResource Caption}" FontSize="11" Margin="0,0,0,14" />
+                  <TextBlock Text="备注 · 可选" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryNoteBox" Text="{Binding EntryNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60" MaxLength="1000" TextWrapping="Wrap" AutomationProperties.Name="摄入备注" />
+                </StackPanel>
+              </ScrollViewer>
+              <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="20,14">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                  <Button x:Name="SaveEntryButton" Content="保存摄入" Command="{Binding SaveEntryCommand}" Style="{StaticResource PrimaryButton}" />
+                  <Button x:Name="NewEntryButton" Grid.Column="1" Content="新建 / 取消" Command="{Binding NewEntryCommand}" Margin="0" ToolTip="放弃当前修改并新建记录" />
+                </Grid>
+              </Border>
+            </Grid>
           </Border>
           <Grid Grid.Column="2">
-            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-            <WrapPanel>
-              <Button x:Name="PreviousDayButton" Content="前一天" Command="{Binding PreviousDayCommand}" />
-              <DatePicker x:Name="SelectedDatePicker" SelectedDate="{Binding SelectedDate}" SelectedDateFormat="Short" Width="150" />
-              <Button x:Name="NextDayButton" Content="后一天" Command="{Binding NextDayCommand}" />
-              <Button x:Name="TodayButton" Content="今天" Command="{Binding TodayCommand}" />
-            </WrapPanel>
-            <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,12">
-              <StackPanel><TextBlock Text="{Binding DayTotal}" FontSize="25" Foreground="{StaticResource Accent}" /><TextBlock Text="{Binding MealTotals}" TextWrapping="Wrap" Margin="0,8,0,0" /><TextBlock Text="合计仅反映已记录摄入" Foreground="#67766D" FontSize="12" Margin="0,6,0,0" /></StackPanel>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
+            <DockPanel Margin="0,0,0,14" LastChildFill="False">
+              <TextBlock Text="当日概览" Style="{StaticResource Heading}" VerticalAlignment="Center" Margin="0,0,12,0" />
+              <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                <Button x:Name="PreviousDayButton" Content="‹" FontSize="21" Padding="11,2" Command="{Binding PreviousDayCommand}" ToolTip="前一天" AutomationProperties.Name="前一天" Margin="0,0,6,0" />
+                <DatePicker x:Name="SelectedDatePicker" SelectedDate="{Binding SelectedDate}" SelectedDateFormat="Short" Width="146" Margin="0,0,6,0" AutomationProperties.Name="查看日期" />
+                <Button x:Name="NextDayButton" Content="›" FontSize="21" Padding="11,2" Command="{Binding NextDayCommand}" ToolTip="后一天" AutomationProperties.Name="后一天" Margin="0,0,6,0" />
+                <Button x:Name="TodayButton" Content="今天" Command="{Binding TodayCommand}" Margin="0" />
+              </StackPanel>
+            </DockPanel>
+            <Border Grid.Row="1" Style="{StaticResource Card}" Background="#E7EFDF" BorderBrush="#D8E4CF" Margin="0,0,0,16">
+              <StackPanel>
+                <TextBlock Text="已记录摄入" FontSize="12" Foreground="#546B4E" />
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,6,0,8"><TextBlock Text="{Binding DayTotal}" FontSize="30" FontWeight="SemiBold" Foreground="#254E32" /></Viewbox>
+                <TextBlock Text="{Binding MealTotals}" Foreground="#425C3E" TextWrapping="Wrap" />
+                <TextBlock Text="合计仅反映已记录内容" FontSize="11" Foreground="#60735A" Margin="0,8,0,0" />
+              </StackPanel>
             </Border>
-            <DataGrid x:Name="EntriesGrid" Grid.Row="2" ItemsSource="{Binding DayEntries}" SelectedItem="{Binding SelectedEntry}">
+            <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0">
+              <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid Margin="20,16,20,14"><TextBlock Text="摄入明细" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="左右滚动可查看更多字段" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                <Grid Grid.Row="1" Margin="10,0">
+                  <DataGrid x:Name="EntriesGrid" ItemsSource="{Binding DayEntries}" SelectedItem="{Binding SelectedEntry}">
+                    <DataGrid.Columns>
+                      <DataGridTextColumn Header="食物" Binding="{Binding FoodNameSnapshot}" Width="190" />
+                      <DataGridTextColumn Header="大卡" Binding="{Binding EnergyKcal, StringFormat=N1}" Width="95" ElementStyle="{StaticResource EnergyCell}" />
+                      <DataGridTextColumn Header="餐次" Binding="{Binding MealNameSnapshot}" Width="85" />
+                      <DataGridTextColumn Header="时间" Binding="{Binding LocalTime}" Width="75" />
+                      <DataGridTextColumn Header="计算方式" Binding="{Binding Calculation}" Width="250" />
+                      <DataGridTextColumn Header="状态" Binding="{Binding PreparationSnapshot}" Width="180" />
+                      <DataGridTextColumn Header="备注" Binding="{Binding Note}" Width="200" />
+                    </DataGrid.Columns>
+                  </DataGrid>
+                  <StackPanel x:Name="EntriesEmptyState" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False" Margin="12,40,12,14">
+                    <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding DayEntries.Count}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                    <Border Width="46" Height="46" CornerRadius="23" Background="#EFF4E9" Margin="0,0,0,12"><TextBlock Text="+" FontSize="28" Foreground="#7A9270" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                    <TextBlock Text="这一天还没有记录" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <TextBlock Text="在左侧为这一天添加第一项摄入" Style="{StaticResource Caption}" Margin="0,7,0,0" HorizontalAlignment="Center" />
+                  </StackPanel>
+                </Grid>
+                <Border Grid.Row="2" Padding="20,14" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"><WrapPanel>
+                  <Button x:Name="EditEntryButton" Content="修改记录" Command="{Binding EditEntryCommand}" />
+                  <Button x:Name="CopyEntryButton" Content="复制到今天" Command="{Binding CopyEntryCommand}" ToolTip="复制保存时的数值到今天的新增表单，核对并保存后才写入。" />
+                  <Button x:Name="DeleteEntryButton" Content="删除记录" Command="{Binding DeleteEntryCommand}" Style="{StaticResource DangerButton}" Margin="0" />
+                </WrapPanel></Border>
+              </Grid>
+            </Border>
+          </Grid>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="食物热量库">
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="318" /><ColumnDefinition Width="18" /><ColumnDefinition /></Grid.ColumnDefinitions>
+          <Border Style="{StaticResource Card}" Padding="0">
+            <Grid>
+              <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+              <StackPanel Margin="20,18,20,14"><TextBlock Text="{Binding FoodHeading}" Style="{StaticResource Heading}" /><TextBlock Text="维护常吃的食物和包装标签数值" Style="{StaticResource Caption}" /></StackPanel>
+              <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20,0,17,0"><StackPanel>
+                <TextBlock Text="中文名称" Style="{StaticResource FieldLabel}" /><TextBox x:Name="FoodNameBox" Text="{Binding FoodName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" AutomationProperties.Name="食物中文名称" />
+                <TextBlock Text="别名 · 空格分隔" Style="{StaticResource FieldLabel}" /><TextBox x:Name="FoodAliasesBox" Text="{Binding FoodAliases, UpdateSourceTrigger=PropertyChanged}" MaxLength="500" AutomationProperties.Name="食物别名" />
+                <TextBlock Text="生熟、品牌或加工状态" Style="{StaticResource FieldLabel}" /><TextBox x:Name="FoodPreparationBox" Text="{Binding FoodPreparation, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" AutomationProperties.Name="食物加工状态" />
+                <TextBlock Text="分类" Style="{StaticResource FieldLabel}" /><TextBox x:Name="FoodCategoryBox" Text="{Binding FoodCategory, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" AutomationProperties.Name="食物分类" />
+                <TextBlock Text="每100克大卡 · 最多两位小数" Style="{StaticResource FieldLabel}" /><TextBox x:Name="FoodUnitKcalBox" Text="{Binding FoodUnitKcal, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="食物每100克大卡" />
+                <TextBlock Text="来源说明 · 如包装标签" Style="{StaticResource FieldLabel}" /><TextBox x:Name="FoodSourceNoteBox" Text="{Binding FoodSourceNote, UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="70" AutomationProperties.Name="食物来源说明" />
+                <Border Background="#F5F8F2" CornerRadius="7" Padding="12" Margin="0,0,0,14"><StackPanel><TextBlock Text="原始名称与来源" Style="{StaticResource FieldLabel}" Margin="0,0,0,7" /><TextBlock Text="{Binding FoodOriginalName}" Style="{StaticResource Caption}" /><TextBlock Text="{Binding FoodSource}" Style="{StaticResource Caption}" Margin="0,6,0,0" /></StackPanel></Border>
+              </StackPanel></ScrollViewer>
+              <Border Grid.Row="2" Padding="20,14" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"><StackPanel>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><Button x:Name="SaveFoodButton" Content="保存食物" Command="{Binding SaveFoodCommand}" Style="{StaticResource PrimaryButton}" /><Button x:Name="NewFoodButton" Grid.Column="1" Content="新建 / 取消" Command="{Binding NewFoodCommand}" Margin="0" /></Grid>
+                <Button x:Name="DeleteFoodButton" Content="删除此食物" Command="{Binding DeleteFoodCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Margin="0,8,0,0" />
+              </StackPanel></Border>
+            </Grid>
+          </Border>
+          <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+              <StackPanel Margin="20,18,20,4">
+                <Grid><TextBlock Text="食物热量库" Style="{StaticResource Heading}" /><TextBlock Text="{Binding LibraryFoods.Count, StringFormat=共 {0} 项}" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                <TextBlock Text="搜索中文、别名或英文原名；选择后可编辑或引用" Style="{StaticResource Caption}" />
+                <TextBox x:Name="LibrarySearchBox" Text="{Binding LibraryQuery, UpdateSourceTrigger=PropertyChanged}" Margin="0,13,0,12" AutomationProperties.Name="搜索食物库条目" />
+              </StackPanel>
+              <Grid Grid.Row="1" Margin="10,0">
+                <DataGrid x:Name="FoodsGrid" ItemsSource="{Binding LibraryFoods}" SelectedItem="{Binding SelectedLibraryFood}">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="食物" Binding="{Binding Name}" Width="230" /><DataGridTextColumn Header="大卡 / 100g" Binding="{Binding KcalPer100g, StringFormat=N2}" Width="120" ElementStyle="{StaticResource EnergyCell}" />
+                    <DataGridTextColumn Header="分类" Binding="{Binding Category}" Width="90" /><DataGridTextColumn Header="状态" Binding="{Binding Preparation}" Width="220" /><DataGridTextColumn Header="来源" Binding="{Binding SourceSummary}" Width="280" />
+                  </DataGrid.Columns>
+                </DataGrid>
+                <StackPanel x:Name="FoodsEmptyState" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False" Margin="14,40,14,14">
+                  <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding LibraryFoods.Count}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                  <TextBlock Text="没有找到匹配的食物" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock Text="试试其他关键词，或在左侧新增食物" Style="{StaticResource Caption}" Margin="0,8,0,0" />
+                </StackPanel>
+              </Grid>
+              <Border Grid.Row="2" Padding="20,14" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"><WrapPanel><Button x:Name="UseFoodButton" Content="用选中食物记录摄入" Command="{Binding UseFoodCommand}" Style="{StaticResource PrimaryButton}" /></WrapPanel></Border>
+            </Grid>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="历史查询">
+        <Border Style="{StaticResource Card}" Padding="0">
+          <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <StackPanel Margin="22,20,22,8">
+              <TextBlock Text="回看每日记录" Style="{StaticResource Heading}" /><TextBlock Text="选择日期范围，查看每天已记录的摄入合计" Style="{StaticResource Caption}" />
+              <WrapPanel Margin="0,16,0,6"><TextBlock Text="从" VerticalAlignment="Center" Margin="0,0,10,0" /><DatePicker x:Name="HistoryFromPicker" SelectedDate="{Binding HistoryFrom}" Width="155" Margin="0,0,12,0" AutomationProperties.Name="历史开始日期" /><TextBlock Text="到" VerticalAlignment="Center" Margin="0,0,10,0" /><DatePicker x:Name="HistoryToPicker" SelectedDate="{Binding HistoryTo}" Width="155" Margin="0,0,12,0" AutomationProperties.Name="历史结束日期" /><Button x:Name="HistoryQueryButton" Content="查询记录" Command="{Binding LoadHistoryCommand}" Style="{StaticResource PrimaryButton}" /></WrapPanel>
+            </StackPanel>
+            <DataGrid x:Name="HistoryGrid" Grid.Row="1" Margin="12,0" ItemsSource="{Binding HistoryRows}" SelectedItem="{Binding SelectedHistory}">
               <DataGrid.Columns>
-                <DataGridTextColumn Header="餐次" Binding="{Binding MealNameSnapshot}" Width="75" />
-                <DataGridTextColumn Header="时间" Binding="{Binding LocalTime}" Width="65" />
-                <DataGridTextColumn Header="食物" Binding="{Binding FoodNameSnapshot}" Width="180" />
-                <DataGridTextColumn Header="大卡" Binding="{Binding EnergyKcal, StringFormat=N1}" Width="80" />
-                <DataGridTextColumn Header="计算方式" Binding="{Binding Calculation}" Width="250" />
-                <DataGridTextColumn Header="状态" Binding="{Binding PreparationSnapshot}" Width="160" />
-                <DataGridTextColumn Header="备注" Binding="{Binding Note}" Width="160" />
+                <DataGridTextColumn Header="日期" Binding="{Binding Date, StringFormat=yyyy-MM-dd}" Width="220" />
+                <DataGridTemplateColumn Header="已记录合计 · 大卡" Width="240" SortMemberPath="EnergyKcal"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Style="{StaticResource HistoryEnergyCell}" /></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                <DataGridTextColumn Header="记录状态" Binding="{Binding State}" Width="*" />
               </DataGrid.Columns>
             </DataGrid>
-            <WrapPanel Grid.Row="3" Margin="0,12,0,0"><Button x:Name="EditEntryButton" Content="修改选中记录" Command="{Binding EditEntryCommand}" /><Button x:Name="CopyEntryButton" Content="复制为今天的新记录" Command="{Binding CopyEntryCommand}" ToolTip="复制保存时的数值到新增表单，核对并保存后才写入。" /><Button x:Name="DeleteEntryButton" Content="删除选中记录" Command="{Binding DeleteEntryCommand}" /></WrapPanel>
+            <Border Grid.Row="2" Padding="22,14" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"><DockPanel LastChildFill="False"><Button x:Name="OpenHistoryDayButton" Content="查看选中日期的明细" Command="{Binding OpenHistoryDayCommand}" /><TextBlock Text="“未记录”不代表实际摄入为零" Style="{StaticResource Caption}" VerticalAlignment="Center" DockPanel.Dock="Right" /></DockPanel></Border>
           </Grid>
-        </Grid>
+        </Border>
       </TabItem>
-      <TabItem Header="  食物热量库  ">
-        <Grid Margin="0,12,0,0">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="340" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-          <Border Style="{StaticResource Card}"><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
-            <TextBlock Text="{Binding FoodHeading}" Style="{StaticResource Heading}" />
-            <TextBlock Text="中文名称" /><TextBox x:Name="FoodNameBox" Text="{Binding FoodName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" />
-            <TextBlock Text="别名（空格分隔）" /><TextBox x:Name="FoodAliasesBox" Text="{Binding FoodAliases, UpdateSourceTrigger=PropertyChanged}" MaxLength="500" />
-            <TextBlock Text="生熟 / 品牌 / 加工状态" /><TextBox x:Name="FoodPreparationBox" Text="{Binding FoodPreparation, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" />
-            <TextBlock Text="分类" /><TextBox x:Name="FoodCategoryBox" Text="{Binding FoodCategory, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" />
-            <TextBlock Text="每100克大卡（最多两位小数）" /><TextBox x:Name="FoodUnitKcalBox" Text="{Binding FoodUnitKcal, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Text="来源说明（如包装标签）" /><TextBox x:Name="FoodSourceNoteBox" Text="{Binding FoodSourceNote, UpdateSourceTrigger=PropertyChanged}" MaxLength="1000" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="60" />
-            <WrapPanel><Button x:Name="SaveFoodButton" Content="保存食物" Command="{Binding SaveFoodCommand}" /><Button x:Name="NewFoodButton" Content="新建 / 取消修改" Command="{Binding NewFoodCommand}" /></WrapPanel>
-            <Button x:Name="DeleteFoodButton" Content="删除此食物" Command="{Binding DeleteFoodCommand}" HorizontalAlignment="Left" />
-            <TextBlock Text="原始名称" Foreground="#67766D" Margin="0,10,0,4" /><TextBlock Text="{Binding FoodOriginalName}" TextWrapping="Wrap" FontSize="12" />
-            <TextBlock Text="{Binding FoodSource}" TextWrapping="Wrap" Foreground="#67766D" FontSize="12" Margin="0,10,0,0" />
-          </StackPanel></ScrollViewer></Border>
-          <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-            <StackPanel><TextBlock Text="搜索中文名称、别名或英文原名" /><TextBox x:Name="LibrarySearchBox" Text="{Binding LibraryQuery, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
-            <DataGrid x:Name="FoodsGrid" Grid.Row="1" ItemsSource="{Binding LibraryFoods}" SelectedItem="{Binding SelectedLibraryFood}">
-              <DataGrid.Columns><DataGridTextColumn Header="食物" Binding="{Binding Name}" Width="230" /><DataGridTextColumn Header="每100g大卡" Binding="{Binding KcalPer100g, StringFormat=N2}" Width="105" /><DataGridTextColumn Header="分类" Binding="{Binding Category}" Width="75" /><DataGridTextColumn Header="状态" Binding="{Binding Preparation}" Width="200" /><DataGridTextColumn Header="来源" Binding="{Binding SourceSummary}" Width="250" /></DataGrid.Columns>
-            </DataGrid>
-            <WrapPanel Grid.Row="2" Margin="0,12,0,0"><Button x:Name="UseFoodButton" Content="用选中食物记录摄入" Command="{Binding UseFoodCommand}" /></WrapPanel>
+
+      <TabItem Header="设置与数据">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="18" /><ColumnDefinition /></Grid.ColumnDefinitions>
+            <Border Style="{StaticResource Card}" VerticalAlignment="Top"><StackPanel>
+              <TextBlock Text="数据与备份" Style="{StaticResource Heading}" /><TextBlock Text="让日常记录安心保存在本机" Style="{StaticResource Caption}" Margin="0,0,0,22" />
+              <TextBlock Text="完整备份" FontWeight="SemiBold" Margin="0,0,0,8" />
+              <TextBlock Text="包含食物库、餐次和全部摄入。恢复将替换当前工作数据，并先自动备份现有内容。" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="13" Margin="0,0,0,14" />
+              <WrapPanel><Button x:Name="ExportBackupButton" Content="导出完整备份" Command="{Binding ExportCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" /><Button x:Name="RestoreBackupButton" Content="恢复完整备份" Command="{Binding RestoreCommand}" Margin="0,0,0,8" /></WrapPanel>
+              <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Margin="0,18,0,0" Padding="0,18,0,0"><StackPanel>
+                <TextBlock Text="数据目录" Style="{StaticResource FieldLabel}" /><TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" FontSize="12" AutomationProperties.Name="数据目录" />
+                <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" Margin="0,0,0,18" />
+                <TextBlock Text="食物数据来源" FontWeight="SemiBold" Margin="0,0,0,8" /><TextBlock Text="{Binding FoodAttribution}" Style="{StaticResource Caption}" />
+                <Border Background="#F1F5EC" CornerRadius="7" Padding="12" Margin="0,18,0,0"><TextBlock Text="修改食物库只影响新记录，历史保留当时数值。更新与回滚说明随程序包提供。" Style="{StaticResource Caption}" /></Border>
+              </StackPanel></Border>
+            </StackPanel></Border>
+            <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top"><StackPanel>
+              <TextBlock Text="餐次管理" Style="{StaticResource Heading}" /><TextBlock Text="按自己的习惯安排早餐、加餐或夜宵" Style="{StaticResource Caption}" Margin="0,0,0,18" />
+              <DataGrid x:Name="MealsGrid" ItemsSource="{Binding AllMeals}" SelectedItem="{Binding SelectedMeal}" Height="222"><DataGrid.Columns><DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="*" /><DataGridTextColumn Header="顺序" Binding="{Binding SortOrder}" Width="75" /><DataGridCheckBoxColumn Header="启用" Binding="{Binding IsActive}" Width="70" /></DataGrid.Columns></DataGrid>
+              <Grid Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,12,0"><TextBlock Text="餐次名称" Style="{StaticResource FieldLabel}" /><TextBox x:Name="MealNameBox" Text="{Binding MealName, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" AutomationProperties.Name="餐次名称" /></StackPanel>
+                <StackPanel Grid.Column="1"><TextBlock Text="顺序 · 0—10000" Style="{StaticResource FieldLabel}" /><TextBox x:Name="MealOrderBox" Text="{Binding MealOrder, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="餐次显示顺序" /></StackPanel>
+              </Grid>
+              <CheckBox Content="启用此餐次" IsChecked="{Binding MealActive}" />
+              <WrapPanel><Button x:Name="SaveMealButton" Content="保存餐次" Command="{Binding SaveMealCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,12" /><Button x:Name="NewMealButton" Content="新增餐次" Command="{Binding NewMealCommand}" Margin="0,0,0,12" /></WrapPanel>
+              <TextBlock Text="停用或改名会保留历史中的餐次名称。至少保留一个启用餐次。" Style="{StaticResource Caption}" />
+            </StackPanel></Border>
           </Grid>
-        </Grid>
-      </TabItem>
-      <TabItem Header="  历史查询  ">
-        <Grid Margin="0,12,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-          <WrapPanel><TextBlock Text="从" VerticalAlignment="Center" Margin="0,0,8,8" /><DatePicker x:Name="HistoryFromPicker" SelectedDate="{Binding HistoryFrom}" Width="155" /><TextBlock Text="到" VerticalAlignment="Center" Margin="0,0,8,8" /><DatePicker x:Name="HistoryToPicker" SelectedDate="{Binding HistoryTo}" Width="155" /><Button x:Name="HistoryQueryButton" Content="查询" Command="{Binding LoadHistoryCommand}" /></WrapPanel>
-          <DataGrid x:Name="HistoryGrid" Grid.Row="1" ItemsSource="{Binding HistoryRows}" SelectedItem="{Binding SelectedHistory}"><DataGrid.Columns><DataGridTextColumn Header="日期" Binding="{Binding Date, StringFormat=yyyy-MM-dd}" Width="180" /><DataGridTextColumn Header="已记录合计（大卡）" Binding="{Binding EnergyKcal, StringFormat=N1}" Width="210" /><DataGridTextColumn Header="记录状态" Binding="{Binding State}" Width="*" /></DataGrid.Columns></DataGrid>
-          <StackPanel Grid.Row="2" Margin="0,12,0,0"><Button x:Name="OpenHistoryDayButton" Content="查看选中日期的明细" Command="{Binding OpenHistoryDayCommand}" HorizontalAlignment="Left" /><TextBlock Text="“未记录”的日期不代表实际摄入为零。" Foreground="#67766D" /></StackPanel>
-        </Grid>
-      </TabItem>
-      <TabItem Header="  设置与数据  ">
-        <ScrollViewer VerticalScrollBarVisibility="Auto"><Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="16" /><ColumnDefinition /></Grid.ColumnDefinitions>
-          <Border Style="{StaticResource Card}" VerticalAlignment="Top"><StackPanel>
-            <TextBlock Text="数据与备份" Style="{StaticResource Heading}" />
-            <TextBlock Text="完整备份包含食物库、餐次和全部摄入记录。恢复会替换当前工作数据，并先自动保存现有数据。" TextWrapping="Wrap" Margin="0,0,0,12" />
-            <WrapPanel><Button x:Name="ExportBackupButton" Content="导出完整备份" Command="{Binding ExportCommand}" /><Button x:Name="RestoreBackupButton" Content="恢复完整备份" Command="{Binding RestoreCommand}" /></WrapPanel>
-            <TextBlock Text="数据目录" FontWeight="SemiBold" Margin="0,16,0,6" /><TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding VersionText}" TextWrapping="Wrap" Margin="0,8,0,12" />
-            <TextBlock Text="{Binding FoodAttribution}" TextWrapping="Wrap" Foreground="#67766D" />
-            <TextBlock Text="食物库修改只影响新记录，历史记录保留当时数值。程序更新与版本回滚说明随发布包提供。" TextWrapping="Wrap" Margin="0,16,0,0" />
-          </StackPanel></Border>
-          <Border Grid.Column="2" Style="{StaticResource Card}" VerticalAlignment="Top"><StackPanel>
-            <TextBlock Text="餐次管理" Style="{StaticResource Heading}" />
-            <DataGrid x:Name="MealsGrid" ItemsSource="{Binding AllMeals}" SelectedItem="{Binding SelectedMeal}" Height="210"><DataGrid.Columns><DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="*" /><DataGridTextColumn Header="顺序" Binding="{Binding SortOrder}" Width="65" /><DataGridCheckBoxColumn Header="启用" Binding="{Binding IsActive}" Width="65" /></DataGrid.Columns></DataGrid>
-            <TextBlock Text="餐次名称" Margin="0,12,0,0" /><TextBox x:Name="MealNameBox" Text="{Binding MealName, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" />
-            <TextBlock Text="显示顺序（0—10000）" /><TextBox x:Name="MealOrderBox" Text="{Binding MealOrder, UpdateSourceTrigger=PropertyChanged}" />
-            <CheckBox Content="启用此餐次" IsChecked="{Binding MealActive}" Margin="0,0,0,12" />
-            <WrapPanel><Button x:Name="SaveMealButton" Content="保存餐次" Command="{Binding SaveMealCommand}" /><Button x:Name="NewMealButton" Content="新增餐次" Command="{Binding NewMealCommand}" /></WrapPanel>
-            <TextBlock Text="可添加上午加餐、下午茶、夜宵等。停用或改名会保留历史记录中的餐次名称，至少保留一个启用餐次。" TextWrapping="Wrap" Foreground="#67766D" />
-          </StackPanel></Border>
-        </Grid></ScrollViewer>
+        </ScrollViewer>
       </TabItem>
     </TabControl>
-    <Border Grid.Row="2" Padding="10" Background="#E9F1EC" CornerRadius="6" Margin="0,12,0,0"><TextBlock x:Name="StatusText" Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" /></Border>
+    <Border Grid.Row="2" Margin="2,14,2,0">
+      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+        <Ellipse Width="6" Height="6" Fill="#769367" Margin="0,0,8,0" VerticalAlignment="Center" />
+        <TextBlock x:Name="StatusText" Grid.Column="1" Text="{Binding Status}" Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+      </Grid>
+    </Border>
   </Grid>
 </Window>

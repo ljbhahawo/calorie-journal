@@ -164,6 +164,10 @@ public sealed class BindingTests
         tabs.SelectedIndex = 0;
         Assert.IsNotNull(window.FindName("SaveEntryButton"));
         Assert.IsFalse(string.IsNullOrEmpty(((TextBlock)window.FindName("StatusText")).Text));
+        vm.SelectedDate = DateTime.Today.AddDays(-7); Pump();
+        entryName.Text = "零热量显示的明确验收输入"; directKcal.Text = "0"; Pump();
+        vm.SaveEntryCommand.Execute(null); Pump();
+        Assert.AreEqual(0m, vm.DayEntries.Single().EnergyKcal);
         WindowLayoutChecks.Verify(window, vm, Path.Combine(directory, "layout-checks.json"));
         Trace("全部断言通过");
     }
