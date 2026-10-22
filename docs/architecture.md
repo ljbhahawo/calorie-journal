@@ -1,6 +1,6 @@
 # 架构与技术设计
 
-用途：规定软件实现边界及后续升级方式。状态：2026-10-22 已交付1.1.1，三个生产项目、归档源码重建及版本回滚通过验证；详细证据见开发进度。产品范围见 [需求说明](requirements.md)。
+用途：规定软件实现边界及后续升级方式。状态：2026-10-22 已交付1.2.0，三个生产项目、归档源码重建及版本回滚通过验证；详细证据见开发进度。产品范围见 [需求说明](requirements.md)。
 
 ## 1. 技术选择
 
@@ -34,6 +34,8 @@ flowchart TD
 当前实现用`JournalService`集中处理摄入、汇总、食物搜索维护及餐次，通过`IJournalStore`访问存储；`BackupService`处理完整备份恢复，`SqliteJournalStore.Initialize`检查应用标识、初始化和结构版本。构造函数注入依赖，事务边界围绕一次完整写操作。当前规模不额外建立只有转发调用的服务类。
 
 1.2界面使用`App.xaml`集中维护颜色与控件样式，`MainWindow.xaml`组织四页布局；表单内容滚动而保存区域固定。导航模板保留`PART_SelectedContentHost`供辅助技术访问内容，选中文字颜色只作用于导航标题。空白状态及历史未记录样式直接绑定现有集合与记录数，不修改业务计算或存储。
+
+1.3导入使用Core中的`IntakeTextParser`和`ImportPlanner`产生与校验草稿；复制表格由.NET标准库`TextFieldParser`处理引号、分隔和换行。独立`ImportWindow`/`ImportViewModel`负责核对与确认，调用`BackupService.CreateImportBackup`后由`JournalService.ImportEntries`和存储的`AppendEntries`在单个事务中追加；不覆盖旧条目，不改变结构版本。具体边界见[历史记录导入](历史记录导入.md)。
 
 ## 3. 计划目录
 

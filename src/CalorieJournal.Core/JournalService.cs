@@ -9,6 +9,7 @@ public interface IJournalStore
     void SaveFood(FoodItem value);
     void SaveMeal(MealCategory value);
     void SaveEntry(IntakeEntry value);
+    void AppendEntries(IntakeEntry[] values);
     void DeleteEntry(Guid id);
     JournalSnapshot ReadSnapshot();
     void ReplaceSnapshot(JournalSnapshot snapshot);
@@ -78,4 +79,29 @@ public sealed class JournalService(IJournalStore store)
     }
 
     public void DeleteEntry(Guid id) => store.DeleteEntry(id);
+
+    public IntakeEntry[] ExistingImportEntries(DateOnly from, DateOnly to) => store.ReadEntries(from, to);
+
+    public void ValidateImport(IntakeEntry[] values)
+    {
+        Validation.Require(values.Length is > 0 and <= 1000, "每批须选择1到1000条摄入。" );
+        Validation.Require(values.Select(x => x.Id).Distinct().Count() == values.Length, "本批记录ID重复。" );
+        var existing = store.ReadEntries(DateOnly.MinValue, DateOnly.MaxValue);
+        Validation.Require(existing.Length + values.Length <= 100000, "导入后记录不能超过当前备份格式的10万条限制。" );
+        var existingIds = existing.Select(x => x.Id).ToHashSet();
+        Validation.Require(values.All(x => !existingIds.Contains(x.Id)), "该原文行已经导入，请取消重复选择。" );
+        var meals = store.ReadMeals().Where(x => x.IsActive).ToDictionary(x => x.Id);
+        foreach (var value in values)
+        {
+            Validation.Entry(value);
+            Validation.Require(value.InputMode == "direct" && value.FoodId is null, "文字导入须采用未关联食物库的热量快照。" );
+            Validation.Require(meals.TryGetValue(value.MealCategoryId, out var meal) && meal.Name == value.MealNameSnapshot, "导入餐次须对应当前启用餐次。" );
+        }
+    }
+
+    public void ImportEntries(IntakeEntry[] values)
+    {
+        ValidateImport(values);
+        store.AppendEntries(values);
+    }
 }

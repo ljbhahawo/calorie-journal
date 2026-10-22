@@ -195,6 +195,9 @@
               <TextBlock Text="完整备份" FontWeight="SemiBold" Margin="0,0,0,8" />
               <TextBlock Text="包含食物库、餐次和全部摄入。恢复将替换当前工作数据，并先自动备份现有内容。" TextWrapping="Wrap" Foreground="{StaticResource Muted}" FontSize="13" Margin="0,0,0,14" />
               <WrapPanel><Button x:Name="ExportBackupButton" Content="导出完整备份" Command="{Binding ExportCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" /><Button x:Name="RestoreBackupButton" Content="恢复完整备份" Command="{Binding RestoreCommand}" Margin="0,0,0,8" /></WrapPanel>
+              <TextBlock Text="导入旧记录" FontWeight="SemiBold" Margin="0,16,0,8" />
+              <TextBlock Text="粘贴自由文字或从Excel复制的表格，先核对年份、餐次和估计值，再备份并追加。" Style="{StaticResource Caption}" Margin="0,0,0,12" />
+              <Button x:Name="OpenImportButton" Content="导入历史记录" Command="{Binding OpenImportCommand}" HorizontalAlignment="Left" />
               <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Margin="0,18,0,0" Padding="0,18,0,0"><StackPanel>
                 <TextBlock Text="数据目录" Style="{StaticResource FieldLabel}" /><TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" FontSize="12" AutomationProperties.Name="数据目录" />
                 <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" Margin="0,0,0,18" />

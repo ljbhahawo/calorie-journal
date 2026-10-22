@@ -198,6 +198,21 @@ public sealed class SqliteJournalStore : IJournalStore
     public void SaveFood(FoodItem value) { using var connection = Open(); using var transaction = connection.BeginTransaction(); PutFood(connection, transaction, value); transaction.Commit(); }
     public void SaveMeal(MealCategory value) { using var connection = Open(); using var transaction = connection.BeginTransaction(); PutMeal(connection, transaction, value); transaction.Commit(); }
     public void SaveEntry(IntakeEntry value) { using var connection = Open(); using var transaction = connection.BeginTransaction(); PutEntry(connection, transaction, value); transaction.Commit(); }
+    public void AppendEntries(IntakeEntry[] values)
+    {
+        using var connection = Open();
+        using var transaction = connection.BeginTransaction();
+        var meals = Meals(connection, transaction).Where(x => x.IsActive).ToDictionary(x => x.Id);
+        foreach (var value in values)
+        {
+            Validation.Entry(value);
+            Validation.Require(meals.ContainsKey(value.MealCategoryId), "导入期间餐次发生变化，请重新核对。" );
+            Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM entries WHERE id=$id", ("$id", value.Id.ToString())), CultureInfo.InvariantCulture) == 0,
+                "该原文中至少一条记录已经导入；已停止整批追加，不覆盖原记录。" );
+            PutEntry(connection, transaction, value);
+        }
+        transaction.Commit();
+    }
     public void DeleteEntry(Guid id)
     {
         using var connection = Open();

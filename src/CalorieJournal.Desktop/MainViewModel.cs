@@ -150,6 +150,7 @@ public sealed partial class MainViewModel : ObservableObject
     public IRelayCommand OpenHistoryDayCommand { get; }
     public IAsyncRelayCommand ExportCommand { get; }
     public IAsyncRelayCommand RestoreCommand { get; }
+    public IRelayCommand OpenImportCommand { get; }
 
     public MainViewModel(JournalService journal, BackupService backups, string dataDirectory)
     {
@@ -219,6 +220,15 @@ public sealed partial class MainViewModel : ObservableObject
         }));
         ExportCommand = new AsyncRelayCommand(ExportAsync);
         RestoreCommand = new AsyncRelayCommand(RestoreAsync);
+        OpenImportCommand = new RelayCommand(() => Run(() =>
+        {
+            if (entryDirty || foodDirty || mealDirty) { Status = "请先保存或取消正在编辑的摄入、食物或餐次，再导入历史记录。"; return; }
+            var viewModel = new ImportViewModel(journal, backups);
+            new ImportWindow(viewModel) { Owner = Application.Current.MainWindow }.ShowDialog();
+            if (!viewModel.Imported) return;
+            RefreshDay(); RefreshHistory();
+            Status = "历史记录已导入；导入前备份：" + viewModel.RecoveryPath;
+        }));
         RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory(); LoadFood(null);
     }
 

@@ -13,11 +13,12 @@ public static class BindingCheckProgram
         var reportPath = Path.Combine(directory, "binding-check-result.txt");
         var result = 1;
         var dispatcher = Dispatcher.CurrentDispatcher;
-        dispatcher.BeginInvoke(new Action(() =>
+        dispatcher.BeginInvoke(new Action(async () =>
         {
             try
             {
                 new BindingTests().RealControlsBindThroughViewModelIntoSqliteAndRefreshViews();
+                await ImportBindingChecks.Verify();
                 File.WriteAllText(reportPath, "PASS: 独立STA进程中的真实WPF绑定、用例和SQLite检查全部通过。");
                 result = 0;
             }

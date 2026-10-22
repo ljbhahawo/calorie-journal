@@ -21,10 +21,18 @@ public sealed class BackupService(SqliteJournalStore store, string recoveryDirec
     public string Restore(JournalSnapshot snapshot)
     {
         Validation.Snapshot(snapshot);
-        Directory.CreateDirectory(recoveryDirectory);
-        var path = Path.Combine(recoveryDirectory, $"恢复前_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.calorie-backup.json");
-        Export(path);
+        var path = CreateRecoveryBackup("恢复前");
         store.ReplaceSnapshot(snapshot);
+        return path;
+    }
+
+    public string CreateImportBackup() => CreateRecoveryBackup("导入前");
+
+    private string CreateRecoveryBackup(string prefix)
+    {
+        Directory.CreateDirectory(recoveryDirectory);
+        var path = Path.Combine(recoveryDirectory, $"{prefix}_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.calorie-backup.json");
+        Export(path);
         return path;
     }
 }
