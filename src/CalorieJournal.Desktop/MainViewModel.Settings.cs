@@ -12,19 +12,31 @@ public sealed partial class MainViewModel
     public string[] NewFoodModes { get; } = ["每次询问", "自动加入", "不加入"];
     [ObservableProperty] private bool settingsDefaultWeight;
     [ObservableProperty] private int settingsFoodMode;
+    [ObservableProperty] private int settingsDailyPage;
+    public string[] DailyPages { get; } = ["现有表单", "表格记录"];
     [ObservableProperty] private bool mealMode;
     public ObservableCollection<DailyMealGroup> DayMeals { get; } = [];
     public IRelayCommand SaveSettingsCommand { get; private set; } = null!;
     public IRelayCommand ReloadSettingsCommand { get; private set; } = null!;
+    public IAsyncRelayCommand ExportDatabaseCommand { get; private set; } = null!;
     public IRelayCommand ShowMealsCommand { get; private set; } = null!;
     public IRelayCommand<DailyMealGroup> AddMealEntryCommand { get; private set; } = null!;
 
     private void InitializeSettings()
     {
+        ExportDatabaseCommand = new AsyncRelayCommand(async () =>
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog { Title = "保存SQLite一致性归档（请选择新文件名）", Filter = "SQLite数据库归档|*.db", FileName = $"数据库归档_{DateTime.Now:yyyyMMdd_HHmmss}.db" };
+            if (dialog.ShowDialog() != true) return;
+            await WorkAsync(() => backups.ExportDatabase(dialog.FileName), () => Status = "数据库归档已保存。关闭程序后可复制到独立目录并命名journal.db，用匹配版本的--data-dir打开；不要覆盖正在使用的库。");
+        });
         SaveSettingsCommand = new RelayCommand(() => Run(() =>
         {
             Validation.Require(SettingsFoodMode is >= 0 and <= 2, "请选择新资料入库方式。");
-            journal.SaveSettings(new JournalSettings { DefaultWeightMode = SettingsDefaultWeight, NewFoodMode = new[] { "ask", "auto", "never" }[SettingsFoodMode] });
+            Validation.Require(SettingsDailyPage is 0 or 1, "请选择每日记录页面。");
+            Validation.Require((SettingsDailyPage == 1) == SheetMode || (!entryDirty && !HasSheetDrafts), "请先保存或取消摄入草稿，再切换每日记录页面。");
+            journal.SaveSettings(new JournalSettings { DefaultWeightMode = SettingsDefaultWeight, NewFoodMode = new[] { "ask", "auto", "never" }[SettingsFoodMode], DailyRecordPage = SettingsDailyPage == 1 ? "sheet" : null });
+            SheetMode = SettingsDailyPage == 1;
             settingsDirty = false; Status = "录入设置已保存，后续新建采用新默认；当前草稿和历史保持不变。";
         }));
         ReloadSettingsCommand = new RelayCommand(() => Run(() => { LoadSettings(); Status = "已恢复上次保存的录入设置，当前摄入草稿保持不变。"; }));
@@ -44,10 +56,13 @@ public sealed partial class MainViewModel
         var value = journal.Settings(); var wasLoading = loading; loading = true;
         SettingsDefaultWeight = value.DefaultWeightMode;
         SettingsFoodMode = value.NewFoodMode switch { "ask" => 0, "auto" => 1, "never" => 2, _ => throw new ValidationException("入库设置无效。") };
+        SettingsDailyPage = value.DailyRecordPage == "sheet" ? 1 : 0;
+        SheetMode = SettingsDailyPage == 1;
         loading = wasLoading; settingsDirty = false;
     }
     partial void OnSettingsDefaultWeightChanged(bool value) { if (!loading) settingsDirty = true; }
     partial void OnSettingsFoodModeChanged(int value) { if (!loading) settingsDirty = true; }
+    partial void OnSettingsDailyPageChanged(int value) { if (!loading) settingsDirty = true; }
 
     private bool SaveWithFoodPolicy(IntakeEntry entry, out string message, out bool added)
     {

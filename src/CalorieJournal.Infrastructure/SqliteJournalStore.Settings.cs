@@ -24,6 +24,7 @@ public sealed partial class SqliteJournalStore
         Validation.Entry(value); Validation.Food(food);
         Validation.Require(value.FoodId is null && value.InputMode == "weight" && JournalService.SameFoodData(food, value), "新食物与摄入资料不一致。");
         using var connection = Open(); using var transaction = connection.BeginTransaction();
+        var capacity = new WriteCapacity(connection, transaction);
         var previousMealMatches = Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM entries WHERE id=$id AND meal_id=$meal", ("$id", value.Id.ToString()), ("$meal", value.MealCategoryId.ToString()))) == 1;
         Validation.Require(Meals(connection, transaction).Any(x => x.Id == value.MealCategoryId && (x.IsActive || previousMealMatches)), "餐次已停用，请重新选择。");
         var existing = Foods(connection, transaction, false).FirstOrDefault(x => JournalService.SameFoodData(x, value));
@@ -32,7 +33,7 @@ public sealed partial class SqliteJournalStore
             Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM foods")) < 100000, "食物资料已达到10万项上限。");
             PutFood(connection, transaction, food);
         }
-        PutEntry(connection, transaction, value with { FoodId = existing?.Id ?? food.Id }); transaction.Commit();
+        PutEntry(connection, transaction, value with { FoodId = existing?.Id ?? food.Id }); capacity.Commit();
         return existing is null;
     }
 }

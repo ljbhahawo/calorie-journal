@@ -33,9 +33,17 @@ public partial class App : Application
         };
         try
         {
+            if (e.Args is ["--version-info", var versionPath])
+            {
+                JsonFiles.WriteNew(Path.GetFullPath(versionPath), new { Application = "CalorieJournal",
+                    Version = typeof(App).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false).Cast<System.Reflection.AssemblyInformationalVersionAttribute>().Single().InformationalVersion,
+                    SqliteJournalStore.SchemaVersion, SqliteJournalStore.BackupFormatVersion, JsonFiles.MaximumBackupBytes });
+                Shutdown(); return;
+            }
             var dataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CalorieJournal");
             var startupCheck = false;
             string? exportPath = null;
+            string? databaseArchivePath = null;
             string? restorePath = null;
             string? reportPath = null;
             var restoreConfirmed = false;
@@ -44,15 +52,23 @@ public partial class App : Application
                 if (e.Args[i] == "--data-dir" && i + 1 < e.Args.Length) dataDirectory = Path.GetFullPath(e.Args[++i]);
                 else if (e.Args[i] == "--startup-check") startupCheck = true;
                 else if (e.Args[i] == "--export-backup" && i + 1 < e.Args.Length) exportPath = Path.GetFullPath(e.Args[++i]);
+                else if (e.Args[i] == "--export-database" && i + 1 < e.Args.Length) databaseArchivePath = Path.GetFullPath(e.Args[++i]);
                 else if (e.Args[i] == "--restore-backup" && i + 1 < e.Args.Length) restorePath = Path.GetFullPath(e.Args[++i]);
                 else if (e.Args[i] == "--report" && i + 1 < e.Args.Length) reportPath = Path.GetFullPath(e.Args[++i]);
                 else if (e.Args[i] == "--confirm-restore") restoreConfirmed = true;
                 else throw new ValidationException("未知参数。请查阅随包提供的使用说明。");
             }
             Directory.CreateDirectory(dataDirectory);
-            if (startupCheck || exportPath is not null || restorePath is not null) diagnosticDirectory = dataDirectory;
-            Validation.Require(exportPath is null || restorePath is null, "不能同时执行导出与恢复。");
+            if (startupCheck || exportPath is not null || restorePath is not null || databaseArchivePath is not null) diagnosticDirectory = dataDirectory;
+            Validation.Require(new[] { exportPath, restorePath, databaseArchivePath }.Count(x => x is not null) <= 1, "不能同时执行多个导出或恢复操作。");
             instanceLock = new FileStream(Path.Combine(dataDirectory, "instance.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            if (databaseArchivePath is not null)
+            {
+                var archiveStore = new SqliteJournalStore(Path.Combine(dataDirectory, "journal.db"));
+                new BackupService(archiveStore, Path.Combine(dataDirectory, "recovery")).ExportDatabase(databaseArchivePath);
+                if (reportPath is not null) JsonFiles.WriteNew(reportPath, new { Success = true, DatabaseArchivePath = databaseArchivePath });
+                Shutdown(); return;
+            }
             var package = JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data", "foods.json"));
             package = ProteinSupplement.EnrichBuiltin(package, Path.Combine(AppContext.BaseDirectory, "data", "lookup"));
             var store = new SqliteJournalStore(Path.Combine(dataDirectory, "journal.db"));

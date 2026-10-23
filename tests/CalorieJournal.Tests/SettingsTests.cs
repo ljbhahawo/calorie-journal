@@ -34,6 +34,20 @@ public sealed class SettingsTests
         Assert.AreEqual(JournalSettings.Default, journal.Settings()); backups.Restore(backups.Inspect(archive)); Assert.AreEqual(settings, journal.Settings());
     }
     [TestMethod]
+    public void SheetSettingPersistsAndRejectsLegacyClaimWithoutLosingData()
+    {
+        var (root, store, journal) = Open(); journal.SaveSettings(JournalSettings.Default with { DailyRecordPage = "sheet" });
+        Assert.AreEqual("sheet", Open(root).Journal.Settings().DailyRecordPage);
+        Assert.Throws<ValidationException>(() => journal.SaveSettings(JournalSettings.Default with { DailyRecordPage = "invalid" }));
+        var backups = new BackupService(store, Path.Combine(root, "recovery")); var full = store.ReadSnapshot();
+        Assert.AreEqual(8, full.FormatVersion); Assert.Throws<ValidationException>(() => backups.Restore(full with { FormatVersion = 7, SchemaVersion = 7 }));
+        var previous = full with { FormatVersion = 7, SchemaVersion = 7, Settings = full.Settings! with { DailyRecordPage = null } };
+        var recovery = backups.Restore(previous); Assert.IsNull(journal.Settings().DailyRecordPage);
+        backups.Restore(backups.Inspect(recovery)); Assert.AreEqual("sheet", journal.Settings().DailyRecordPage);
+        Assert.AreEqual(JsonSerializer.Serialize(full.Foods), JsonSerializer.Serialize(store.ReadSnapshot().Foods));
+        Assert.IsFalse(JsonSerializer.Serialize(JournalSettings.Default, JsonFiles.Options).Contains("DailyRecordPage"));
+    }
+    [TestMethod]
     public void ManualDataDeduplicatesWithoutOverwritingAndCanSaveWithoutAdding()
     {
         var (_, store, journal) = Open(); var first = Entry(journal);

@@ -21,6 +21,7 @@ public sealed partial class WeightConversionViewModel : ObservableObject
 {
     private readonly JournalService journal;
     private readonly long unitKcal;
+    private readonly long? unitKilojoules;
     public Guid? FoodId { get; }
     public string[] Units { get; } = ["g", "kg"];
     public ObservableCollection<WeightDeductionInput> Deductions { get; } = [];
@@ -37,14 +38,14 @@ public sealed partial class WeightConversionViewModel : ObservableObject
     {
         get
         {
-            try { var value = CreateSnapshot(); return $"可食重量 {value.NetGramsTenths / 10m:0.0}g · {Validation.CalculateEnergy(value.NetGramsTenths, unitKcal) / 10m:0.0}大卡"; }
+            try { var value = CreateSnapshot(); return $"可食重量 {value.NetGramsTenths / 10m:0.0}g · {Nutrition.Energy(value.NetGramsTenths, unitKcal, unitKilojoules) / 10m:0.0}大卡"; }
             catch (ValidationException exception) { return exception.Message; }
         }
     }
 
-    public WeightConversionViewModel(JournalService journal, Guid? foodId, long unitKcal, WeightCalculationSnapshot? snapshot)
+    public WeightConversionViewModel(JournalService journal, Guid? foodId, long unitKcal, WeightCalculationSnapshot? snapshot, long? unitKilojoules = null)
     {
-        this.journal = journal; this.unitKcal = unitKcal; FoodId = foodId;
+        this.journal = journal; this.unitKcal = unitKcal; this.unitKilojoules = unitKilojoules; FoodId = foodId;
         if (snapshot?.Kind == "gross")
         {
             Gross = (snapshot.GrossGramsTenths / 10m)!.Value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);

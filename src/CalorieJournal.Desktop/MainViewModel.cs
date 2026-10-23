@@ -196,6 +196,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             Validation.Require(SelectedLibraryFood is not null, "请先选择一个食物。");
             Validation.Require(!foodDirty, "请先保存或取消食物修改，再引用食物库条目。");
+            if (SheetMode) { AddSheetFood(SelectedLibraryFood!); return; }
             if (!ConfirmEntryDiscard()) return;
             ResetEntry(); EntryFoodQuery = ""; ChosenFood = SelectedLibraryFood; TabIndex = 0;
         }));
@@ -210,18 +211,20 @@ public sealed partial class MainViewModel : ObservableObject
             journal.SaveMeal(new MealCategory { Id = SelectedMeal?.Id ?? Guid.NewGuid(), Name = MealName, SortOrder = order, IsActive = MealActive });
             mealDirty = false;
             RefreshMeals(); Status = "餐次已保存；历史记录保留原餐次名称。";
+            if (SheetMode) RefreshSheet();
         }));
         LoadHistoryCommand = new RelayCommand(() => Run(LoadHistory));
         OpenHistoryDayCommand = new RelayCommand(() => Run(() =>
         {
             Validation.Require(SelectedHistory is not null, "请先选择一天。");
+            if (SheetMode) { OpenSheetDate(SelectedHistory.Date); TabIndex = 0; return; }
             SelectedDate = SelectedHistory.Date.ToDateTime(TimeOnly.MinValue); TabIndex = 0;
         }));
         ExportCommand = new AsyncRelayCommand(ExportAsync);
         RestoreCommand = new AsyncRelayCommand(RestoreAsync);
         OpenImportCommand = new RelayCommand(() => Run(() =>
         {
-            if (entryDirty || foodDirty || mealDirty) { Status = "请先保存或取消正在编辑的摄入、食物或餐次，再导入历史记录。"; return; }
+            if (entryDirty || foodDirty || mealDirty || HasSheetDrafts) { Status = "请先保存或取消摄入表单/表格、食物或餐次草稿，再导入历史记录。"; return; }
             var viewModel = new ImportViewModel(journal, backups);
             new ImportWindow(viewModel) { Owner = Application.Current.MainWindow }.ShowDialog();
             if (!viewModel.Imported) return;
@@ -238,19 +241,20 @@ public sealed partial class MainViewModel : ObservableObject
         OpenWeightConversionCommand = new RelayCommand(() => Run(() =>
         {
             Validation.Require(WeightMode, "请先勾选按重量计算，并填写每100克大卡。");
-            var model = new WeightConversionViewModel(journal, savedFoodId, ReadUnitKcal(), weightCalculation);
+            var model = new WeightConversionViewModel(journal, savedFoodId, ReadUnitKcal(), weightCalculation, ReadEntryKilojoules());
             var window = new WeightConversionWindow(model, journal) { Owner = Application.Current.MainWindow };
             window.ShowDialog();
             if (window.Result is not null) ApplyWeightCalculation(window.Result);
         }));
         OpenTemplatesCommand = new RelayCommand(() => Run(() =>
         {
-            if (entryDirty || foodDirty || mealDirty) { Status = "请先保存或取消正在编辑的摄入、食物或餐次，再打开餐食模板。"; return; }
+            if (entryDirty || foodDirty || mealDirty || HasSheetDrafts) { Status = "请先保存或取消摄入表单/表格、食物或餐次草稿，再打开餐食模板。"; return; }
             var model = new TemplateViewModel(journal, SelectedDate);
             new TemplateWindow(model) { Owner = Application.Current.MainWindow }.ShowDialog();
             if (!model.SavedAnyBatch) return;
             RefreshDay(); RefreshHistory(); Status = "餐食已保存，当日与历史列表已更新。";
         }));
+        InitializeSheet();
         InitializeSettings();
         InitializeBody();
         InitializeBrowse();
@@ -284,8 +288,9 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnTabIndexChanged(int value)
     {
         if (value == 2) Run(RefreshHistory);
-        if (value == 5) Run(RefreshStatistics);
-        if (value == 6) Run(RefreshPersonal);
+        if (value == 4) Run(RefreshStatistics);
+        if (value == 5) Run(RefreshPersonal);
+        if (value == 0 && SheetMode) Run(RefreshSheet);
     }
     partial void OnChosenFoodChanged(FoodItem? value)
     {
@@ -315,7 +320,7 @@ public sealed partial class MainViewModel : ObservableObject
         return MessageBox.Show(text, "请确认", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
     }
     private bool ConfirmEntryDiscard() => !entryDirty || Confirm("摄入内容尚未保存，是否放弃修改？");
-    public bool CanClose() => (!entryDirty && !foodDirty && !mealDirty && !settingsDirty && !bodyDirty && !goalDirty && !exerciseDirty) || Confirm("有未保存的内容，是否放弃并关闭？");
+    public bool CanClose() => (!entryDirty && !HasSheetDrafts && !foodDirty && !mealDirty && !settingsDirty && !bodyDirty && !goalDirty && !exerciseDirty) || Confirm("有未保存的内容（包括表格空行），是否放弃并关闭？");
 
     public void RefreshClockDate()
     {
@@ -381,6 +386,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Fill(HistoryRows, journal.History(appliedHistoryFrom, appliedHistoryTo));
         if (ContinuousMode) RefreshBrowse();
+        if (SheetMode) RefreshSheet();
         RefreshStatistics();
         if (SaveGoalCommand is not null) RefreshGoalComparison();
     }
@@ -545,7 +551,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task RestoreAsync()
     {
-        if (entryDirty || foodDirty || mealDirty || settingsDirty || bodyDirty || goalDirty || exerciseDirty) { Status = "请先保存或取消正在编辑的摄入、食物、餐次、身体记录、目标、锻炼或设置内容，再恢复备份。"; return; }
+        if (entryDirty || HasSheetDrafts || foodDirty || mealDirty || settingsDirty || bodyDirty || goalDirty || exerciseDirty) { Status = "请先保存或取消正在编辑的摄入表单/表格、食物、餐次、身体记录、目标、锻炼或设置内容，再恢复备份。"; return; }
         var dialog = new OpenFileDialog { Title = "选择完整备份", Filter = "完整备份|*.calorie-backup.json", InitialDirectory = DataDirectory };
         if (dialog.ShowDialog() != true) return;
         JournalSnapshot? snapshot = null;

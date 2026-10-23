@@ -18,7 +18,7 @@ internal static class BodyHierarchyBindingChecks
         var root = Path.Combine(Environment.GetEnvironmentVariable("CALORIE_TEST_ROOT")!, "wpf_body_" + Guid.NewGuid().ToString("N"));
         var store = new SqliteJournalStore(Path.Combine(root, "journal.db")); store.Initialize(JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data/foods.json")));
         var journal = new JournalService(store); journal.SaveSettings(new JournalSettings { DefaultWeightMode = false, NewFoodMode = "never" });
-        var vm = new MainViewModel(journal, new BackupService(store, Path.Combine(root, "recovery")), root); var window = new MainWindow(vm); window.Show(); vm.TabIndex = 4; Pump();
+        var vm = new MainViewModel(journal, new BackupService(store, Path.Combine(root, "recovery")), root); var window = new MainWindow(vm); window.Show(); vm.TabIndex = 3; Pump();
         Text("BodyWeightBox", "70"); Text("BodyHeightBox", "175"); Text("BodyAgeBox", "30"); Text("BodyWaistBox", "80"); ((ComboBox)window.FindName("BodySexBox")).SelectedIndex = 1; Pump();
         Assert.IsTrue(((TextBlock)window.FindName("BodyPreviewText")).Text.Contains("1648.8")); Click("SaveBodyButton"); Assert.HasCount(1, store.ReadBodyMeasurements()); Assert.HasCount(1, vm.BodyRows);
         Text("BodyWeightBox", "69"); Click("SaveBodyButton"); Assert.HasCount(1, store.ReadBodyMeasurements()); Assert.IsTrue(vm.Status.Contains("该日期已有"));
@@ -50,7 +50,7 @@ internal static class BodyHierarchyBindingChecks
             var container = (ListBoxItem)list.ItemContainerGenerator.ContainerFromItem(vm.BrowseDays[0]);
             var date = Descendants<Border>(container).First(x => x.Name == "ContinuousDateHeader"); var meal = Descendants<Border>(container).First(x => x.Name == "ContinuousMealHeader"); var entry = Descendants<Border>(container).First(x => x.Name == "ContinuousEntryCard");
             Assert.IsTrue(Left(meal) > Left(date) + 12 && Left(entry) > Left(meal) + 12, "连续列表须为日期、餐次、食物三层递进");
-            vm.TabIndex = 4; Pump();
+            vm.TabIndex = 3; Pump();
             foreach (var name in new[] { "SaveBodyButton", "NewBodyButton", "QueryBodyButton", "EditBodyButton", "DeleteBodyButton" })
             { var button = (Button)window.FindName(name); button.BringIntoView(); Pump(); var rect = button.TransformToAncestor(window).TransformBounds(new Rect(button.RenderSize)); Assert.IsTrue(button.IsVisible && rect.Left >= 0 && rect.Top >= 0 && rect.Right <= window.ActualWidth + 1 && rect.Bottom <= window.ActualHeight + 1, name + "不可访问"); checks.Add(new { Scale = scale, Control = name, Bounds = rect.ToString() }); }
         }

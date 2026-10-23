@@ -24,10 +24,10 @@ public sealed partial class SqliteJournalStore
     public BodyMeasurement[] ReadBodyMeasurements() { using var connection = Open(); return BodyMeasurements(connection, null); }
     public void SaveBodyMeasurement(BodyMeasurement value)
     {
-        BodyCalculator.Validate(value); using var connection = Open(); using var transaction = connection.BeginTransaction();
+        BodyCalculator.Validate(value); using var connection = Open(); using var transaction = connection.BeginTransaction(); var capacity = new WriteCapacity(connection, transaction);
         Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM body_measurements WHERE entry_date=$date AND id<>$id", ("$date", value.Date.ToString("yyyy-MM-dd")), ("$id", value.Id.ToString()))) == 0, "该日期已有体重记录，请选择已有记录后修改。");
         Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM body_measurements")) < 100000 || Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM body_measurements WHERE id=$id", ("$id", value.Id.ToString()))) == 1, "身体记录已达到10万项上限。");
-        PutBodyMeasurement(connection, transaction, value); transaction.Commit();
+        PutBodyMeasurement(connection, transaction, value); capacity.Commit();
     }
     public void DeleteBodyMeasurement(Guid id)
     {

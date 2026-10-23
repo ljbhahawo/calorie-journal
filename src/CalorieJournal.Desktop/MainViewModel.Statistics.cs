@@ -50,6 +50,7 @@ public sealed partial class MainViewModel
         OpenStatisticsDayCommand = new RelayCommand(() => Run(() =>
         {
             Validation.Require(SelectedStatisticsDay is not null, "请选择统计日表中的日期。");
+            if (SheetMode) { OpenSheetDate(SelectedStatisticsDay.Date); TabIndex = 0; return; }
             if (!ConfirmEntryDiscard()) return;
             selectedDate = SelectedStatisticsDay.Date.ToDateTime(TimeOnly.MinValue); OnPropertyChanged(nameof(SelectedDate));
             ResetEntry(); RefreshDay(); ShowSingleCommand.Execute(null); TabIndex = 0;

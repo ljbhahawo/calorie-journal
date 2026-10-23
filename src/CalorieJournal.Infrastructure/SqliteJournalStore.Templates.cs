@@ -45,11 +45,12 @@ public sealed partial class SqliteJournalStore
     {
         TemplateValidation.Template(value);
         using var connection = Open(); using var transaction = connection.BeginTransaction();
+        var capacity = new WriteCapacity(connection, transaction);
         var foods = Foods(connection, transaction, value.IsDeleted).Select(x => x.Id).ToHashSet();
         var meals = Meals(connection, transaction).Where(x => value.IsDeleted || x.IsActive).Select(x => x.Id).ToHashSet();
         Validation.Require(value.Items.All(x => foods.Contains(x.FoodId)), "模板食物已删除，请重新选择。");
         Validation.Require(value.PreferredMealId is null || meals.Contains(value.PreferredMealId.Value), "模板餐次不存在或已停用。");
-        PutTemplate(connection, transaction, value); transaction.Commit();
+        PutTemplate(connection, transaction, value); capacity.Commit();
     }
 
     public void AppendTemplateBatch(TemplateBatchReceipt receipt, IntakeEntry[] entries)
@@ -57,6 +58,7 @@ public sealed partial class SqliteJournalStore
         TemplateValidation.Receipt(receipt);
         Validation.Require(receipt.EntryIds.SequenceEqual(entries.Select(x => x.Id)), "餐食批次和条目清单不一致。");
         using var connection = Open(); using var transaction = connection.BeginTransaction();
+        var capacity = new WriteCapacity(connection, transaction);
         Validation.Require(Templates(connection, transaction).Any(x => x.Id == receipt.TemplateId && !x.IsDeleted), "模板不存在或已删除。");
         Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM template_batches"), CultureInfo.InvariantCulture) < 100000, "已保存餐食批次达到10万条上限。");
         var foods = Foods(connection, transaction, false).Select(x => x.Id).ToHashSet();
@@ -73,6 +75,6 @@ public sealed partial class SqliteJournalStore
             Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM entries WHERE id=$id", ("$id", entry.Id.ToString())), CultureInfo.InvariantCulture) == 0, "整餐中的记录已保存，不能重复写入。");
             PutEntry(connection, transaction, entry);
         }
-        transaction.Commit();
+        capacity.Commit();
     }
 }

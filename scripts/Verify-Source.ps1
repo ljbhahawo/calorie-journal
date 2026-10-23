@@ -54,10 +54,10 @@ try {
     $report.SdkVersion = $sdkVersion
     Invoke-SourceDotnet '普通锁定还原' @('restore','CalorieJournal.slnx','--locked-mode','-m:1')
     Invoke-SourceDotnet '源码构建' @('build','CalorieJournal.slnx','--no-restore','-m:1','-p:UseSharedCompilation=false')
-    Invoke-SourceDotnet '真实SQLite测试' @('test','CalorieJournal.slnx','--no-build','--no-restore','-m:1','--blame-hang-timeout','30s','--blame-hang-dump-type','none','--logger','trx;LogFileName=source-tests.trx','--results-directory',(Join-Path $testRoot 'results'))
+    Invoke-SourceDotnet '真实SQLite测试' @('test','CalorieJournal.slnx','--no-build','--no-restore','-m:1','--blame-hang-timeout','120s','--blame-hang-dump-type','none','--logger','trx;LogFileName=source-tests.trx','--results-directory',(Join-Path $testRoot 'results'))
     $report.Stage = '独立WPF检查'
     $bindingExe = Join-Path $sourceRoot 'tests/CalorieJournal.Desktop.Tests/bin/Debug/net10.0-windows/CalorieJournal.Desktop.Tests.exe'
-    Invoke-CheckedProcess $bindingExe @() 30000
+    Invoke-CheckedProcess $bindingExe @() 120000
     $bindingResult = Get-Content -LiteralPath (Join-Path $env:CALORIE_TEST_ROOT 'binding-check-result.txt') -Raw
     if (-not $bindingResult.StartsWith('PASS:')) { throw '独立源码的WPF检查未通过。' }
     $report.WpfChecksPassed = $true

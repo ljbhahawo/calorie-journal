@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace CalorieJournal.Core;
 
@@ -6,8 +7,13 @@ public sealed record JournalSettings
 {
     public required bool DefaultWeightMode { get; init; }
     public required string NewFoodMode { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? DailyRecordPage { get; init; }
     public static JournalSettings Default => new() { DefaultWeightMode = true, NewFoodMode = "ask" };
-    public static void Validate(JournalSettings value) => Validation.Require(value.NewFoodMode is "ask" or "auto" or "never", "新食物入库方式无效。");
+    public static void Validate(JournalSettings value)
+    {
+        Validation.Require(value.NewFoodMode is "ask" or "auto" or "never", "新食物入库方式无效。");
+        Validation.Require(value.DailyRecordPage is null or "sheet", "每日记录页面设置无效。");
+    }
 }
 
 public sealed record DailyMealGroup(DateOnly Date, Guid MealId, string Name, IntakeEntry[] Entries)

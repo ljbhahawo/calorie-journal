@@ -19,13 +19,13 @@ internal static class StatisticsBindingChecks
         var root = Path.Combine(tests, "wpf_statistics_" + Guid.NewGuid().ToString("N"));
         var store = new SqliteJournalStore(Path.Combine(root, "journal.db")); store.Initialize(JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data/foods.json")));
         // 使用前序真实WPF用例保存的资料，保留全部七类数据用于兼容回退检查。
-        var template = new SqliteJournalStore(Path.Combine(Directory.GetDirectories(tests, "wpf_template_*").OrderByDescending(Directory.GetLastWriteTimeUtc).First(), "journal.db")).ReadSnapshot();
-        var body = new SqliteJournalStore(Path.Combine(Directory.GetDirectories(tests, "wpf_body_*").OrderByDescending(Directory.GetLastWriteTimeUtc).First(), "journal.db")).ReadSnapshot();
+        var template = new SqliteJournalStore(BindingFixtures.Get("template")).ReadSnapshot();
+        var body = new SqliteJournalStore(BindingFixtures.Get("body")).ReadSnapshot();
         new BackupService(store, Path.Combine(root, "recovery")).Restore(template with { BodyMeasurements = body.BodyMeasurements });
         var journal = new JournalService(store); journal.SaveSettings(new JournalSettings { DefaultWeightMode = false, NewFoodMode = "never" });
         var from = new DateOnly(2024, 2, 26); var to = new DateOnly(2024, 3, 1); var meal = journal.Meals().First(x => x.IsActive);
         foreach(var (date, tenths) in new[] { (from, 0L), (from.AddDays(3), 1000L), (to, 2000L) }) journal.SaveEntry(new IntakeEntry { Id=Guid.NewGuid(), EntryDate=date, MealCategoryId=meal.Id, MealNameSnapshot=meal.Name, FoodNameSnapshot="统计界面明确输入", EnergyKcalTenths=tenths });
-        var vm = new MainViewModel(journal, new BackupService(store, Path.Combine(root, "recovery")), root); var window = new MainWindow(vm); window.Show(); vm.TabIndex=5; Pump();
+        var vm = new MainViewModel(journal, new BackupService(store, Path.Combine(root, "recovery")), root); var window = new MainWindow(vm); window.Show(); vm.TabIndex=4; Pump();
         ((ComboBox)window.FindName("StatisticsModeBox")).SelectedIndex=1; ((DatePicker)window.FindName("StatisticsAnchorPicker")).SelectedDate=new DateTime(2024,2,15); Click("QueryStatisticsButton"); Assert.HasCount(29,vm.StatisticsDays);
         Click("PreviousStatisticsButton"); Assert.AreEqual(new DateOnly(2024,1,1),vm.StatisticsDays[0].Date); Click("NextStatisticsButton"); Assert.HasCount(29,vm.StatisticsDays);
         vm.StatisticsMode=2; vm.StatisticsFrom=from.ToDateTime(TimeOnly.MinValue); vm.StatisticsTo=to.ToDateTime(TimeOnly.MinValue); Click("QueryStatisticsButton");
@@ -41,10 +41,10 @@ internal static class StatisticsBindingChecks
         vm.SelectedEntry=vm.DayEntries.Single(); Assert.AreEqual(1,ConfirmationChecks.Respond(()=>vm.DeleteEntryCommand.Execute(null),true)); Assert.AreEqual("200.0 大卡",vm.StatisticsTotal); Assert.IsNull(vm.StatisticsDays[3].EnergyKcal);
         vm.StatisticsFrom=DateTime.Today.AddDays(1); Click("QueryStatisticsButton"); Assert.HasCount(5,vm.StatisticsDays);
         vm.SelectedDate=from.AddDays(1).ToDateTime(TimeOnly.MinValue); vm.EntryName="非法筛选后仍按有效区间刷新"; vm.DirectKcal="50"; vm.SaveEntryCommand.Execute(null); Assert.AreEqual("250.0 大卡",vm.StatisticsTotal); Assert.HasCount(5,vm.StatisticsDays);
-        vm.TabIndex=5; vm.SelectedStatisticsDay=vm.StatisticsDays[0]; vm.EntryName="待保存统计跳转草稿"; vm.DirectKcal="1";
-        Assert.AreEqual(1,ConfirmationChecks.Respond(()=>vm.OpenStatisticsDayCommand.Execute(null),false)); Assert.AreEqual(5,vm.TabIndex); Assert.AreEqual("待保存统计跳转草稿",vm.EntryName);
+        vm.TabIndex=4; vm.SelectedStatisticsDay=vm.StatisticsDays[0]; vm.EntryName="待保存统计跳转草稿"; vm.DirectKcal="1";
+        Assert.AreEqual(1,ConfirmationChecks.Respond(()=>vm.OpenStatisticsDayCommand.Execute(null),false)); Assert.AreEqual(4,vm.TabIndex); Assert.AreEqual("待保存统计跳转草稿",vm.EntryName);
         Assert.AreEqual(1,ConfirmationChecks.Respond(()=>vm.OpenStatisticsDayCommand.Execute(null),true)); Assert.AreEqual(0,vm.TabIndex);
-        vm.TabIndex=5; vm.StatisticsMode=0; vm.StatisticsAnchor=DateTime.Today; Click("QueryStatisticsButton"); Assert.IsFalse(vm.NextStatisticsCommand.CanExecute(null));
+        vm.TabIndex=4; vm.StatisticsMode=0; vm.StatisticsAnchor=DateTime.Today; Click("QueryStatisticsButton"); Assert.IsFalse(vm.NextStatisticsCommand.CanExecute(null));
         var checks=new List<object>(); var page=(Grid)window.Content;
         foreach(var scale in new[] {1.0,1.25,1.5,2.0})
         {

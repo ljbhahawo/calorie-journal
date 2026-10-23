@@ -59,10 +59,11 @@ public sealed partial class SqliteJournalStore
         WeightCalculator.Portion(value);
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
+        var capacity = new WriteCapacity(connection, transaction);
         Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM foods WHERE id=$id AND is_deleted=0", ("$id", value.FoodId.ToString())), CultureInfo.InvariantCulture) == 1, "份量引用食物不存在或已删除。");
         var previousFood = Scalar(connection, transaction, "SELECT food_id FROM portions WHERE id=$id", ("$id", value.Id.ToString())) as string;
         Validation.Require(previousFood is null || previousFood == value.FoodId.ToString(), "不能更改份量所属食物。");
         PutPortion(connection, transaction, value);
-        transaction.Commit();
+        capacity.Commit();
     }
 }

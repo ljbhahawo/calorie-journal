@@ -35,12 +35,24 @@ public interface IJournalStore
 
 public sealed partial class JournalService(IJournalStore store)
 {
+    private readonly Dictionary<Guid, (FoodItem Food, FoodSearch.Document Document)> foodDocuments = [];
+    private readonly object foodSearchGate = new();
     public FoodItem[] Foods(string query = "")
     {
         var search = FoodSearch.PrepareQuery(query);
-        return store.ReadFoods().Select(food => (Food: food, Document: FoodSearch.PrepareDocument(food.Name, food.Aliases, food.OriginalName, food.Category, food.Preparation)))
-            .Where(x => x.Document.Matches(search)).OrderBy(x => x.Document.Rank(search))
-            .ThenBy(x => x.Food.Category).ThenBy(x => x.Food.Name).Select(x => x.Food).ToArray();
+        lock (foodSearchGate)
+        {
+            var foods = store.ReadFoods(); var ids = new HashSet<Guid>();
+            foreach (var food in foods)
+            {
+                ids.Add(food.Id);
+                if (!foodDocuments.TryGetValue(food.Id, out var previous) || previous.Food != food)
+                    foodDocuments[food.Id] = (food, FoodSearch.PrepareDocument(food.Name, food.Aliases, food.OriginalName, food.Category, food.Preparation));
+            }
+            foreach (var id in foodDocuments.Keys.Where(id => !ids.Contains(id)).ToArray()) foodDocuments.Remove(id);
+            return foodDocuments.Values.Where(x => x.Document.Matches(search)).OrderBy(x => x.Document.Rank(search))
+                .ThenBy(x => x.Food.Category).ThenBy(x => x.Food.Name).Select(x => x.Food).ToArray();
+        }
     }
 
     public MealCategory[] Meals() => store.ReadMeals().OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToArray();

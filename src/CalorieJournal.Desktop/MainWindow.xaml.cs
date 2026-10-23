@@ -8,6 +8,8 @@ public partial class MainWindow : Window
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        MainTabs.Items.Remove(SettingsTab);
+        MainTabs.Items.Add(SettingsTab);
         DataContext = viewModel;
         Activated += (_, _) => viewModel.RefreshClockDate();
         Closing += (_, e) => { if (viewModel.IsBusy || !viewModel.CanClose()) e.Cancel = true; };

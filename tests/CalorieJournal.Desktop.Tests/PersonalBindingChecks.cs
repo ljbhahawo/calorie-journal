@@ -19,10 +19,10 @@ internal static class PersonalBindingChecks
         var tests = Environment.GetEnvironmentVariable("CALORIE_TEST_ROOT")!;
         var root = Path.Combine(tests, "wpf_personal_" + Guid.NewGuid().ToString("N"));
         var store = new SqliteJournalStore(Path.Combine(root, "journal.db")); store.Initialize(JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data/foods.json")));
-        var preceding = new SqliteJournalStore(Path.Combine(Directory.GetDirectories(tests, "wpf_statistics_*").OrderByDescending(Directory.GetLastWriteTimeUtc).First(), "journal.db")).ReadSnapshot();
+        var preceding = new SqliteJournalStore(BindingFixtures.Get("statistics")).ReadSnapshot();
         var backups = new BackupService(store, Path.Combine(root, "recovery")); backups.Restore(preceding);
         var journal = new JournalService(store); var intakeBefore = JsonSerializer.Serialize(store.ReadSnapshot().Entries);
-        var vm = new MainViewModel(journal, backups, root); var window = new MainWindow(vm); window.Show(); vm.TabIndex = 6; Pump();
+        var vm = new MainViewModel(journal, backups, root); var window = new MainWindow(vm); window.Show(); vm.TabIndex = 5; Pump();
         var personal = (TabControl)window.FindName("PersonalTabs");
         Text("GoalEnergyBox", "1800.0"); Click("SaveGoalButton"); Assert.HasCount(1, vm.GoalRows); Assert.IsTrue(vm.DayGoalText.Contains("1800.0"));
         Text("GoalEnergyBox", "1900"); Click("SaveGoalButton"); Assert.HasCount(1, vm.GoalRows); Assert.IsTrue(vm.Status.Contains("已有目标"));
@@ -62,7 +62,7 @@ internal static class PersonalBindingChecks
         var checks = new List<object>(); var page = (Grid)window.Content;
         foreach (var scale in new[] { 1.0, 1.25, 1.5, 2.0 })
         {
-            window.Width = 920 * scale; window.Height = 600 * scale; page.LayoutTransform = new ScaleTransform(scale, scale); vm.TabIndex = 6;
+            window.Width = 920 * scale; window.Height = 600 * scale; page.LayoutTransform = new ScaleTransform(scale, scale); vm.TabIndex = 5;
             foreach (var subpage in new[] { 0, 1 })
             {
                 personal.SelectedIndex = subpage; Pump();

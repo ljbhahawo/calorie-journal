@@ -80,7 +80,7 @@ internal static class WindowLayoutChecks
                 (0, new[] { "SaveEntryButton", "NewEntryButton", "CopyEntryButton", "DeleteEntryButton", "WeightConversionButton" }),
                 (1, new[] { "SaveFoodButton", "DeleteFoodButton", "UseFoodButton", "OpenFoodLookupButton" }),
                 (2, new[] { "HistoryQueryButton", "OpenHistoryDayButton" }),
-                (3, new[] { "ExportBackupButton", "RestoreBackupButton", "OpenImportButton", "SaveMealButton", "NewMealButton", "SaveSettingsButton", "ReloadSettingsButton" })
+                (6, new[] { "ExportBackupButton", "RestoreBackupButton", "ExportDatabaseButton", "OpenImportButton", "SaveMealButton", "NewMealButton", "SaveSettingsButton", "ReloadSettingsButton" })
             })
             {
                 vm.TabIndex = tab; Pump(); window.UpdateLayout();

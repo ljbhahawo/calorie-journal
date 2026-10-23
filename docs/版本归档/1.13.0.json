@@ -1,0 +1,119 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.13.0",
+  "Success": true,
+  "VerificationDate": "2026-10-24",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 8,
+  "BackupFormatVersion": 8,
+  "FoodPackageVersion": "usda-sr-2018-04.zh.1",
+  "ProteinSupplementVersion": "protein-2026-10-23.1",
+  "ChineseIndexVersion": "usda-zh-2026-10-23.3",
+  "SearchAliasesVersion": "food-aliases-2026-10-23.3",
+  "Package": {
+    "Sha256": "48EFDCF4F32C66AE5AB72C9249B045F6750E89AB2F4EF551916ADC7842ABA566",
+    "Bytes": 69710418,
+    "FileName": "每日热量记录_1.13.0_win-x64.zip"
+  },
+  "Checks": {
+    "NativeWheelPropagation": true,
+    "NameSuggestions": true,
+    "ArchivedSourceRebuild": true,
+    "AllNineCollectionsIdentical": true,
+    "PagePreferenceRetained": true,
+    "BusinessAndRealSqliteTestsPassed": 83,
+    "SheetLayoutChecks": 48,
+    "TransactionCapacityGuards": true,
+    "LargeBackupBytes": 65614395,
+    "ActuallyTestedRollbackSchemas": [
+      7,
+      8
+    ],
+    "WpfLayoutChecks": 432,
+    "PreviousStablePackagesUnchanged": true,
+    "SheetCrudAndDraftProtection": true,
+    "ExistingFoodCatalogsUnchanged": true,
+    "ClearUndoRedo": true,
+    "PreviousStablePackageCount": 15,
+    "RawKilojoulesPreserved": true,
+    "ExplicitOldRestorePointRequired": true,
+    "RollbackTo": "1.12.0",
+    "BackupReadWriteLimitsConsistent": true,
+    "LargeBackupRecords": 14000,
+    "AllNewDataArchivedAndRestored": true,
+    "SelfContainedStartupAndBackupRestore": true,
+    "DependencyLocksUnchanged": true,
+    "ProteinUnknownDistinctFromZero": true,
+    "SettingsRetained": true,
+    "ChineseQueryCasesPassed": 140,
+    "RealDatabaseArchive": true,
+    "VersionCapabilitiesMatch": true,
+    "RealDesktopOperations": true
+  },
+  "ActualMigrations": [
+    {
+      "Success": true,
+      "ToSchema": 8,
+      "FromVersion": "1.6.0",
+      "FromSchema": 1
+    },
+    {
+      "Success": true,
+      "ToSchema": 8,
+      "FromVersion": "1.7.0",
+      "FromSchema": 2
+    },
+    {
+      "Success": true,
+      "ToSchema": 8,
+      "FromVersion": "1.8.0",
+      "FromSchema": 3
+    },
+    {
+      "Success": true,
+      "ToSchema": 8,
+      "FromVersion": "1.8.1",
+      "FromSchema": 4
+    },
+    {
+      "Success": true,
+      "ToSchema": 8,
+      "FromVersion": "1.10.0",
+      "FromSchema": 5
+    },
+    {
+      "Success": true,
+      "ToSchema": 8,
+      "FromVersion": "1.11.0",
+      "FromSchema": 6
+    },
+    {
+      "Success": true,
+      "ToSchema": 8,
+      "FromVersion": "1.12.0",
+      "FromSchema": 7
+    }
+  ],
+  "Performance": {
+    "Measurement": "真实SQLite与ViewModel，非视觉帧率",
+    "AllScalesMeet300ms": false,
+    "Entries100000": {
+      "SaveRefreshMilliseconds": 3070.9,
+      "RangeQueryMilliseconds": 2386.8,
+      "WorkingSetBytes": 422273024,
+      "SheetConstructionMilliseconds": 1488.6
+    },
+    "Entries10000": {
+      "SheetConstructionMilliseconds": 147.6,
+      "SaveRefreshMilliseconds": 232.4
+    }
+  },
+  "EnvironmentLimits": {
+    "OtherCleanWindowsMachineTested": false,
+    "EmptyDependencyCacheTested": false,
+    "CrossMonitorDpiSwitchTested": false,
+    "BodyTimeSeriesImplemented": false,
+    "OneGiBActualFileTested": false,
+    "ActualMonitorDpiX": 144
+  }
+}

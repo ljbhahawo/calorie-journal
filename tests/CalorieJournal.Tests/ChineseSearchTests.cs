@@ -74,6 +74,11 @@ public sealed class ChineseSearchTests
         var updated = journal.Foods("我的自定义别名").Single();
         Assert.AreEqual("自定土豆名称", updated.Name);
         Assert.IsTrue(journal.Foods("马铃薯").Any(x => x.Id == updated.Id));
+        new BackupService(store, Path.Combine(directory, "recovery")).Restore(before);
+        Assert.IsEmpty(journal.Foods("我的自定义别名"));
+        var restored = journal.Foods("马铃薯 生").First(x => x.Id == potato.Id);
+        journal.DeleteFood(restored);
+        Assert.IsFalse(journal.Foods("马铃薯 生").Any(x => x.Id == restored.Id));
     }
 
     [TestMethod]

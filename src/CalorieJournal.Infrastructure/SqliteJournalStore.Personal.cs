@@ -40,16 +40,16 @@ public sealed partial class SqliteJournalStore
     public ExerciseRecord[] ReadExercises(DateOnly from, DateOnly to) { using var connection = Open(); return Exercises(connection, null, from, to); }
     public void SaveIntakeGoal(IntakeGoal value)
     {
-        PersonalRecordValidation.Goal(value); using var connection = Open(); using var transaction = connection.BeginTransaction();
+        PersonalRecordValidation.Goal(value); using var connection = Open(); using var transaction = connection.BeginTransaction(); var capacity = new WriteCapacity(connection, transaction);
         Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM intake_goals WHERE effective_date=$date AND id<>$id", ("$date", value.EffectiveDate.ToString("yyyy-MM-dd")), ("$id", value.Id.ToString()))) == 0, "该生效日期已有目标，请选择已有记录后修改。");
         Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM intake_goals")) < 100000 || Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM intake_goals WHERE id=$id", ("$id", value.Id.ToString()))) == 1, "目标已达到10万项上限。");
-        PutIntakeGoal(connection, transaction, value); transaction.Commit();
+        PutIntakeGoal(connection, transaction, value); capacity.Commit();
     }
     public void SaveExercise(ExerciseRecord value)
     {
-        PersonalRecordValidation.Exercise(value); using var connection = Open(); using var transaction = connection.BeginTransaction();
+        PersonalRecordValidation.Exercise(value); using var connection = Open(); using var transaction = connection.BeginTransaction(); var capacity = new WriteCapacity(connection, transaction);
         Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM exercise_records")) < 100000 || Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM exercise_records WHERE id=$id", ("$id", value.Id.ToString()))) == 1, "锻炼记录已达到10万项上限。");
-        PutExercise(connection, transaction, value); transaction.Commit();
+        PutExercise(connection, transaction, value); capacity.Commit();
     }
     public void DeleteIntakeGoal(Guid id)
     {

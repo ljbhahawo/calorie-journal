@@ -79,7 +79,7 @@ public sealed class BindingTests
         Assert.HasCount(61, service.Foods());
         Assert.IsTrue(vm.Status.StartsWith("食物已保存"));
 
-        tabs.SelectedIndex = 3; Pump();
+        tabs.SelectedIndex = 6; Pump();
         vm.NewMealCommand.Execute(null);
         ((TextBox)window.FindName("MealNameBox")).Text = "WPF下午茶"; Pump();
         vm.SaveMealCommand.Execute(null); Pump();
@@ -102,7 +102,7 @@ public sealed class BindingTests
         tabs.SelectedIndex = 2; Pump();
         Assert.AreEqual(2, vm.HistoryRows.Single(x => x.Date == DateOnly.FromDateTime(DateTime.Today)).Count);
 
-        tabs.SelectedIndex = 3; Pump();
+        tabs.SelectedIndex = 6; Pump();
         vm.SelectedMeal = vm.AllMeals.Single(x => x.Name == "早餐");
         ((TextBox)window.FindName("MealNameBox")).Text = "验收早餐"; Pump();
         vm.RestoreCommand.ExecuteAsync(null).GetAwaiter().GetResult();

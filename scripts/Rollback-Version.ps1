@@ -51,6 +51,9 @@ if ($SnapshotPath) {
     if ($current.Manifest.SchemaVersion -ge 7 -and $target.Manifest.SchemaVersion -lt 7) {
         Write-Host '目标旧版不能显示原始千焦和蛋白质字段，以及恢复点后新增资料；全部当前快照会先完整归档，返回新版可恢复。'
     }
+    if ($current.Manifest.SchemaVersion -ge 8 -and $target.Manifest.SchemaVersion -lt 8) {
+        Write-Host '目标旧版没有表格页面设置，将显示明确旧恢复点已有资料；当前全部记录、营养字段与设置先完整归档，返回新版可恢复。'
+    }
 }
 if (-not $PSCmdlet.ShouldProcess($dataRoot, "归档当前数据并切换到版本 $($target.Manifest.Version)")) { return }
 

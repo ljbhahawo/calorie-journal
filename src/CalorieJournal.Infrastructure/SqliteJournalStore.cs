@@ -8,8 +8,8 @@ namespace CalorieJournal.Infrastructure;
 
 public sealed partial class SqliteJournalStore : IJournalStore
 {
-    public const int SchemaVersion = 7;
-    public const int BackupFormatVersion = 7;
+    public const int SchemaVersion = 8;
+    public const int BackupFormatVersion = 8;
     public string DatabasePath { get; }
     private readonly string connectionString;
 
@@ -120,7 +120,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
         PutMetadata(connection, transaction, "food_package", package.Version);
         if (version == 0) Execute(connection, transaction, "PRAGMA application_id=0x43414C4A;");
         if (version < 4) PutMetadata(connection, transaction, "settings", JsonSerializer.Serialize(JournalSettings.Default, JsonFiles.Options));
-        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=7;");
+        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=8;");
         transaction.Commit();
     }
 
@@ -239,13 +239,14 @@ public sealed partial class SqliteJournalStore : IJournalStore
     private static void PutMetadata(SqliteConnection connection, SqliteTransaction transaction, string key, string value) => Execute(connection, transaction,
         "INSERT INTO metadata VALUES($key,$value) ON CONFLICT(key) DO UPDATE SET value=excluded.value WHERE metadata.value<>excluded.value", ("$key", key), ("$value", value));
 
-    public void SaveFood(FoodItem value) { using var connection = Open(); using var transaction = connection.BeginTransaction(); PutFood(connection, transaction, value); transaction.Commit(); }
-    public void SaveMeal(MealCategory value) { using var connection = Open(); using var transaction = connection.BeginTransaction(); PutMeal(connection, transaction, value); transaction.Commit(); }
-    public void SaveEntry(IntakeEntry value) { using var connection = Open(); using var transaction = connection.BeginTransaction(); PutEntry(connection, transaction, value); transaction.Commit(); }
+    public void SaveFood(FoodItem value) { Validation.Food(value); using var connection = Open(); using var transaction = connection.BeginTransaction(); var capacity = new WriteCapacity(connection, transaction); PutFood(connection, transaction, value); capacity.Commit(); }
+    public void SaveMeal(MealCategory value) { Validation.Meal(value); using var connection = Open(); using var transaction = connection.BeginTransaction(); var capacity = new WriteCapacity(connection, transaction); PutMeal(connection, transaction, value); capacity.Commit(); }
+    public void SaveEntry(IntakeEntry value) { Validation.Entry(value); using var connection = Open(); using var transaction = connection.BeginTransaction(); var capacity = new WriteCapacity(connection, transaction); PutEntry(connection, transaction, value); capacity.Commit(); }
     public void AppendEntries(IntakeEntry[] values)
     {
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
+        var capacity = new WriteCapacity(connection, transaction);
         var meals = Meals(connection, transaction).Where(x => x.IsActive).ToDictionary(x => x.Id);
         foreach (var value in values)
         {
@@ -255,7 +256,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
                 "该原文中至少一条记录已经导入；已停止整批追加，不覆盖原记录。" );
             PutEntry(connection, transaction, value);
         }
-        transaction.Commit();
+        capacity.Commit();
     }
     public void DeleteEntry(Guid id)
     {
@@ -293,6 +294,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
         Validation.Snapshot(snapshot);
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
+        var capacity = new WriteCapacity(connection, transaction);
         Execute(connection, transaction, "DELETE FROM exercise_records; DELETE FROM intake_goals; DELETE FROM body_measurements; DELETE FROM template_batches; DELETE FROM meal_templates; DELETE FROM entries; DELETE FROM portions; DELETE FROM foods; DELETE FROM meals;");
         foreach (var food in snapshot.Foods) PutFood(connection, transaction, food);
         foreach (var meal in snapshot.Meals) PutMeal(connection, transaction, meal);
@@ -305,7 +307,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
         foreach (var exercise in snapshot.Exercises ?? []) PutExercise(connection, transaction, exercise);
         PutMetadata(connection, transaction, "food_package", snapshot.FoodPackageVersion);
         PutMetadata(connection, transaction, "settings", JsonSerializer.Serialize(snapshot.Settings ?? JournalSettings.Default, JsonFiles.Options));
-        transaction.Commit();
+        capacity.Commit();
     }
 
     public void BackupDatabase(string destination)

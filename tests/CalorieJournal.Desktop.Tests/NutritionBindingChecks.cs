@@ -19,7 +19,7 @@ internal static class NutritionBindingChecks
     {
         var tests = Environment.GetEnvironmentVariable("CALORIE_TEST_ROOT")!; var root = Path.Combine(tests, "wpf_nutrition_" + Guid.NewGuid().ToString("N"));
         var store = new SqliteJournalStore(Path.Combine(root, "journal.db")); store.Initialize(JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data/foods.json")));
-        var preceding = new SqliteJournalStore(Path.Combine(Directory.GetDirectories(tests, "wpf_personal_*").OrderByDescending(Directory.GetLastWriteTimeUtc).First(), "journal.db")).ReadSnapshot();
+        var preceding = new SqliteJournalStore(BindingFixtures.Get("personal")).ReadSnapshot();
         var backups = new BackupService(store, Path.Combine(root, "recovery")); backups.Restore(preceding); var journal = new JournalService(store);
         journal.SaveSettings(new JournalSettings { DefaultWeightMode = true, NewFoodMode = "auto" });
         var vm = new MainViewModel(journal, backups, root); var window = new MainWindow(vm); window.Show(); vm.TabIndex = 1; Pump();

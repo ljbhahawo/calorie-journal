@@ -25,11 +25,11 @@ internal static class SettingsMealBindingChecks
         Fill("询问拒绝"); Assert.AreEqual(1, ConfirmationChecks.RespondChoice(() => vm.SaveEntryCommand.Execute(null), 7)); Assert.HasCount(61, journal.Foods()); Assert.HasCount(3, store.ReadSnapshot().Entries);
         Fill("询问取消"); Assert.AreEqual(1, ConfirmationChecks.RespondChoice(() => vm.SaveEntryCommand.Execute(null), 2)); Assert.HasCount(3, store.ReadSnapshot().Entries); Assert.AreEqual("询问取消", vm.EntryName);
         Assert.AreEqual(1, ConfirmationChecks.Respond(() => vm.NewEntryCommand.Execute(null), true));
-        vm.TabIndex = 3; Pump(); ((ComboBox)window.FindName("NewFoodPolicyBox")).SelectedIndex = 1; Pump(); Assert.AreEqual(1, vm.SettingsFoodMode); Click("SaveSettingsButton"); Assert.AreEqual("auto", journal.Settings().NewFoodMode);
+        vm.TabIndex = 6; Pump(); ((ComboBox)window.FindName("NewFoodPolicyBox")).SelectedIndex = 1; Pump(); Assert.AreEqual(1, vm.SettingsFoodMode); Click("SaveSettingsButton"); Assert.AreEqual("auto", journal.Settings().NewFoodMode);
         vm.TabIndex = 0; Fill("自动加入"); Assert.AreEqual(0, ConfirmationChecks.RespondChoice(() => vm.SaveEntryCommand.Execute(null), 6)); Assert.HasCount(62, journal.Foods());
-        vm.TabIndex = 3; Pump(); ((ComboBox)window.FindName("NewFoodPolicyBox")).SelectedIndex = 2; Click("SaveSettingsButton");
+        vm.TabIndex = 6; Pump(); ((ComboBox)window.FindName("NewFoodPolicyBox")).SelectedIndex = 2; Click("SaveSettingsButton");
         vm.TabIndex = 0; Fill("不加入"); Assert.AreEqual(0, ConfirmationChecks.RespondChoice(() => vm.SaveEntryCommand.Execute(null), 6)); Assert.HasCount(62, journal.Foods());
-        vm.TabIndex = 3; Pump(); ((CheckBox)window.FindName("DefaultWeightSettingBox")).IsChecked = false;
+        vm.TabIndex = 6; Pump(); ((CheckBox)window.FindName("DefaultWeightSettingBox")).IsChecked = false;
         ((ComboBox)window.FindName("NewFoodPolicyBox")).SelectedIndex = 0; Click("SaveSettingsButton"); Assert.IsTrue(vm.WeightMode, "设置不能改写现有草稿方式");
         vm.TabIndex = 0; vm.NewEntryCommand.Execute(null); Assert.IsFalse(vm.WeightMode);
         ((TextBox)window.FindName("EntryNameBox")).Text = "只有总大卡"; ((TextBox)window.FindName("DirectKcalBox")).Text = "10";

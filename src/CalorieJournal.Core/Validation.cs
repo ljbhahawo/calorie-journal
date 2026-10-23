@@ -95,7 +95,8 @@ public static class Validation
 
     public static void Snapshot(JournalSnapshot value)
     {
-        Require(value.FormatVersion == value.SchemaVersion && value.FormatVersion is >= 1 and <= 7, "备份格式或数据库版本不兼容。");
+        Require(value.FormatVersion == value.SchemaVersion && value.FormatVersion is >= 1 and <= 8, "备份格式或数据库版本不兼容。");
+        if (value.FormatVersion < 8) Require(value.Settings?.DailyRecordPage is null, "旧格式不能包含表格页面设置。");
         PersonalRecordValidation.Snapshot(value);
         BodyCalculator.Snapshot(value);
         if (value.FormatVersion >= 4) { Require(value.Settings is not null, "备份缺少录入设置。"); JournalSettings.Validate(value.Settings); }

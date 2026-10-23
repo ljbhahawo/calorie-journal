@@ -16,7 +16,7 @@ internal static class MigrationChecks
         legacyDatabase = Path.GetFullPath(legacyDatabase);
         Assert.IsTrue(legacyDatabase.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
         var original = new SqliteJournalStore(legacyDatabase).ReadSnapshot();
-        Assert.IsTrue(original.SchemaVersion is >= 1 and <= 6, "必须使用实际旧版程序产生的数据库。");
+        Assert.IsTrue(original.SchemaVersion is >= 1 and <= 7, "必须使用实际旧版程序产生的数据库。");
         var package = JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data/foods.json"));
         var healthy = Copy("healthy");
         healthy.Initialize(package);
@@ -54,8 +54,8 @@ internal static class MigrationChecks
             command.CommandText = "SELECT COUNT(*) FROM metadata WHERE key='settings'"; Assert.AreEqual(original.SchemaVersion >= 4 ? 1L : 0L, command.ExecuteScalar());
             command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name='body_measurements'"; Assert.AreEqual(original.SchemaVersion >= 5 ? 1L : 0L, command.ExecuteScalar());
             command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name IN ('intake_goals','exercise_records','exercises_day')"; Assert.AreEqual(original.SchemaVersion >= 6 ? 3L : 0L, command.ExecuteScalar());
-            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('foods') WHERE name IN ('protein_hundredths','kj_hundredths')"; Assert.AreEqual(0L, command.ExecuteScalar());
-            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('entries') WHERE name IN ('protein_unit_hundredths','protein_hundredths','kj_hundredths')"; Assert.AreEqual(0L, command.ExecuteScalar());
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('foods') WHERE name IN ('protein_hundredths','kj_hundredths')"; Assert.AreEqual(original.SchemaVersion >= 7 ? 2L : 0L, command.ExecuteScalar());
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('entries') WHERE name IN ('protein_unit_hundredths','protein_hundredths','kj_hundredths')"; Assert.AreEqual(original.SchemaVersion >= 7 ? 3L : 0L, command.ExecuteScalar());
             command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('entries') WHERE name='weight_calculation'";
             Assert.AreEqual(original.SchemaVersion >= 2 ? 1L : 0L, command.ExecuteScalar());
         }

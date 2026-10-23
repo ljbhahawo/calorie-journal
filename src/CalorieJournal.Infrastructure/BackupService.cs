@@ -28,6 +28,16 @@ public sealed class BackupService(SqliteJournalStore store, string recoveryDirec
 
     public string CreateImportBackup() => CreateRecoveryBackup("导入前");
 
+    public void ExportDatabase(string path)
+    {
+        Validation.Require(File.Exists(store.DatabasePath), "没有可归档的数据库。");
+        Validation.Require(!File.Exists(path), "目标文件已存在，请选择新名称。");
+        var fullPath = Path.GetFullPath(path); Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+        var staging = fullPath + "." + Guid.NewGuid().ToString("N") + ".writing";
+        try { store.BackupDatabase(staging); File.Move(staging, fullPath, false); }
+        finally { if (File.Exists(staging)) File.Delete(staging); }
+    }
+
     private string CreateRecoveryBackup(string prefix)
     {
         Directory.CreateDirectory(recoveryDirectory);
