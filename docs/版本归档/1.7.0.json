@@ -43,6 +43,21 @@
     "ChineseQueryCasesPassed": 140,
     "OldProgramRestoresUpgradeBackup": true
   },
+  "GitHubRelease": {
+    "Repository": "ljbhahawo/calorie-journal",
+    "Private": false,
+    "Url": "https://github.com/ljbhahawo/calorie-journal/releases/tag/v1.7.0",
+    "ReleaseId": 421368202,
+    "Draft": false,
+    "Tag": "v1.7.0",
+    "StableCommit": "6077dcf3936ccd7f1825a8dd3f4bcf40cf8cf7e9",
+    "AnnotatedTagObject": "03f0733b02fc9f55604cc6c1d95613942d5fdc8b",
+    "RemoteTagVerified": true,
+    "ProgramAsset": "calorie-journal_1.7.0_win-x64.zip",
+    "RollbackAsset": "calorie-journal_1.6.0_win-x64.zip",
+    "ChecksumAsset": "SHA256SUMS.txt",
+    "AllThreeAssetsSizeAndSha256Verified": true
+  },
   "EnvironmentLimits": {
     "ActualMonitorDpiX": 144,
     "CrossMonitorDpiSwitchTested": false,
