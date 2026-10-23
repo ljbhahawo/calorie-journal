@@ -39,6 +39,25 @@
     "FullBatchSnapshotsRetained": 1,
     "PreviousStablePackagesUnchanged": true
   },
+  "AdditionalActualMigrations": [
+    { "FromVersion": "1.7.0", "FromSchema": 2, "ToSchema": 4, "Success": true },
+    { "FromVersion": "1.6.0", "FromSchema": 1, "ToSchema": 4, "Success": true }
+  ],
+  "GitHubRelease": {
+    "Repository": "ljbhahawo/calorie-journal",
+    "Private": false,
+    "Url": "https://github.com/ljbhahawo/calorie-journal/releases/tag/v1.8.1",
+    "ReleaseId": 421526365,
+    "Draft": false,
+    "Tag": "v1.8.1",
+    "StableCommit": "8209951bf72464ffe939e48a2a95bb508bd8efdb",
+    "AnnotatedTagObject": "9fd51ec967ed1cbf9a27c48c1baec22ce8bb2f0b",
+    "RemoteTagVerified": true,
+    "ProgramAsset": "calorie-journal_1.8.1_win-x64.zip",
+    "RollbackAsset": "calorie-journal_1.8.0_win-x64.zip",
+    "ChecksumAsset": "SHA256SUMS.txt",
+    "AllThreeAssetsSizeAndSha256Verified": true
+  },
   "LayoutComparison": {
     "CurrentEntryGridHeight": 291.33,
     "WindowWidth": 1240,
