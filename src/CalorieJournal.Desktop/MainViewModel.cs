@@ -251,6 +251,7 @@ public sealed partial class MainViewModel : ObservableObject
             RefreshDay(); RefreshHistory(); Status = "餐食已保存，当日与历史列表已更新。";
         }));
         InitializeSettings();
+        InitializeBody();
         InitializeBrowse();
         RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory(); LoadFood(null);
     }
@@ -297,7 +298,7 @@ public sealed partial class MainViewModel : ObservableObject
         return MessageBox.Show(text, "请确认", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
     }
     private bool ConfirmEntryDiscard() => !entryDirty || Confirm("摄入内容尚未保存，是否放弃修改？");
-    public bool CanClose() => (!entryDirty && !foodDirty && !mealDirty && !settingsDirty) || Confirm("有未保存的内容，是否放弃并关闭？");
+    public bool CanClose() => (!entryDirty && !foodDirty && !mealDirty && !settingsDirty && !bodyDirty) || Confirm("有未保存的内容，是否放弃并关闭？");
 
     public void RefreshClockDate()
     {
@@ -506,17 +507,17 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task RestoreAsync()
     {
-        if (entryDirty || foodDirty || mealDirty || settingsDirty) { Status = "请先保存或取消正在编辑的摄入、食物、餐次或设置内容，再恢复备份。"; return; }
+        if (entryDirty || foodDirty || mealDirty || settingsDirty || bodyDirty) { Status = "请先保存或取消正在编辑的摄入、食物、餐次、身体记录或设置内容，再恢复备份。"; return; }
         var dialog = new OpenFileDialog { Title = "选择完整备份", Filter = "完整备份|*.calorie-backup.json", InitialDirectory = DataDirectory };
         if (dialog.ShowDialog() != true) return;
         JournalSnapshot? snapshot = null;
         await WorkAsync(() => snapshot = backups.Inspect(dialog.FileName), () => Status = "备份校验完成。");
         if (snapshot is null) return;
-        if (!Confirm($"将完整替换当前数据。\n备份时间：{snapshot.ExportedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}\n食物 {snapshot.Foods.Length} 项，餐次 {snapshot.Meals.Length} 项，摄入 {snapshot.Entries.Length} 项，份量 {snapshot.Portions?.Length ?? 0} 项，模板 {snapshot.Templates?.Length ?? 0} 项，批次 {snapshot.TemplateBatches?.Length ?? 0} 项。\n" + (snapshot.FormatVersion < 4 ? "旧格式未包含的设置采用默认值，其他缺少的新类型为空；当前完整数据保留在恢复前归档中。\n" : "录入设置也将恢复。\n") + "现有数据会先自动备份，是否恢复？")) return;
+        if (!Confirm($"将完整替换当前数据。\n备份时间：{snapshot.ExportedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}\n食物 {snapshot.Foods.Length} 项，餐次 {snapshot.Meals.Length} 项，摄入 {snapshot.Entries.Length} 项，份量 {snapshot.Portions?.Length ?? 0} 项，模板 {snapshot.Templates?.Length ?? 0} 项，批次 {snapshot.TemplateBatches?.Length ?? 0} 项，身体记录 {snapshot.BodyMeasurements?.Length ?? 0} 项。\n" + (snapshot.FormatVersion < 5 ? "旧格式缺少的新类型恢复后为空，未含设置时采用默认；当前全部资料先归档。\n" : "身体记录和录入设置也将恢复。\n") + "现有数据会先自动备份，是否恢复？")) return;
         var recoveryPath = "";
         await WorkAsync(() => recoveryPath = backups.Restore(snapshot), () =>
         {
-            LoadSettings(); RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory();
+            LoadSettings(); LoadBody(null); RefreshBody(); RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory();
             Status = "已恢复。恢复前数据保存在：" + recoveryPath;
         });
     }

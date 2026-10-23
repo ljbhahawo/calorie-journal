@@ -101,7 +101,7 @@ public sealed class PortionTests
         foreach (var bad in new[] { expected with { Portions = null }, expected with { Portions = [portion, portion] }, expected with { Portions = [portion with { FoodId = Guid.NewGuid() }] },
             expected with { FormatVersion = 1, SchemaVersion = 1 }, expected with { Portions = [portion with { GramsTenths = 0 }] } })
             Assert.Throws<ValidationException>(() => backups.Restore(bad));
-        var legacy = expected with { FormatVersion = 1, SchemaVersion = 1, Portions = null, Settings = null, Entries = expected.Entries.Select(x => x with { WeightCalculation = null }).ToArray() };
+        var legacy = expected with { FormatVersion = 1, SchemaVersion = 1, Portions = null, Settings = null, BodyMeasurements = null, Entries = expected.Entries.Select(x => x with { WeightCalculation = null }).ToArray() };
         backups.Restore(legacy);
         Assert.IsEmpty(store.ReadSnapshot().Portions!);
         Assert.IsNull(store.ReadSnapshot().Entries[0].WeightCalculation);

@@ -1,5 +1,5 @@
 param(
-    [string]$OldVersion = '1.8.0',
+    [string]$OldVersion = '1.8.1',
     [string]$NewExecutable,
     [string]$CheckExecutable
 )
@@ -8,7 +8,7 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 if ($OldVersion -notmatch '^\d+\.\d+\.\d+$') { throw '旧版必须是已验收稳定版本。' }
 $oldRoot = Join-Path $projectRoot "artifacts/releases/$OldVersion"
 $oldManifest = Get-Content -LiteralPath (Join-Path $oldRoot 'manifest.json') -Raw | ConvertFrom-Json
-if ($oldManifest.Stability -ne 'stable' -or $oldManifest.SchemaVersion -notin @(1,2,3)) { throw '此检查需要旧结构1至3稳定包。' }
+if ($oldManifest.Stability -ne 'stable' -or $oldManifest.SchemaVersion -notin @(1,2,3,4)) { throw '此检查需要旧结构1至4稳定包。' }
 $oldExe = Join-Path $oldRoot 'app/CalorieJournal.exe'
 if (-not $NewExecutable) { $NewExecutable = Join-Path $projectRoot 'src/CalorieJournal.Desktop/bin/Debug/net10.0-windows/CalorieJournal.exe' }
 if (-not $CheckExecutable) { $CheckExecutable = Join-Path $projectRoot 'tests/CalorieJournal.Desktop.Tests/bin/Debug/net10.0-windows/CalorieJournal.Desktop.Tests.exe' }
@@ -68,7 +68,9 @@ Invoke-App $NewExecutable @('--data-dir',$appRoot,'--startup-check')
 $afterPath = Join-Path $testRoot 'upgraded.calorie-backup.json'
 Invoke-App $NewExecutable @('--data-dir',$appRoot,'--export-backup',$afterPath)
 $after = Get-Content -LiteralPath $afterPath -Raw | ConvertFrom-Json
-if ($after.SchemaVersion -ne 4 -or $after.FormatVersion -ne 4 -or $after.Settings.NewFoodMode -ne 'ask' -or -not $after.Settings.DefaultWeightMode) { throw '新程序迁移版本或默认设置不符。' }
+if ($after.SchemaVersion -ne 5 -or $after.FormatVersion -ne 5 -or $after.BodyMeasurements.Count -ne 0) { throw '新程序迁移版本或身体记录不符。' }
+if ($oldManifest.SchemaVersion -ge 4) { if (($oldSnapshot.Settings | ConvertTo-Json -Compress) -cne ($after.Settings | ConvertTo-Json -Compress)) { throw '迁移改变已有设置。' } }
+elseif ($after.Settings.NewFoodMode -ne 'ask' -or -not $after.Settings.DefaultWeightMode) { throw '旧格式迁移默认设置不符。' }
 foreach ($collection in @('Foods','Meals')) {
     if (($oldSnapshot.$collection | ConvertTo-Json -Depth 12 -Compress) -cne ($after.$collection | ConvertTo-Json -Depth 12 -Compress)) { throw "迁移改变$collection" }
 }
@@ -78,6 +80,6 @@ foreach ($entry in $oldSnapshot.Entries) {
 }
 if ((@($oldSnapshot.Portions) | ConvertTo-Json -Depth 16 -Compress) -cne (@($after.Portions) | ConvertTo-Json -Depth 16 -Compress) -and $oldManifest.SchemaVersion -ge 2) { throw '迁移改变旧份量。' }
 if($oldManifest.SchemaVersion -ge 3){foreach($collection in @('Templates','TemplateBatches')){if(($oldSnapshot.$collection|ConvertTo-Json -Depth 20 -Compress) -cne ($after.$collection|ConvertTo-Json -Depth 20 -Compress)){throw "迁移改变$collection"}}}
-$result = @{Success=$true;TestRoot=$testRoot;OldVersion=$OldVersion;ActuallyTestedSchemas=@($oldManifest.SchemaVersion,4);ActualOldProgramExport=$true;ActualNewProgramMigration=$true;UserModifiedAndDeletedFoodsRetained=$true;OldProgramRefusesNewSchemaWithoutChangingBytes=$true;OldProgramReadsUpgradeDatabase=$true;OldProgramRestoresUpgradeBackup=$true;OriginalFoodMealEntryFieldsRetained=$true;BackupFailurePreservesBytes=$true;RealSqliteFailureRollsBackSchemaAndData=$true}
+$result = @{Success=$true;TestRoot=$testRoot;OldVersion=$OldVersion;ActuallyTestedSchemas=@($oldManifest.SchemaVersion,5);ActualOldProgramExport=$true;ActualNewProgramMigration=$true;UserModifiedAndDeletedFoodsRetained=$true;OldProgramRefusesNewSchemaWithoutChangingBytes=$true;OldProgramReadsUpgradeDatabase=$true;OldProgramRestoresUpgradeBackup=$true;OriginalFoodMealEntryFieldsRetained=$true;BackupFailurePreservesBytes=$true;RealSqliteFailureRollsBackSchemaAndData=$true}
 $result | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $testRoot 'result.json') -Encoding utf8
 $result | ConvertTo-Json -Depth 5

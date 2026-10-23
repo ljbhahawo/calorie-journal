@@ -2,6 +2,9 @@ namespace CalorieJournal.Core;
 
 public interface IJournalStore
 {
+    BodyMeasurement[] ReadBodyMeasurements();
+    void SaveBodyMeasurement(BodyMeasurement value);
+    void DeleteBodyMeasurement(Guid id);
     JournalSettings ReadSettings();
     void SaveSettings(JournalSettings value);
     bool SaveEntryAndFood(IntakeEntry value, FoodItem food);

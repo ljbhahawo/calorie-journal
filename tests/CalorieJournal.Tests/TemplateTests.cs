@@ -89,7 +89,7 @@ public sealed class TemplateTests
             Assert.Throws<ValidationException>(() => backups.Restore(bad));
             Assert.AreEqual(JsonSerializer.Serialize(snapshot.Templates), JsonSerializer.Serialize(store.ReadSnapshot().Templates));
         }
-        var legacy = snapshot with { FormatVersion = 2, SchemaVersion = 2, Templates = null, TemplateBatches = null, Settings = null };
+        var legacy = snapshot with { FormatVersion = 2, SchemaVersion = 2, Templates = null, TemplateBatches = null, Settings = null, BodyMeasurements = null };
         var archive = backups.Restore(legacy); Assert.IsEmpty(store.ReadTemplates()); Assert.IsEmpty(store.ReadTemplateBatches());
         var saved = backups.Inspect(archive); Assert.HasCount(1, saved.Templates!); Assert.HasCount(1, saved.TemplateBatches!);
         backups.Restore(saved); var actual = store.ReadSnapshot();

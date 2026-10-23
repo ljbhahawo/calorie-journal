@@ -76,6 +76,8 @@ public sealed record JournalSnapshot
     public TemplateBatchReceipt[]? TemplateBatches { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public JournalSettings? Settings { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public BodyMeasurement[]? BodyMeasurements { get; init; }
 }
 
 public sealed record FoodPackage
@@ -92,6 +94,7 @@ public sealed record DailySummary(DateOnly Date, long EnergyKcalTenths, int Coun
 
 public sealed record DailyIntake(DateOnly Date, IntakeEntry[] Entries)
 {
+    public DailyMealGroup[] Meals => Entries.GroupBy(x => x.MealCategoryId).Select(group => new DailyMealGroup(Date, group.Key, string.Join(" / ", group.Select(x => x.MealNameSnapshot).Distinct()), group.ToArray())).ToArray();
     public long EnergyKcalTenths => Entries.Sum(x => x.EnergyKcalTenths);
     public string Summary => Entries.Length == 0 ? "未记录" : $"{EnergyKcalTenths / 10m:0.0} 大卡 · {Entries.Length} 项";
 }

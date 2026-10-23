@@ -30,7 +30,7 @@ public sealed class SettingsTests
         Assert.Throws<ValidationException>(() => journal.SaveSettings(settings with { NewFoodMode = "invalid" }));
         var snapshot = store.ReadSnapshot(); var backups = new BackupService(store, Path.Combine(root, "recovery"));
         Assert.Throws<ValidationException>(() => backups.Restore(snapshot with { Settings = null }));
-        var archive = backups.Restore(snapshot with { FormatVersion = 3, SchemaVersion = 3, Settings = null });
+        var archive = backups.Restore(snapshot with { FormatVersion = 3, SchemaVersion = 3, Settings = null, BodyMeasurements = null });
         Assert.AreEqual(JournalSettings.Default, journal.Settings()); backups.Restore(backups.Inspect(archive)); Assert.AreEqual(settings, journal.Settings());
     }
     [TestMethod]
