@@ -11,6 +11,8 @@ public sealed record FoodItem
     public string Preparation { get; init; } = "";
     public string Category { get; init; } = "";
     public required long KcalPer100gHundredths { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public long? ProteinPer100gHundredths { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public long? KilojoulesPer100gHundredths { get; init; }
     public string SourceKind { get; init; } = "用户录入";
     public string SourceId { get; init; } = "";
     public string SourceVersion { get; init; } = "";
@@ -22,6 +24,7 @@ public sealed record FoodItem
     public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
     [JsonIgnore] public decimal KcalPer100g => KcalPer100gHundredths / 100m;
+    [JsonIgnore] public string ProteinText => Nutrition.ProteinText(ProteinPer100gHundredths);
     [JsonIgnore] public string SourceSummary => string.Join(" · ", new[] { SourceKind, SourceId, SourceVersion, UserModified ? "用户修改" : "", SourceNote }.Where(x => x.Length > 0));
 }
 
@@ -50,12 +53,17 @@ public sealed record IntakeEntry
     public WeightCalculationSnapshot? WeightCalculation { get; init; }
     public string SourceSnapshot { get; init; } = "用户录入";
     public required long EnergyKcalTenths { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public long? ProteinPer100gHundredthsSnapshot { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public long? ProteinGramsHundredths { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public long? KilojoulesHundredthsSnapshot { get; init; }
     public string Note { get; init; } = "";
     public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
     [JsonIgnore] public decimal EnergyKcal => EnergyKcalTenths / 10m;
+    [JsonIgnore] public string ProteinText => Nutrition.ProteinText(ProteinGramsHundredths);
     [JsonIgnore] public string Calculation => InputMode == "weight"
-        ? (WeightCalculation is null ? "" : WeightCalculation.Description + "；") + $"{WeightGramsTenths / 10m:0.0} g × {KcalPer100gHundredthsSnapshot / 100m:0.00} kcal/100g" : "直接输入大卡";
+        ? (WeightCalculation is null ? "" : WeightCalculation.Description + "；") + $"{WeightGramsTenths / 10m:0.0} g × " + (KilojoulesHundredthsSnapshot is { } kj ? $"{kj / 100m:0.00} kJ/100g ÷ 4.184" : $"{KcalPer100gHundredthsSnapshot / 100m:0.00} kcal/100g")
+        : KilojoulesHundredthsSnapshot is { } directKj ? $"{directKj / 100m:0.00} kJ ÷ 4.184" : "直接输入大卡";
 }
 
 public sealed record JournalSnapshot
@@ -98,6 +106,7 @@ public sealed record DailySummary(DateOnly Date, long EnergyKcalTenths, int Coun
 
 public sealed record DailyIntake(DateOnly Date, IntakeEntry[] Entries)
 {
+    public string ProteinSummary => Nutrition.ProteinSummary(Entries);
     public DailyMealGroup[] Meals => Entries.GroupBy(x => x.MealCategoryId).Select(group => new DailyMealGroup(Date, group.Key, string.Join(" / ", group.Select(x => x.MealNameSnapshot).Distinct()), group.ToArray())).ToArray();
     public long EnergyKcalTenths => Entries.Sum(x => x.EnergyKcalTenths);
     public string Summary => Entries.Length == 0 ? "未记录" : $"{EnergyKcalTenths / 10m:0.0} 大卡 · {Entries.Length} 项";

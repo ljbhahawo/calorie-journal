@@ -53,6 +53,8 @@ public static class Validation
         Text(value.SourceVersion, "来源版本", 100); Text(value.SourceUrl, "来源网址", 2000);
         Text(value.SourceNote, "来源说明", 1000); Text(value.BuiltinKey, "内置键", 100);
         Require(value.KcalPer100gHundredths is >= 0 and <= 1_000_000, "单位热量超出范围。");
+        Nutrition.UnitProtein(value.ProteinPer100gHundredths);
+        if (value.KilojoulesPer100gHundredths is { } kj) Require(Nutrition.UnitKcal(kj) == value.KcalPer100gHundredths, "食物千焦原值与大卡不一致。");
         Require(value.CreatedAtUtc != default && value.UpdatedAtUtc != default, "食物时间无效。");
     }
 
@@ -76,7 +78,8 @@ public static class Validation
         if (value.InputMode == "weight")
         {
             Require(value.WeightGramsTenths.HasValue && value.KcalPer100gHundredthsSnapshot.HasValue, "按重量计算需要重量和单位热量。");
-            Require(value.EnergyKcalTenths == CalculateEnergy(value.WeightGramsTenths!.Value, value.KcalPer100gHundredthsSnapshot!.Value), "保存的热量与重量计算不一致。");
+            Require(value.EnergyKcalTenths == Nutrition.Energy(value.WeightGramsTenths!.Value, value.KcalPer100gHundredthsSnapshot!.Value, value.KilojoulesHundredthsSnapshot), "保存的热量与重量计算不一致。");
+            Require(value.ProteinGramsHundredths == Nutrition.Protein(value.WeightGramsTenths.Value, value.ProteinPer100gHundredthsSnapshot), "保存的蛋白质与重量计算不一致。");
             if (value.WeightCalculation is not null)
                 Require(value.WeightGramsTenths == WeightCalculator.Calculate(value.WeightCalculation), "可食重量与换算依据不一致。");
         }
@@ -85,12 +88,14 @@ public static class Validation
             Require(value.InputMode == "direct", "未知录入方式。");
             Require(value.WeightGramsTenths is null && value.KcalPer100gHundredthsSnapshot is null && value.WeightCalculation is null, "直接录入不能包含重量计算字段。");
             Require(value.EnergyKcalTenths is >= 0 and <= 999_999, "单项大卡须在0到99999.9之间。");
+            Require(value.ProteinPer100gHundredthsSnapshot is null && value.ProteinGramsHundredths is null or >= 0 and <= 10000000, "本项蛋白质须为0–100000g，直接模式不能含单位蛋白质。");
+            if (value.KilojoulesHundredthsSnapshot is { } kj) Require(Nutrition.DirectKcal(kj) == value.EnergyKcalTenths, "本项千焦原值与大卡不一致。");
         }
     }
 
     public static void Snapshot(JournalSnapshot value)
     {
-        Require(value.FormatVersion == value.SchemaVersion && value.FormatVersion is 1 or 2 or 3 or 4 or 5 or 6, "备份格式或数据库版本不兼容。");
+        Require(value.FormatVersion == value.SchemaVersion && value.FormatVersion is >= 1 and <= 7, "备份格式或数据库版本不兼容。");
         PersonalRecordValidation.Snapshot(value);
         BodyCalculator.Snapshot(value);
         if (value.FormatVersion >= 4) { Require(value.Settings is not null, "备份缺少录入设置。"); JournalSettings.Validate(value.Settings); }
@@ -100,6 +105,7 @@ public static class Validation
         Require(value.Foods is not null && value.Meals is not null && value.Entries is not null, "备份缺少必要数据。");
         Require(value.Foods!.Length <= 100000 && value.Meals!.Length <= 1000 && value.Entries!.Length <= 100000, "备份条目超出限制。");
         Require(value.Foods.All(x => x is not null) && value.Meals.All(x => x is not null) && value.Entries.All(x => x is not null), "备份中存在空条目。");
+        Nutrition.Snapshot(value);
         foreach (var food in value.Foods) Food(food);
         foreach (var meal in value.Meals) Meal(meal);
         foreach (var entry in value.Entries) Entry(entry, false);

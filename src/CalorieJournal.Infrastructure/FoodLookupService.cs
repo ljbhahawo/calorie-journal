@@ -12,14 +12,16 @@ public sealed class FoodLookupService(string catalogDirectory, string cacheDirec
 {
     public const string TfdaDownloadUrl = "https://data.fda.gov.tw/data/opendata/export/20/json";
     private const int MaximumDownloadBytes = 12 * 1024 * 1024;
-    private readonly string cachePath = Path.Combine(cacheDirectory, "tfda.json");
+    private readonly string cachePath = Path.Combine(cacheDirectory, "tfda-protein-v1.json");
     private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(60) };
 
     public FoodReferenceCatalog[] Load(bool bundledOnly = false)
     {
         var usdaPath = Path.Combine(catalogDirectory, "usda.json");
-        var usda = ChineseFoodIndex.Apply(LoadOne(usdaPath, "USDA SR Legacy"), Path.Combine(catalogDirectory, "usda-zh.json"), usdaPath);
-        var tfda = LoadOne(!bundledOnly && File.Exists(cachePath) ? cachePath : Path.Combine(catalogDirectory, "tfda.json"), "TFDA");
+        var usda = ProteinSupplement.Apply(ChineseFoodIndex.Apply(LoadOne(usdaPath, "USDA SR Legacy"), Path.Combine(catalogDirectory, "usda-zh.json"), usdaPath), catalogDirectory, true);
+        var legacyCache = Path.Combine(cacheDirectory, "tfda.json");
+        var tfdaPath = !bundledOnly && File.Exists(cachePath) ? cachePath : !bundledOnly && File.Exists(legacyCache) ? legacyCache : Path.Combine(catalogDirectory, "tfda.json");
+        var tfda = ProteinSupplement.Apply(LoadOne(tfdaPath, "TFDA"), catalogDirectory, tfdaPath == Path.Combine(catalogDirectory, "tfda.json"));
         return [usda, tfda];
     }
 
@@ -89,9 +91,18 @@ public sealed class FoodLookupService(string catalogDirectory, string cacheDirec
         Validation.Require(entry.Length is > 0 and <= 160 * 1024 * 1024, "TFDA解压大小超出160MB限制。");
         await using var json = new BoundedReadStream(entry.Open(), 160 * 1024 * 1024);
         var foods = new List<FoodReference>();
+        var proteins = new Dictionary<string, long?>(StringComparer.Ordinal);
         var options = new JsonSerializerOptions { AllowDuplicateProperties = false, MaxDepth = 32 };
         await foreach (var row in JsonSerializer.DeserializeAsyncEnumerable<TfdaRow>(json, options, cancellationToken).ConfigureAwait(false))
         {
+            if (row?.Analysis == "粗蛋白")
+            {
+                Validation.Require(!string.IsNullOrWhiteSpace(row.Id) && row.Unit?.Trim() == "g" && !proteins.ContainsKey(row.Id), "TFDA蛋白质编号、单位或重复行无效。");
+                long? protein = null;
+                if (!string.IsNullOrWhiteSpace(row.Amount))
+                { Validation.Require(decimal.TryParse(row.Amount.Trim(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var amountProtein) && amountProtein is >= 0 and <= 100, "TFDA蛋白质数值无效。"); protein = Nutrition.Round(amountProtein * 100); }
+                proteins.Add(row.Id, protein); continue;
+            }
             if (row?.Analysis != "熱量") continue;
             Validation.Require(row.Unit?.Trim().Equals("kcal", StringComparison.OrdinalIgnoreCase) == true, "TFDA热量单位已变化，未更新资料。");
             Validation.Require(decimal.TryParse(row.Amount?.Trim(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var amount) && amount is >= 0 and <= 10000, "TFDA热量缺失或数值无效，未更新资料。");
@@ -110,7 +121,7 @@ public sealed class FoodLookupService(string catalogDirectory, string cacheDirec
         {
             Provider = "TFDA", Version = "获取" + retrievedAtUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             RetrievedAtUtc = retrievedAtUtc, SourceUrl = "https://data.gov.tw/dataset/8543", LicenseUrl = "https://data.gov.tw/license",
-            ArchiveSha256 = sha, Foods = foods.OrderBy(food => food.SourceId, StringComparer.Ordinal).ToArray()
+            ArchiveSha256 = sha, Foods = foods.Select(food => food with { ProteinPer100gHundredths = proteins.GetValueOrDefault(food.SourceId), SourceNote = food.SourceNote + "；蛋白质分析：粗蛋白/g，同一官方档案，缺失保留未填写" }).OrderBy(food => food.SourceId, StringComparer.Ordinal).ToArray()
         };
         catalog.Validate();
         return catalog;

@@ -39,6 +39,7 @@ public static class BindingCheckProgram
                 BodyHierarchyBindingChecks.Verify();
                 StatisticsBindingChecks.Verify();
                 PersonalBindingChecks.Verify();
+                NutritionBindingChecks.Verify();
                 File.WriteAllText(reportPath, "PASS: 独立STA进程中的真实WPF绑定、用例和SQLite检查全部通过。");
                 result = 0;
             }

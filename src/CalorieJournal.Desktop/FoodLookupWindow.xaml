@@ -19,6 +19,7 @@
      <DataGridTextColumn Header="中文辅助名称" Binding="{Binding Name}" Width="260"/>
      <DataGridTextColumn Header="大卡 / 100g" Binding="{Binding KcalPer100g, StringFormat=N2}" Width="120" ElementStyle="{StaticResource EnergyCell}"/>
      <DataGridTextColumn Header="来源" Binding="{Binding Provider}" Width="130"/>
+     <DataGridTextColumn Header="蛋白质 / 100g" Binding="{Binding ProteinText}" Width="130"/>
      <DataGridTextColumn Header="加工状态" Binding="{Binding Preparation}" Width="220"/>
      <DataGridTextColumn Header="英文 / 原始名称" Binding="{Binding Food.OriginalName}" Width="500"/>
     </DataGrid.Columns>

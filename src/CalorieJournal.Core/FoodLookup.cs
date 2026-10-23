@@ -13,6 +13,7 @@ public sealed record FoodReference
     public string Preparation { get; init; } = "";
     public string Category { get; init; } = "";
     public required long KcalPer100gHundredths { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public long? ProteinPer100gHundredths { get; init; }
     public string SourceNote { get; init; } = "";
 }
 
@@ -46,6 +47,7 @@ public sealed record FoodReferenceCatalog
             Validation.Text(item.OriginalName, "参考原名", 500); Validation.Text(item.Aliases, "参考别名", 500);
             Validation.Text(item.Preparation, "参考加工状态", 500); Validation.Text(item.Category, "参考分类", 100); Validation.Text(item.SourceNote, "参考来源说明", 1000);
             Validation.Require(item.KcalPer100gHundredths is >= 0 and <= 1000000, "参考食物热量无效。");
+            Nutrition.UnitProtein(item.ProteinPer100gHundredths);
         }
     }
 }
@@ -55,6 +57,7 @@ public sealed record FoodReferenceHit(FoodReferenceCatalog Catalog, FoodReferenc
     public string Name => Food.Name;
     public string Provider => Catalog.Provider;
     public decimal KcalPer100g => Food.KcalPer100gHundredths / 100m;
+    public string ProteinText => Nutrition.ProteinText(Food.ProteinPer100gHundredths);
     public string Preparation => Food.Preparation;
     public string SourceUrl => Provider == "USDA SR Legacy"
         ? $"https://fdc.nal.usda.gov/food-details/{Food.SourceId}/nutrients" : Catalog.SourceUrl;
@@ -63,6 +66,7 @@ public sealed record FoodReferenceHit(FoodReferenceCatalog Catalog, FoodReferenc
     {
         Id = Guid.NewGuid(), Name = Food.Name, OriginalName = Food.OriginalName, Aliases = Food.Aliases,
         Preparation = Food.Preparation, Category = Food.Category, KcalPer100gHundredths = Food.KcalPer100gHundredths,
+        ProteinPer100gHundredths = Food.ProteinPer100gHundredths,
         SourceKind = Provider, SourceId = Food.SourceId, SourceVersion = Catalog.Version, SourceUrl = SourceUrl,
         SourceNote = Food.SourceNote, UserModified = true
     };

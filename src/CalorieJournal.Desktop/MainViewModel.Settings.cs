@@ -56,7 +56,7 @@ public sealed partial class MainViewModel
         var add = candidate is not null && policy == "auto";
         if (candidate is not null && policy == "ask")
         {
-            var answer = MessageBox.Show($"检测到新的食物资料：{candidate.Name}\n状态：{candidate.Preparation}\n每100克 {candidate.KcalPer100g:0.00} 大卡。\n是否同时加入个人热量库？\n是：加入并保存摄入；否：仅保存摄入；取消：保留草稿。", "新食物资料", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.No);
+            var answer = MessageBox.Show($"检测到新的食物资料：{candidate.Name}\n状态：{candidate.Preparation}\n每100克 {candidate.KcalPer100g:0.00} 大卡，蛋白质 {candidate.ProteinText}。\n" + (candidate.KilojoulesPer100gHundredths is { } kj ? $"原始能量 {kj / 100m:0.00} kJ/100g。\n" : "") + "是否同时加入个人热量库？\n是：加入并保存摄入；否：仅保存摄入；取消：保留草稿。", "新食物资料", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.No);
             if (answer == MessageBoxResult.Cancel) return false;
             add = answer == MessageBoxResult.Yes;
         }

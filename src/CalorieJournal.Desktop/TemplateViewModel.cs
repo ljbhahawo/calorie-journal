@@ -14,7 +14,7 @@ public sealed partial class TemplateLineViewModel : ObservableObject
     private readonly FoodItem? currentFood;
     public Guid EntryId { get; } = Guid.NewGuid();
     public string FoodName => currentFood?.Name ?? original.FoodNameSnapshot + "（已删除，请更换）";
-    public string FoodDetail => currentFood is null ? original.PreparationSnapshot : $"{currentFood.Preparation} · {currentFood.KcalPer100g:0.00}大卡/100g · {currentFood.SourceSummary}";
+    public string FoodDetail => currentFood is null ? original.PreparationSnapshot : $"{currentFood.Preparation} · {currentFood.KcalPer100g:0.00}大卡/100g · 蛋白质 {currentFood.ProteinText}/100g · {currentFood.SourceSummary}";
     public string[] Units { get; } = ["g", "kg", "份"];
     public ObservableCollection<PortionOption> Portions { get; } = [];
     [ObservableProperty] private string amount = "100";
@@ -23,7 +23,7 @@ public sealed partial class TemplateLineViewModel : ObservableObject
     [ObservableProperty] private PortionOption? selectedPortion;
     public string Preview
     {
-        get { try { var item = CreateItem(); return $"{item.WeightGramsTenths / 10m:0.0}g · {Validation.CalculateEnergy(item.WeightGramsTenths, item.KcalPer100gHundredthsSnapshot) / 10m:0.0}大卡"; }
+        get { try { var item = CreateItem(); return $"{item.WeightGramsTenths / 10m:0.0}g · {Nutrition.Energy(item.WeightGramsTenths, item.KcalPer100gHundredthsSnapshot, item.KilojoulesPer100gHundredthsSnapshot) / 10m:0.0}大卡 · 蛋白质 {Nutrition.ProteinText(Nutrition.Protein(item.WeightGramsTenths, item.ProteinPer100gHundredthsSnapshot))}"; }
             catch (ValidationException exception) { return exception.Message; } }
     }
     public TemplateLineViewModel(JournalService journal, TemplateItem item)
@@ -96,7 +96,9 @@ public sealed partial class TemplateViewModel : ObservableObject
             try
             {
                 var items = ReviewItems.Where(x => x.Included).Select(x => x.CreateItem()).ToArray();
-                return items.Length == 0 ? "尚未选择食物" : $"已选 {items.Length} 项 · 合计 {items.Sum(x => Validation.CalculateEnergy(x.WeightGramsTenths, x.KcalPer100gHundredthsSnapshot)) / 10m:0.0} 大卡";
+                var proteins = items.Select(x => Nutrition.Protein(x.WeightGramsTenths, x.ProteinPer100gHundredthsSnapshot)).ToArray();
+                var summary = proteins.Any(x => x is not null) ? $"蛋白质已记录 {proteins.Sum(x => x ?? 0) / 100m:0.00} g · {proteins.Count(x => x is null)}项未填写" : "蛋白质未填写";
+                return items.Length == 0 ? "尚未选择食物" : $"已选 {items.Length} 项 · 合计 {items.Sum(x => Nutrition.Energy(x.WeightGramsTenths, x.KcalPer100gHundredthsSnapshot, x.KilojoulesPer100gHundredthsSnapshot)) / 10m:0.0} 大卡 · {summary}";
             }
             catch (ValidationException exception) { return "请修正明细：" + exception.Message; }
         }
@@ -234,7 +236,9 @@ public sealed partial class TemplateViewModel : ObservableObject
             return new IntakeEntry { Id = row.EntryId, EntryDate = DateOnly.FromDateTime(ReviewDate), MealCategoryId = ReviewMeal.Id, MealNameSnapshot = ReviewMeal.Name,
                 FoodId = item.FoodId, FoodNameSnapshot = item.FoodNameSnapshot, PreparationSnapshot = item.PreparationSnapshot, InputMode = "weight",
                 WeightGramsTenths = item.WeightGramsTenths, KcalPer100gHundredthsSnapshot = item.KcalPer100gHundredthsSnapshot,
-                EnergyKcalTenths = Validation.CalculateEnergy(item.WeightGramsTenths, item.KcalPer100gHundredthsSnapshot), WeightCalculation = item.WeightCalculation,
+                EnergyKcalTenths = Nutrition.Energy(item.WeightGramsTenths, item.KcalPer100gHundredthsSnapshot, item.KilojoulesPer100gHundredthsSnapshot), WeightCalculation = item.WeightCalculation,
+                KilojoulesHundredthsSnapshot = item.KilojoulesPer100gHundredthsSnapshot, ProteinPer100gHundredthsSnapshot = item.ProteinPer100gHundredthsSnapshot,
+                ProteinGramsHundredths = Nutrition.Protein(item.WeightGramsTenths, item.ProteinPer100gHundredthsSnapshot),
                 SourceSnapshot = item.SourceSnapshot, Note = ReviewNote };
         }).ToArray();
         journal.SaveTemplateBatch(batchId.Value, batchTemplateId.Value, entries);

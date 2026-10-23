@@ -73,7 +73,7 @@ $files = @(Get-ChildItem -LiteralPath $releaseRoot -Recurse -File | ForEach-Obje
 })
 $chineseIndex = Get-Content -LiteralPath (Join-Path $projectRoot 'data/lookup/usda-zh.json') -Raw | ConvertFrom-Json
 $searchAliases = Get-Content -LiteralPath (Join-Path $projectRoot 'data/search/aliases.json') -Raw | ConvertFrom-Json
-@{Application='CalorieJournal'; Version=$ReleaseVersion; Stability=$Stability; SdkVersion=(Get-Content -LiteralPath (Join-Path $projectRoot 'global.json') -Raw | ConvertFrom-Json).sdk.version; SchemaVersion=6; BackupFormatVersion=6; FoodPackageVersion='usda-sr-2018-04.zh.1'; ReferenceFormatVersion=1; ChineseIndexVersion=$chineseIndex.Version; SearchAliasesVersion=$searchAliases.Version; BuiltAtUtc=[DateTimeOffset]::UtcNow.ToString('O'); Files=$files} |
+@{Application='CalorieJournal'; Version=$ReleaseVersion; Stability=$Stability; SdkVersion=(Get-Content -LiteralPath (Join-Path $projectRoot 'global.json') -Raw | ConvertFrom-Json).sdk.version; SchemaVersion=7; BackupFormatVersion=7; FoodPackageVersion='usda-sr-2018-04.zh.1'; ProteinSupplementVersion='protein-2026-10-23.1'; ReferenceFormatVersion=1; ChineseIndexVersion=$chineseIndex.Version; SearchAliasesVersion=$searchAliases.Version; BuiltAtUtc=[DateTimeOffset]::UtcNow.ToString('O'); Files=$files} |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $releaseRoot 'manifest.json') -Encoding utf8
 $packagePath = Join-Path (Split-Path $releaseRoot -Parent) ("每日热量记录_" + $ReleaseVersion + '_win-x64.zip')
 [IO.Compression.ZipFile]::CreateFromDirectory($releaseRoot, $packagePath)

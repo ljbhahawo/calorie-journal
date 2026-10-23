@@ -23,7 +23,8 @@ public sealed partial class JournalService
             gramsTenths = WeightCalculator.Calculate(calculation);
         }
         var item = new TemplateItem { Id = id, FoodId = food.Id, FoodNameSnapshot = food.Name, PreparationSnapshot = food.Preparation,
-            KcalPer100gHundredthsSnapshot = food.KcalPer100gHundredths, SourceSnapshot = food.SourceSummary + " " + food.SourceUrl,
+            KcalPer100gHundredthsSnapshot = food.KcalPer100gHundredths, ProteinPer100gHundredthsSnapshot = food.ProteinPer100gHundredths,
+            KilojoulesPer100gHundredthsSnapshot = food.KilojoulesPer100gHundredths, SourceSnapshot = food.SourceSummary + " " + food.SourceUrl,
             WeightGramsTenths = gramsTenths, WeightCalculation = calculation };
         TemplateValidation.Item(item);
         return item;

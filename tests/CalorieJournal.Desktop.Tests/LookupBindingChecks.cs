@@ -102,22 +102,22 @@ internal static class LookupBindingChecks
         var window = new FoodLookupWindow(vm); window.Show(); Pump();
         await vm.UpdateCommand.ExecuteAsync(null); Pump();
         Assert.IsFalse(vm.IsBusy); Assert.IsFalse(vm.Status.Contains("失败") || vm.Status.Contains("超时"), vm.Status);
-        Assert.IsTrue(File.Exists(Path.Combine(directory, "lookup", "tfda.json")), vm.Status);
+        Assert.IsTrue(File.Exists(Path.Combine(directory, "lookup", "tfda-protein-v1.json")), vm.Status);
         var downloaded = service.Load().Single(x => x.Provider == "TFDA");
         Assert.IsTrue(downloaded.Foods.Length >= 2000); Assert.IsNotEmpty(vm.Results);
         Assert.IsTrue(downloaded.Foods.Any(x => x.Name.Contains("鸡蛋")));
-        var before = File.ReadAllBytes(Path.Combine(directory, "lookup", "tfda.json"));
+        var before = File.ReadAllBytes(Path.Combine(directory, "lookup", "tfda-protein-v1.json"));
         var cancelTask = vm.UpdateCommand.ExecuteAsync(null); vm.CancelUpdate(); await cancelTask;
         Assert.IsTrue(vm.Status.Contains("取消"), vm.Status);
-        CollectionAssert.AreEqual(before, File.ReadAllBytes(Path.Combine(directory, "lookup", "tfda.json")));
+        CollectionAssert.AreEqual(before, File.ReadAllBytes(Path.Combine(directory, "lookup", "tfda-protein-v1.json")));
         vm.SearchCommand.Execute(null); Assert.IsNotEmpty(vm.Results);
         // 使用真实不可写目录触发缓存失败，不替换HTTP响应或文件写入。
-        using (var lockedCache = new FileStream(Path.Combine(directory, "lookup", "tfda.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
+        using (var lockedCache = new FileStream(Path.Combine(directory, "lookup", "tfda-protein-v1.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
         {
             await vm.UpdateCommand.ExecuteAsync(null);
             Assert.IsTrue(vm.Status.Contains("失败"), vm.Status);
         }
-        CollectionAssert.AreEqual(before, File.ReadAllBytes(Path.Combine(directory, "lookup", "tfda.json")));
+        CollectionAssert.AreEqual(before, File.ReadAllBytes(Path.Combine(directory, "lookup", "tfda-protein-v1.json")));
         vm.SearchCommand.Execute(null); Assert.IsNotEmpty(vm.Results);
         window.Close();
         File.WriteAllText(Path.Combine(directory, "online-checks.json"), JsonSerializer.Serialize(new

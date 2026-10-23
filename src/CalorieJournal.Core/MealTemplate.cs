@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CalorieJournal.Core;
 
 public sealed record TemplateItem
@@ -7,6 +9,8 @@ public sealed record TemplateItem
     public required string FoodNameSnapshot { get; init; }
     public string PreparationSnapshot { get; init; } = "";
     public required long KcalPer100gHundredthsSnapshot { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public long? ProteinPer100gHundredthsSnapshot { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public long? KilojoulesPer100gHundredthsSnapshot { get; init; }
     public string SourceSnapshot { get; init; } = "";
     public required long WeightGramsTenths { get; init; }
     public WeightCalculationSnapshot? WeightCalculation { get; init; }
@@ -40,7 +44,8 @@ public static class TemplateValidation
         Validation.Text(value.FoodNameSnapshot, "模板食物名称", 100, true);
         Validation.Text(value.PreparationSnapshot, "模板食物状态", 200);
         Validation.Text(value.SourceSnapshot, "模板来源", 3000);
-        _ = Validation.CalculateEnergy(value.WeightGramsTenths, value.KcalPer100gHundredthsSnapshot);
+        _ = Nutrition.Energy(value.WeightGramsTenths, value.KcalPer100gHundredthsSnapshot, value.KilojoulesPer100gHundredthsSnapshot);
+        Nutrition.UnitProtein(value.ProteinPer100gHundredthsSnapshot);
         if (value.WeightCalculation is not null)
         {
             Validation.Require(value.WeightCalculation.Kind == "portion", "模板明细使用可食重量或常用份量。");

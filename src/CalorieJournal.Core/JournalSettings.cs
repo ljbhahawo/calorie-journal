@@ -12,6 +12,7 @@ public sealed record JournalSettings
 
 public sealed record DailyMealGroup(DateOnly Date, Guid MealId, string Name, IntakeEntry[] Entries)
 {
+    public string ProteinSummary => Nutrition.ProteinSummary(Entries);
     public string Summary => Entries.Length == 0 ? "未记录" : $"{Entries.Sum(x => x.EnergyKcalTenths) / 10m:0.0} 大卡 · {Entries.Length} 项";
 }
 
@@ -33,14 +34,17 @@ public sealed partial class JournalService
     public static bool SameFoodData(FoodItem food, IntakeEntry entry) =>
         food.Name.Trim().Normalize(NormalizationForm.FormKC).Equals(entry.FoodNameSnapshot.Trim().Normalize(NormalizationForm.FormKC), StringComparison.OrdinalIgnoreCase)
         && food.Preparation.Trim().Normalize(NormalizationForm.FormKC).Equals(entry.PreparationSnapshot.Trim().Normalize(NormalizationForm.FormKC), StringComparison.OrdinalIgnoreCase)
-        && food.KcalPer100gHundredths == entry.KcalPer100gHundredthsSnapshot;
+        && food.KcalPer100gHundredths == entry.KcalPer100gHundredthsSnapshot
+        && food.ProteinPer100gHundredths == entry.ProteinPer100gHundredthsSnapshot
+        && food.KilojoulesPer100gHundredths == entry.KilojoulesHundredthsSnapshot;
 
     public FoodItem? UnlistedFood(IntakeEntry entry)
     {
         _ = ValidateEntrySave(entry);
         if (entry.FoodId is not null || entry.InputMode != "weight" || store.ReadFoods().Any(x => SameFoodData(x, entry))) return null;
         var food = new FoodItem { Id = Guid.NewGuid(), Name = entry.FoodNameSnapshot.Trim(), Preparation = entry.PreparationSnapshot.Trim(),
-            KcalPer100gHundredths = entry.KcalPer100gHundredthsSnapshot!.Value, UserModified = true, SourceKind = "用户录入",
+            KcalPer100gHundredths = entry.KcalPer100gHundredthsSnapshot!.Value, ProteinPer100gHundredths = entry.ProteinPer100gHundredthsSnapshot,
+            KilojoulesPer100gHundredths = entry.KilojoulesHundredthsSnapshot, UserModified = true, SourceKind = "用户录入",
             SourceNote = entry.SourceSnapshot.Length <= 1000 ? entry.SourceSnapshot : entry.SourceSnapshot[..960] + "…（完整来源保留在本次摄入快照中）" };
         Validation.Food(food); return food;
     }

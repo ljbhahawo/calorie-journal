@@ -54,6 +54,7 @@ public partial class App : Application
             Validation.Require(exportPath is null || restorePath is null, "不能同时执行导出与恢复。");
             instanceLock = new FileStream(Path.Combine(dataDirectory, "instance.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             var package = JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data", "foods.json"));
+            package = ProteinSupplement.EnrichBuiltin(package, Path.Combine(AppContext.BaseDirectory, "data", "lookup"));
             var store = new SqliteJournalStore(Path.Combine(dataDirectory, "journal.db"));
             store.Initialize(package);
             var backupService = new BackupService(store, Path.Combine(dataDirectory, "recovery"));

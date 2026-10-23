@@ -8,8 +8,8 @@ namespace CalorieJournal.Infrastructure;
 
 public sealed partial class SqliteJournalStore : IJournalStore
 {
-    public const int SchemaVersion = 6;
-    public const int BackupFormatVersion = 6;
+    public const int SchemaVersion = 7;
+    public const int BackupFormatVersion = 7;
     public string DatabasePath { get; }
     private readonly string connectionString;
 
@@ -81,6 +81,14 @@ public sealed partial class SqliteJournalStore : IJournalStore
             """);
         if (version < 2)
             Execute(connection, transaction, "ALTER TABLE entries ADD COLUMN weight_calculation TEXT;");
+        if (version < 7)
+            Execute(connection, transaction, """
+                ALTER TABLE foods ADD COLUMN protein_hundredths INTEGER CHECK(protein_hundredths BETWEEN 0 AND 10000);
+                ALTER TABLE foods ADD COLUMN kj_hundredths INTEGER CHECK(kj_hundredths BETWEEN 0 AND 4184000);
+                ALTER TABLE entries ADD COLUMN protein_unit_hundredths INTEGER CHECK(protein_unit_hundredths BETWEEN 0 AND 10000);
+                ALTER TABLE entries ADD COLUMN protein_hundredths INTEGER CHECK(protein_hundredths BETWEEN 0 AND 10000000);
+                ALTER TABLE entries ADD COLUMN kj_hundredths INTEGER CHECK(kj_hundredths >= 0);
+                """);
         Execute(connection, transaction, """
             CREATE TABLE IF NOT EXISTS portions(
                 id TEXT PRIMARY KEY, food_id TEXT NOT NULL REFERENCES foods(id), name TEXT NOT NULL COLLATE NOCASE,
@@ -105,12 +113,14 @@ public sealed partial class SqliteJournalStore : IJournalStore
         {
             var exists = Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM foods WHERE builtin_key=$key", ("$key", food.BuiltinKey)), CultureInfo.InvariantCulture);
             if (exists == 0) PutFood(connection, transaction, food);
+            else if (food.ProteinPer100gHundredths is { } protein)
+                Execute(connection, transaction, "UPDATE foods SET protein_hundredths=$protein WHERE builtin_key=$key AND user_modified=0 AND is_deleted=0 AND protein_hundredths IS NULL", ("$protein", protein), ("$key", food.BuiltinKey));
         }
         PutMetadata(connection, transaction, "initialized", "1");
         PutMetadata(connection, transaction, "food_package", package.Version);
         if (version == 0) Execute(connection, transaction, "PRAGMA application_id=0x43414C4A;");
         if (version < 4) PutMetadata(connection, transaction, "settings", JsonSerializer.Serialize(JournalSettings.Default, JsonFiles.Options));
-        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=6;");
+        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=7;");
         transaction.Commit();
     }
 
@@ -150,7 +160,9 @@ public sealed partial class SqliteJournalStore : IJournalStore
             KcalPer100gHundredths = reader.GetInt64(6), SourceKind = reader.GetString(7), SourceId = reader.GetString(8),
             SourceVersion = reader.GetString(9), SourceUrl = reader.GetString(10), SourceNote = reader.GetString(11),
             BuiltinKey = reader.GetString(12), UserModified = reader.GetBoolean(13), IsDeleted = reader.GetBoolean(14),
-            CreatedAtUtc = Time(reader.GetString(15)), UpdatedAtUtc = Time(reader.GetString(16))
+            CreatedAtUtc = Time(reader.GetString(15)), UpdatedAtUtc = Time(reader.GetString(16)),
+            ProteinPer100gHundredths = reader.FieldCount < 19 || reader.IsDBNull(17) ? null : reader.GetInt64(17),
+            KilojoulesPer100gHundredths = reader.FieldCount < 19 || reader.IsDBNull(18) ? null : reader.GetInt64(18)
         });
         return values.ToArray();
     }
@@ -178,7 +190,10 @@ public sealed partial class SqliteJournalStore : IJournalStore
             WeightGramsTenths = reader.IsDBNull(9) ? null : reader.GetInt64(9), KcalPer100gHundredthsSnapshot = reader.IsDBNull(10) ? null : reader.GetInt64(10),
             SourceSnapshot = reader.GetString(11), EnergyKcalTenths = reader.GetInt64(12), Note = reader.GetString(13),
             CreatedAtUtc = Time(reader.GetString(14)), UpdatedAtUtc = Time(reader.GetString(15)),
-            WeightCalculation = reader.FieldCount <= 16 || reader.IsDBNull(16) ? null : JsonSerializer.Deserialize<WeightCalculationSnapshot>(reader.GetString(16), JsonFiles.Options)
+            WeightCalculation = reader.FieldCount <= 16 || reader.IsDBNull(16) ? null : JsonSerializer.Deserialize<WeightCalculationSnapshot>(reader.GetString(16), JsonFiles.Options),
+            ProteinPer100gHundredthsSnapshot = reader.FieldCount < 20 || reader.IsDBNull(17) ? null : reader.GetInt64(17),
+            ProteinGramsHundredths = reader.FieldCount < 20 || reader.IsDBNull(18) ? null : reader.GetInt64(18),
+            KilojoulesHundredthsSnapshot = reader.FieldCount < 20 || reader.IsDBNull(19) ? null : reader.GetInt64(19)
         });
         return values.ToArray();
     }
@@ -191,16 +206,16 @@ public sealed partial class SqliteJournalStore : IJournalStore
     private static void PutFood(SqliteConnection connection, SqliteTransaction transaction, FoodItem value)
     {
         Execute(connection, transaction, """
-            INSERT INTO foods VALUES($id,$name,$original,$aliases,$preparation,$category,$kcal,$kind,$sourceId,$sourceVersion,$url,$note,$key,$modified,$deleted,$created,$updated)
+            INSERT INTO foods VALUES($id,$name,$original,$aliases,$preparation,$category,$kcal,$kind,$sourceId,$sourceVersion,$url,$note,$key,$modified,$deleted,$created,$updated,$protein,$kj)
             ON CONFLICT(id) DO UPDATE SET name=excluded.name,original_name=excluded.original_name,aliases=excluded.aliases,
             preparation=excluded.preparation,category=excluded.category,kcal_hundredths=excluded.kcal_hundredths,source_kind=excluded.source_kind,
             source_id=excluded.source_id,source_version=excluded.source_version,source_url=excluded.source_url,source_note=excluded.source_note,
-            builtin_key=excluded.builtin_key,user_modified=excluded.user_modified,is_deleted=excluded.is_deleted,updated_at=excluded.updated_at
+            builtin_key=excluded.builtin_key,user_modified=excluded.user_modified,is_deleted=excluded.is_deleted,updated_at=excluded.updated_at,protein_hundredths=excluded.protein_hundredths,kj_hundredths=excluded.kj_hundredths
             """, ("$id", value.Id.ToString()), ("$name", value.Name), ("$original", value.OriginalName), ("$aliases", value.Aliases),
             ("$preparation", value.Preparation), ("$category", value.Category), ("$kcal", value.KcalPer100gHundredths),
             ("$kind", value.SourceKind), ("$sourceId", value.SourceId), ("$sourceVersion", value.SourceVersion), ("$url", value.SourceUrl),
             ("$note", value.SourceNote), ("$key", value.BuiltinKey), ("$modified", value.UserModified), ("$deleted", value.IsDeleted),
-            ("$created", Stamp(value.CreatedAtUtc)), ("$updated", Stamp(value.UpdatedAtUtc)));
+            ("$created", Stamp(value.CreatedAtUtc)), ("$updated", Stamp(value.UpdatedAtUtc)), ("$protein", value.ProteinPer100gHundredths), ("$kj", value.KilojoulesPer100gHundredths));
     }
 
     private static void PutMeal(SqliteConnection connection, SqliteTransaction transaction, MealCategory value) => Execute(connection, transaction,
@@ -208,16 +223,18 @@ public sealed partial class SqliteJournalStore : IJournalStore
         ("$id", value.Id.ToString()), ("$name", value.Name), ("$sort", value.SortOrder), ("$active", value.IsActive));
 
     private static void PutEntry(SqliteConnection connection, SqliteTransaction transaction, IntakeEntry value) => Execute(connection, transaction, """
-        INSERT INTO entries VALUES($id,$date,$time,$meal,$mealName,$food,$foodName,$preparation,$mode,$grams,$kcal,$source,$energy,$note,$created,$updated,$calculation)
+        INSERT INTO entries VALUES($id,$date,$time,$meal,$mealName,$food,$foodName,$preparation,$mode,$grams,$kcal,$source,$energy,$note,$created,$updated,$calculation,$proteinUnit,$protein,$kj)
         ON CONFLICT(id) DO UPDATE SET entry_date=excluded.entry_date,local_time=excluded.local_time,meal_id=excluded.meal_id,meal_name=excluded.meal_name,
         food_id=excluded.food_id,food_name=excluded.food_name,preparation=excluded.preparation,input_mode=excluded.input_mode,grams_tenths=excluded.grams_tenths,
-        kcal_hundredths=excluded.kcal_hundredths,source_snapshot=excluded.source_snapshot,energy_tenths=excluded.energy_tenths,note=excluded.note,updated_at=excluded.updated_at,weight_calculation=excluded.weight_calculation
+        kcal_hundredths=excluded.kcal_hundredths,source_snapshot=excluded.source_snapshot,energy_tenths=excluded.energy_tenths,note=excluded.note,updated_at=excluded.updated_at,weight_calculation=excluded.weight_calculation,
+        protein_unit_hundredths=excluded.protein_unit_hundredths,protein_hundredths=excluded.protein_hundredths,kj_hundredths=excluded.kj_hundredths
         """, ("$id", value.Id.ToString()), ("$date", value.EntryDate.ToString("yyyy-MM-dd")), ("$time", value.LocalTime),
         ("$meal", value.MealCategoryId.ToString()), ("$mealName", value.MealNameSnapshot), ("$food", value.FoodId?.ToString()),
         ("$foodName", value.FoodNameSnapshot), ("$preparation", value.PreparationSnapshot), ("$mode", value.InputMode),
         ("$grams", value.WeightGramsTenths), ("$kcal", value.KcalPer100gHundredthsSnapshot), ("$source", value.SourceSnapshot),
         ("$energy", value.EnergyKcalTenths), ("$note", value.Note), ("$created", Stamp(value.CreatedAtUtc)), ("$updated", Stamp(value.UpdatedAtUtc)),
-        ("$calculation", value.WeightCalculation is null ? null : JsonSerializer.Serialize(value.WeightCalculation, JsonFiles.Options)));
+        ("$calculation", value.WeightCalculation is null ? null : JsonSerializer.Serialize(value.WeightCalculation, JsonFiles.Options)),
+        ("$proteinUnit", value.ProteinPer100gHundredthsSnapshot), ("$protein", value.ProteinGramsHundredths), ("$kj", value.KilojoulesHundredthsSnapshot));
 
     private static void PutMetadata(SqliteConnection connection, SqliteTransaction transaction, string key, string value) => Execute(connection, transaction,
         "INSERT INTO metadata VALUES($key,$value) ON CONFLICT(key) DO UPDATE SET value=excluded.value WHERE metadata.value<>excluded.value", ("$key", key), ("$value", value));

@@ -58,6 +58,11 @@ internal static class WindowLayoutChecks
         Assert.IsTrue(kcal.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next)));
         Pump();
         var note = (TextBox)window.FindName("EntryNoteBox");
+        var directUnit = (ComboBox)window.FindName("DirectEnergyUnitBox");
+        Assert.IsTrue(directUnit.IsKeyboardFocusWithin); Assert.IsFalse(vm.WeightMode);
+        Assert.IsTrue(directUnit.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next))); Pump();
+        var protein = (TextBox)window.FindName("DirectProteinBox"); Assert.IsTrue(protein.IsKeyboardFocusWithin);
+        Assert.IsTrue(protein.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next))); Pump();
         Assert.IsTrue(note.IsKeyboardFocusWithin);
         Assert.IsTrue(note.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next)));
         Pump();

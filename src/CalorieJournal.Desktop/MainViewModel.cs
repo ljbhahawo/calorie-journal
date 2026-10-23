@@ -33,6 +33,7 @@ public sealed partial class MainViewModel : ObservableObject
     private string savedSource = "用户录入";
     private Guid? savedFoodId;
     private long? sourceUnitKcal;
+    private long? sourceUnitProtein;
     public string DataDirectory { get; }
     public string VersionText => "版本 " + typeof(MainViewModel).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion + $" · 数据库 {SqliteJournalStore.SchemaVersion} · 备份格式 {SqliteJournalStore.BackupFormatVersion}";
     public string FoodAttribution => "内置数据来源：USDA FoodData Central / SR Legacy 2018-04 · CC0\n中文名称为应用整理，数值按每100克可食部分。请区分生熟、品牌和实际份量。";
@@ -176,7 +177,7 @@ public sealed partial class MainViewModel : ObservableObject
         DeleteEntryCommand = new RelayCommand(() => Run(() => DeleteEntry(SelectedEntry)));
         ClearFoodCommand = new RelayCommand(() =>
         {
-            ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; savedSource = "用户录入"; entryDirty = true; OnPropertyChanged(nameof(EntrySource));
+            ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; sourceUnitProtein = null; savedSource = "用户录入"; entryDirty = true; OnPropertyChanged(nameof(EntrySource));
         });
         NewFoodCommand = new RelayCommand(() => Run(() =>
         {
@@ -263,10 +264,16 @@ public sealed partial class MainViewModel : ObservableObject
         base.OnPropertyChanged(e);
         if (e.PropertyName == nameof(IsBusy)) OnPropertyChanged(nameof(NotBusy));
         if (e.PropertyName == nameof(SelectedDate)) { NextDayCommand?.NotifyCanExecuteChanged(); PreviousDayCommand?.NotifyCanExecuteChanged(); }
-        if (e.PropertyName is nameof(Weight) or nameof(WeightUnit) or nameof(UnitKcal) or nameof(DirectKcal) or nameof(WeightMode))
+        if (e.PropertyName is nameof(Weight) or nameof(WeightUnit) or nameof(UnitKcal) or nameof(DirectKcal) or nameof(WeightMode) or nameof(EntryEnergyUnit) or nameof(DirectEnergyUnit))
             OnPropertyChanged(nameof(EnergyPreview));
+        if (e.PropertyName is nameof(Weight) or nameof(WeightUnit) or nameof(WeightMode) or nameof(UnitProtein) or nameof(DirectProtein)) OnPropertyChanged(nameof(ProteinPreview));
+        if (e.PropertyName == nameof(WeightMode)) OnPropertyChanged(nameof(DirectProteinEnabled));
+        if (e.PropertyName is nameof(UnitKcal) or nameof(EntryEnergyUnit)) OnPropertyChanged(nameof(UnitEnergyPreview));
+        if (e.PropertyName is nameof(FoodUnitKcal) or nameof(FoodEnergyUnit)) OnPropertyChanged(nameof(FoodEnergyPreview));
         if (loading) return;
         TrackWeightChange(e.PropertyName);
+        if (e.PropertyName is nameof(EntryEnergyUnit) or nameof(DirectEnergyUnit) or nameof(UnitProtein) or nameof(DirectProtein)) entryDirty = true;
+        if (e.PropertyName is nameof(FoodEnergyUnit) or nameof(FoodProtein)) foodDirty = true;
         if (e.PropertyName is nameof(EntryDate) or nameof(EntryMeal) or nameof(EntryTime) or nameof(EntryName) or nameof(EntryPreparation) or nameof(EntryNote) or nameof(DirectKcal) or nameof(Weight) or nameof(WeightUnit) or nameof(UnitKcal) or nameof(WeightMode)) entryDirty = true;
         if (e.PropertyName is nameof(FoodName) or nameof(FoodAliases) or nameof(FoodPreparation) or nameof(FoodCategory) or nameof(FoodUnitKcal) or nameof(FoodSourceNote)) foodDirty = true;
         if (e.PropertyName is nameof(MealName) or nameof(MealOrder) or nameof(MealActive)) mealDirty = true;
@@ -285,9 +292,15 @@ public sealed partial class MainViewModel : ObservableObject
         if (value is null || loading) return;
         SetWeightCalculation(null);
         EntryName = value.Name; EntryPreparation = value.Preparation;
-        UnitKcal = value.KcalPer100g.ToString("0.00", CultureInfo.InvariantCulture); WeightMode = true;
+        var wasLoading = loading; loading = true;
+        try { EntryEnergyUnit = value.KilojoulesPer100gHundredths is null ? "大卡" : "kJ";
+            UnitKcal = ((value.KilojoulesPer100gHundredths ?? value.KcalPer100gHundredths) / 100m).ToString("0.00", CultureInfo.InvariantCulture);
+            UnitProtein = value.ProteinPer100gHundredths is { } protein ? (protein / 100m).ToString("0.00", CultureInfo.InvariantCulture) : ""; WeightMode = true; }
+        finally { loading = wasLoading; }
+        entryDirty = true;
         savedFoodId = value.Id; savedSource = value.SourceSummary + " " + value.SourceUrl;
         sourceUnitKcal = value.KcalPer100gHundredths;
+        sourceUnitProtein = value.ProteinPer100gHundredths;
         OnPropertyChanged(nameof(EntrySource));
     }
     private void LoadMeal(MealCategory? value)
@@ -357,6 +370,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var rows = journal.Entries(DateOnly.FromDateTime(SelectedDate));
         Fill(DayEntries, rows);
+        DayProteinText = Nutrition.ProteinSummary(rows);
         DayTotal = rows.Length == 0 ? "未记录" : $"{rows.Sum(x => x.EnergyKcalTenths) / 10m:0.0} 大卡 · {rows.Length} 项";
         MealTotals = string.Join("    ", rows.GroupBy(x => x.MealNameSnapshot).Select(x => $"{x.Key} {x.Sum(e => e.EnergyKcalTenths) / 10m:0.0}"));
         Fill(DayMeals, journal.MealsForDay(DateOnly.FromDateTime(SelectedDate)));
@@ -386,9 +400,10 @@ public sealed partial class MainViewModel : ObservableObject
     {
         loading = true;
         var mealId = EntryMeal?.Id;
-        editingEntry = null; ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; savedSource = "用户录入";
+        editingEntry = null; ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; sourceUnitProtein = null; savedSource = "用户录入";
         EntryDate = SelectedDate; EntryTime = ""; EntryName = ""; EntryPreparation = ""; EntryNote = "";
         DirectKcal = ""; Weight = ""; UnitKcal = ""; WeightUnit = "g"; WeightMode = journal.Settings().DefaultWeightMode; SetWeightCalculation(null);
+        EntryEnergyUnit = "大卡"; DirectEnergyUnit = "大卡"; UnitProtein = ""; DirectProtein = "";
         RefreshMeals(); EntryMeal = EntryMeals.FirstOrDefault(x => x.Id == mealId) ?? EntryMeals.FirstOrDefault();
         newEntryId = Guid.NewGuid(); loading = false; entryDirty = false;
         OnPropertyChanged(nameof(EntryHeading)); OnPropertyChanged(nameof(EntrySource));
@@ -420,6 +435,7 @@ public sealed partial class MainViewModel : ObservableObject
             if (asNew) newEntryId = Guid.NewGuid();
             savedFoodId = missingFood ? null : row.FoodId;
             sourceUnitKcal = row.KcalPer100gHundredthsSnapshot;
+            sourceUnitProtein = row.ProteinPer100gHundredthsSnapshot;
             savedSource = row.SourceSnapshot + (missingFood ? " · 复制历史快照（原食物已删除，未关联食物库）" : "");
             RefreshMeals();
             EntryMeal = asNew
@@ -431,6 +447,11 @@ public sealed partial class MainViewModel : ObservableObject
             WeightMode = row.InputMode == "weight"; DirectKcal = row.EnergyKcal.ToString("0.0", CultureInfo.InvariantCulture);
             Weight = (row.WeightGramsTenths / 10m)?.ToString("0.0", CultureInfo.InvariantCulture) ?? "";
             UnitKcal = (row.KcalPer100gHundredthsSnapshot / 100m)?.ToString("0.00", CultureInfo.InvariantCulture) ?? ""; WeightUnit = "g";
+            EntryEnergyUnit = row.InputMode == "weight" && row.KilojoulesHundredthsSnapshot is not null ? "kJ" : "大卡";
+            DirectEnergyUnit = row.InputMode == "direct" && row.KilojoulesHundredthsSnapshot is not null ? "kJ" : "大卡";
+            if (row.KilojoulesHundredthsSnapshot is { } kj) { if (row.InputMode == "weight") UnitKcal = (kj / 100m).ToString("0.00", CultureInfo.InvariantCulture); else DirectKcal = (kj / 100m).ToString("0.00", CultureInfo.InvariantCulture); }
+            UnitProtein = row.ProteinPer100gHundredthsSnapshot is { } proteinUnit ? (proteinUnit / 100m).ToString("0.00", CultureInfo.InvariantCulture) : "";
+            DirectProtein = row.ProteinGramsHundredths is { } protein ? (protein / 100m).ToString("0.00", CultureInfo.InvariantCulture) : "";
             SetWeightCalculation(row.WeightCalculation);
             entryDirty = asNew;
         }
@@ -442,15 +463,17 @@ public sealed partial class MainViewModel : ObservableObject
     {
         return WeightCalculator.Grams(Validation.Number(Weight, "重量"), WeightUnit, "重量（克）");
     }
-    private long ReadUnitKcal() => Validation.Scaled(Validation.Number(UnitKcal, "每100克大卡"), 100, 0, 10000, "每100克大卡");
-    private long ReadEnergy() => WeightMode ? Validation.CalculateEnergy(ReadWeight(), ReadUnitKcal())
-        : Validation.Scaled(Validation.Number(DirectKcal, "本项大卡"), 10, 0, 99999.9m, "本项大卡");
+    private long ReadUnitKcal() => IsKilojoules(EntryEnergyUnit) ? Nutrition.UnitKcal(Nutrition.Kilojoules(Validation.Number(UnitKcal, "每100克千焦"), 10000m)) : Validation.Scaled(Validation.Number(UnitKcal, "每100克大卡"), 100, 0, 10000, "每100克大卡");
+    private long ReadEnergy() => WeightMode ? Nutrition.Energy(ReadWeight(), ReadUnitKcal(), ReadEntryKilojoules())
+        : IsKilojoules(DirectEnergyUnit) ? Nutrition.DirectKcal(ReadEntryKilojoules()!.Value) : Validation.Scaled(Validation.Number(DirectKcal, "本项大卡"), 10, 0, 99999.9m, "本项大卡");
 
     private void SaveEntry()
     {
         Validation.Require(EntryMeal is not null, "请选择餐次。");
         var source = savedSource;
         if (sourceUnitKcal is not null && WeightMode && ReadUnitKcal() != sourceUnitKcal && !source.Contains("本次单位热量已调整", StringComparison.Ordinal)) source += " · 本次单位热量已调整";
+        if (savedFoodId is not null && WeightMode && ReadOptionalProtein(UnitProtein, 100m, "每100克蛋白质") != sourceUnitProtein && !source.Contains("本次单位蛋白质已调整", StringComparison.Ordinal)) source += " · 本次单位蛋白质已调整";
+        if (savedFoodId is not null && !WeightMode && !source.Contains("本项直接录入", StringComparison.Ordinal)) source += " · 本项直接录入，热量及蛋白质请核对";
         var entry = new IntakeEntry
         {
             Id = editingEntry?.Id ?? newEntryId, EntryDate = DateOnly.FromDateTime(EntryDate), LocalTime = EntryTime.Trim(),
@@ -460,6 +483,8 @@ public sealed partial class MainViewModel : ObservableObject
             InputMode = WeightMode ? "weight" : "direct", WeightGramsTenths = WeightMode ? ReadWeight() : null,
             KcalPer100gHundredthsSnapshot = WeightMode ? ReadUnitKcal() : null, EnergyKcalTenths = ReadEnergy(),
             WeightCalculation = WeightMode ? weightCalculation : null,
+            KilojoulesHundredthsSnapshot = ReadEntryKilojoules(), ProteinGramsHundredths = ReadProtein(),
+            ProteinPer100gHundredthsSnapshot = WeightMode ? ReadOptionalProtein(UnitProtein, 100m, "每100克蛋白质") : null,
             Note = EntryNote, SourceSnapshot = source, CreatedAtUtc = editingEntry?.CreatedAtUtc ?? DateTimeOffset.UtcNow
         };
         if (!SaveWithFoodPolicy(entry, out var foodMessage, out var foodAdded)) { Status = "已取消保存，草稿保留。"; return; }
@@ -479,6 +504,9 @@ public sealed partial class MainViewModel : ObservableObject
         FoodName = value?.Name ?? ""; FoodOriginalName = value?.OriginalName ?? ""; FoodAliases = value?.Aliases ?? "";
         FoodPreparation = value?.Preparation ?? ""; FoodCategory = value?.Category ?? "";
         FoodUnitKcal = value?.KcalPer100g.ToString("0.00", CultureInfo.InvariantCulture) ?? "";
+        FoodEnergyUnit = value?.KilojoulesPer100gHundredths is null ? "大卡" : "kJ";
+        if (value?.KilojoulesPer100gHundredths is { } kj) FoodUnitKcal = (kj / 100m).ToString("0.00", CultureInfo.InvariantCulture);
+        FoodProtein = value?.ProteinPer100gHundredths is { } protein ? (protein / 100m).ToString("0.00", CultureInfo.InvariantCulture) : "";
         FoodSourceNote = value?.SourceNote ?? ""; FoodSource = value is null ? "用户录入" : value.SourceSummary + " " + value.SourceUrl;
         loading = false; foodDirty = false; OnPropertyChanged(nameof(FoodHeading));
     }
@@ -500,7 +528,8 @@ public sealed partial class MainViewModel : ObservableObject
         var food = (editingFood ?? newFoodTemplate ?? new FoodItem { Id = Guid.NewGuid(), Name = "", KcalPer100gHundredths = 0 }) with
         {
             Name = FoodName, Aliases = FoodAliases, Preparation = FoodPreparation, Category = FoodCategory,
-            KcalPer100gHundredths = Validation.Scaled(Validation.Number(FoodUnitKcal, "每100克大卡"), 100, 0, 10000, "每100克大卡"),
+            KcalPer100gHundredths = ReadFoodUnitKcal(), ProteinPer100gHundredths = ReadOptionalProtein(FoodProtein, 100m, "每100克蛋白质"),
+            KilojoulesPer100gHundredths = IsKilojoules(FoodEnergyUnit) ? Nutrition.Kilojoules(Validation.Number(FoodUnitKcal, "食物每100克千焦"), 10000m) : null,
             SourceNote = FoodSourceNote, UserModified = true
         };
         journal.SaveFood(food); foodDirty = false;
@@ -522,7 +551,7 @@ public sealed partial class MainViewModel : ObservableObject
         JournalSnapshot? snapshot = null;
         await WorkAsync(() => snapshot = backups.Inspect(dialog.FileName), () => Status = "备份校验完成。");
         if (snapshot is null) return;
-        if (!Confirm($"将完整替换当前数据。\n备份时间：{snapshot.ExportedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}\n食物 {snapshot.Foods.Length} 项，餐次 {snapshot.Meals.Length} 项，摄入 {snapshot.Entries.Length} 项，份量 {snapshot.Portions?.Length ?? 0} 项，模板 {snapshot.Templates?.Length ?? 0} 项，批次 {snapshot.TemplateBatches?.Length ?? 0} 项，身体记录 {snapshot.BodyMeasurements?.Length ?? 0} 项，目标 {snapshot.IntakeGoals?.Length ?? 0} 项，锻炼 {snapshot.Exercises?.Length ?? 0} 项。\n" + (snapshot.FormatVersion < 6 ? "旧格式缺少的新类型恢复后为空，未含设置时采用默认；当前全部资料先归档。\n" : "身体记录、目标、锻炼和录入设置也将恢复。\n") + "现有数据会先自动备份，是否恢复？")) return;
+        if (!Confirm($"将完整替换当前数据。\n备份时间：{snapshot.ExportedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}\n食物 {snapshot.Foods.Length} 项，餐次 {snapshot.Meals.Length} 项，摄入 {snapshot.Entries.Length} 项，份量 {snapshot.Portions?.Length ?? 0} 项，模板 {snapshot.Templates?.Length ?? 0} 项，批次 {snapshot.TemplateBatches?.Length ?? 0} 项，身体记录 {snapshot.BodyMeasurements?.Length ?? 0} 项，目标 {snapshot.IntakeGoals?.Length ?? 0} 项，锻炼 {snapshot.Exercises?.Length ?? 0} 项。\n摄入中已填蛋白质 {snapshot.Entries.Count(x => x.ProteinGramsHundredths is not null)} 项，原始千焦 {snapshot.Entries.Count(x => x.KilojoulesHundredthsSnapshot is not null)} 项。\n" + (snapshot.FormatVersion < 7 ? "旧格式缺少的新类型/蛋白质/千焦原值恢复后为空，未含设置时采用默认；当前全部资料先归档。\n" : "全部身体记录、目标、锻炼、营养字段和录入设置也将恢复。\n") + "现有数据会先自动备份，是否恢复？")) return;
         var recoveryPath = "";
         await WorkAsync(() => recoveryPath = backups.Restore(snapshot), () =>
         {

@@ -48,6 +48,9 @@ if ($SnapshotPath) {
     if ($current.Manifest.SchemaVersion -ge 6 -and $target.Manifest.SchemaVersion -lt 6) {
         Write-Host '目标旧版不能显示摄入目标、锻炼及恢复点后的新增资料；全部当前资料将先完整归档。返回新版可显式恢复该归档，旧版期间新增资料不自动合并。'
     }
+    if ($current.Manifest.SchemaVersion -ge 7 -and $target.Manifest.SchemaVersion -lt 7) {
+        Write-Host '目标旧版不能显示原始千焦和蛋白质字段，以及恢复点后新增资料；全部当前快照会先完整归档，返回新版可恢复。'
+    }
 }
 if (-not $PSCmdlet.ShouldProcess($dataRoot, "归档当前数据并切换到版本 $($target.Manifest.Version)")) { return }
 
