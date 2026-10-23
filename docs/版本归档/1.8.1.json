@@ -1,0 +1,58 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.8.1",
+  "Success": true,
+  "VerificationDate": "2026-10-23",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 4,
+  "BackupFormatVersion": 4,
+  "FoodPackageVersion": "usda-sr-2018-04.zh.1",
+  "ReferenceFormatVersion": 1,
+  "ChineseIndexVersion": "usda-zh-2026-10-23.3",
+  "SearchAliasesVersion": "food-aliases-2026-10-23.3",
+  "Package": {
+    "Bytes": 69287670,
+    "FileName": "每日热量记录_1.8.1_win-x64.zip",
+    "Sha256": "2DB5C758DBEF9B4CD0DFD5BEBF5C5AC1B88869430E9C324BB3E71107BC50D5EA"
+  },
+  "Checks": {
+    "CompatibleProgramRollback": false,
+    "PreviousStablePackageCount": 10,
+    "MealLayoutScales": 4,
+    "ArchivedSourceRebuild": true,
+    "ChineseQueryCasesPassed": 140,
+    "ExplicitSnapshotRollback": true,
+    "OldRestorePointEntryCount": 2,
+    "FullPortionSnapshotsRetained": 1,
+    "RealDesktopOperations": true,
+    "DependencyLocksUnchanged": true,
+    "SelfContainedStartupAndBackupRestore": true,
+    "AllNewDataArchivedAndRestored": true,
+    "WpfLayoutChecks": 244,
+    "ActualMigrationFrom": "1.8.0",
+    "FoodCatalogsUnchanged": true,
+    "SettingsRetained": true,
+    "FullEntrySnapshotsRetained": 8,
+    "BusinessAndRealSqliteTestsPassed": 51,
+    "RollbackTo": "1.8.0",
+    "FullTemplateSnapshotsRetained": 1,
+    "FullBatchSnapshotsRetained": 1,
+    "PreviousStablePackagesUnchanged": true
+  },
+  "LayoutComparison": {
+    "CurrentEntryGridHeight": 291.33,
+    "WindowWidth": 1240,
+    "PreviousEntryGridHeight": 185.33,
+    "Unit": "WPF logical pixel",
+    "WindowHeight": 820,
+    "PreviousTotalCardHeight": 153.33,
+    "CurrentTotalCardHeight": 53.33
+  },
+  "EnvironmentLimits": {
+    "SeparateTaskbarVisualObserved": false,
+    "CrossMonitorDpiSwitchTested": false,
+    "EmptyDependencyCacheTested": false,
+    "ActualMonitorDpiX": 144,
+    "OtherCleanWindowsMachineTested": false
+  }
+}

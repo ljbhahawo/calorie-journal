@@ -27,6 +27,7 @@ public sealed class BindingTests
         var store = new SqliteJournalStore(Path.Combine(directory, "journal.db"));
         store.Initialize(JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data", "foods.json")));
         var service = new JournalService(store);
+        service.SaveSettings(new JournalSettings { DefaultWeightMode = false, NewFoodMode = "never" });
         Trace("创建WPF应用资源");
         _ = new TestApplication();
         Trace("创建真实ViewModel");

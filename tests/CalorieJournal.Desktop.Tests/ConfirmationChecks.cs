@@ -6,7 +6,8 @@ namespace CalorieJournal.Desktop.Tests;
 internal static class ConfirmationChecks
 {
     // 只检查当前测试线程创建的真实原生确认框，自动选择“是/否”；不替换确认逻辑或访问用户窗口。
-    public static int Respond(Action action, bool accept)
+    public static int Respond(Action action, bool accept) => RespondChoice(action, accept ? 6 : 7, "请确认");
+    public static int RespondChoice(Action action, int choice, string expectedTitle = "新食物资料")
     {
         var thread = GetCurrentThreadId();
         using var stop = new CancellationTokenSource();
@@ -19,10 +20,10 @@ internal static class ConfirmationChecks
                 {
                     var title = new StringBuilder(128); GetWindowText(window, title, title.Capacity);
                     var className = new StringBuilder(128); GetClassName(window, className, className.Capacity);
-                    if (title.ToString() == "请确认" && className.ToString() == "#32770")
+                    if (title.ToString() == expectedTitle && className.ToString() == "#32770")
                     {
                         windows.Add(window);
-                        PostMessage(window, 0x0111, accept ? 6 : 7, 0);
+                        PostMessage(window, 0x0111, choice, 0);
                     }
                     return true;
                 }, 0);

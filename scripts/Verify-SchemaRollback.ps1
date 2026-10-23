@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory)][string]$NewVersion,
-    [string]$OldVersion = '1.7.0',
+    [string]$OldVersion = '1.8.0',
     [Parameter(Mandatory)][string]$FixtureDatabase
 )
 $ErrorActionPreference = 'Stop'
@@ -10,13 +10,13 @@ $newRoot = Join-Path $projectRoot "artifacts/releases/$NewVersion"
 $oldRoot = Join-Path $projectRoot "artifacts/releases/$OldVersion"
 $newManifest = Get-Content -LiteralPath (Join-Path $newRoot 'manifest.json') -Raw | ConvertFrom-Json
 $oldManifest = Get-Content -LiteralPath (Join-Path $oldRoot 'manifest.json') -Raw | ConvertFrom-Json
-if ($newManifest.SchemaVersion -ne 3 -or $oldManifest.SchemaVersion -ne 2 -or $oldManifest.Stability -ne 'stable') { throw '此演练需要结构3新版和结构2旧稳定包。' }
+if ($newManifest.SchemaVersion -ne 4 -or $oldManifest.SchemaVersion -ne 3 -or $oldManifest.Stability -ne 'stable') { throw '此演练需要结构4新版和结构3旧稳定包。' }
 $fixture = [IO.Path]::GetFullPath($FixtureDatabase)
 if (-not $fixture.StartsWith((Join-Path $projectRoot 'workspace/tests') + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw '只允许workspace/tests中的明确测试库。' }
 $oldReportFile = Get-ChildItem -LiteralPath (Join-Path $projectRoot 'artifacts/test-results') -Filter "source_$($OldVersion)_*.json" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 $oldReport = Get-Content -LiteralPath $oldReportFile.FullName -Raw | ConvertFrom-Json
 if (-not $oldReport.Success) { throw '旧版源码验证未通过。' }
-$oldFixture = Get-ChildItem -LiteralPath (Join-Path $projectRoot ($oldReport.TestRoot + '/tests')) -Directory -Filter 'wpf_weight_*' | Select-Object -First 1
+$oldFixture = Get-ChildItem -LiteralPath (Join-Path $projectRoot ($oldReport.TestRoot + '/tests')) -Directory -Filter 'wpf_template_*' | Select-Object -First 1
 if (-not $oldFixture) { throw '缺少旧版实际测试库。' }
 $testRoot = Join-Path $projectRoot ('workspace/schema_rollback_' + [Guid]::NewGuid().ToString('N'))
 $dataRoot = Join-Path $testRoot 'data'
@@ -44,14 +44,15 @@ $oldSnapshotPath = Join-Path $testRoot 'old-restore-point.calorie-backup.json'
 Invoke-App $newRoot @('--data-dir',$dataRoot,'--startup-check')
 $upgraded = Export $newRoot $dataRoot 'upgraded'
 $newData = Export $newRoot $fixtureRoot 'new-explicit-test-inputs'
-if ($newData.Portions.Count -eq 0 -or $newData.Templates.Count -eq 0 -or $newData.TemplateBatches.Count -eq 0 -or $newData.Entries.Count -lt 2) { throw '测试库缺少模板、批次、份量和整餐摄入。' }
+if ($newData.Settings -eq $null -or $newData.Entries.Count -lt 2) { throw '测试库缺少录入设置和摄入。' }
 # 合并两组已经真实写入的明确测试输入，仅用于独立演练目录。
 $merged = $upgraded
 $merged.Foods = @(@($upgraded.Foods) + @($newData.Foods) | Group-Object Id | ForEach-Object { $_.Group[-1] })
 $merged.Entries = @(@($upgraded.Entries) + @($newData.Entries))
 $merged.Portions = @(@($upgraded.Portions) + @($newData.Portions) | Group-Object Id | ForEach-Object { $_.Group[-1] })
-$merged.Templates = @($newData.Templates)
-$merged.TemplateBatches = @($newData.TemplateBatches)
+$merged.Templates = @(@($upgraded.Templates) + @($newData.Templates) | Group-Object Id | ForEach-Object { $_.Group[-1] })
+$merged.TemplateBatches = @(@($upgraded.TemplateBatches) + @($newData.TemplateBatches) | Group-Object Id | ForEach-Object { $_.Group[-1] })
+$merged.Settings = $newData.Settings
 $mergedPath = Join-Path $testRoot 'merged-explicit-inputs.calorie-backup.json'
 $merged | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $mergedPath -Encoding utf8
 Invoke-App $newRoot @('--data-dir',$dataRoot,'--restore-backup',$mergedPath,'--confirm-restore')
@@ -77,14 +78,16 @@ if ((Get-FileHash -LiteralPath (Join-Path $dataRoot 'journal.db')).Hash -ne $dbH
 
 & $rollback -TargetReleaseDirectory $oldRoot -CurrentReleaseDirectory $newRoot -DataDirectory $dataRoot -SnapshotPath $oldSnapshotPath -NoLaunch -Confirm:$false
 $oldView = Export $oldRoot $dataRoot 'old-view'
-Same-Collections $old $oldView @('Foods','Meals','Entries','Portions')
+Same-Collections $old $oldView @('Foods','Meals','Entries','Portions','Templates','TemplateBatches')
 $pointer = Get-Content -LiteralPath (Join-Path $dataRoot 'active-version.json') -Raw | ConvertFrom-Json
 $newArchive = Get-Content -LiteralPath $pointer.RecoveryBackup -Raw | ConvertFrom-Json
 Same-Collections $expected $newArchive @('Foods','Meals','Entries','Portions','Templates','TemplateBatches')
+if(($expected.Settings|ConvertTo-Json -Compress) -cne ($newArchive.Settings|ConvertTo-Json -Compress)){throw '回滚前归档缺少当前设置'}
 & $rollback -TargetReleaseDirectory $newRoot -CurrentReleaseDirectory $oldRoot -DataDirectory $dataRoot -SnapshotPath $pointer.RecoveryBackup -NoLaunch -Confirm:$false
 $returned = Export $newRoot $dataRoot 'returned-new'
 Same-Collections $expected $returned @('Foods','Meals','Entries','Portions','Templates','TemplateBatches')
-$result = @{Success=$true;From=$NewVersion;To=$OldVersion;Return=$NewVersion;ActuallyTestedSchemas=@(2,3);RequiresExplicitOldRestorePoint=$true;InvalidOldSnapshotDoesNotReplaceWorkingData=$true;OldViewMatchesChosenRestorePoint=$true;AllNewDataArchivedBeforeRollback=$true;AllNewDataRestoredOnReturn=$true;AllSixCollectionsIdentical=$true;RetainedCurrentEntries=$returned.Entries.Count;RetainedPortions=$returned.Portions.Count;RetainedTemplates=$returned.Templates.Count;RetainedTemplateBatches=$returned.TemplateBatches.Count;OldVisibleEntries=$oldView.Entries.Count;OldRestorePoint=$old.ExportedAtUtc;TestRoot=$testRoot}
+if(($expected.Settings|ConvertTo-Json -Compress) -cne ($returned.Settings|ConvertTo-Json -Compress)){throw '返回新版后设置不一致'}
+$result = @{Success=$true;From=$NewVersion;To=$OldVersion;Return=$NewVersion;ActuallyTestedSchemas=@(3,4);RequiresExplicitOldRestorePoint=$true;InvalidOldSnapshotDoesNotReplaceWorkingData=$true;OldViewMatchesChosenRestorePoint=$true;AllNewDataArchivedBeforeRollback=$true;AllNewDataRestoredOnReturn=$true;AllSixCollectionsIdentical=$true;SettingsIdentical=$true;RetainedSettings=$returned.Settings;RetainedCurrentEntries=$returned.Entries.Count;RetainedPortions=$returned.Portions.Count;RetainedTemplates=$returned.Templates.Count;RetainedTemplateBatches=$returned.TemplateBatches.Count;OldVisibleEntries=$oldView.Entries.Count;OldRestorePoint=$old.ExportedAtUtc;TestRoot=$testRoot}
 $reportPath = Join-Path $projectRoot "artifacts/test-results/schema-rollback_$($NewVersion)_to_$($OldVersion).json"
 $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $reportPath -Encoding utf8
 $result | ConvertTo-Json -Depth 6

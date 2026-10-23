@@ -25,8 +25,8 @@ public sealed partial class MainViewModel
 
     private void InitializeBrowse()
     {
-        ShowSingleCommand = new RelayCommand(() => ContinuousMode = false);
-        ShowContinuousCommand = new RelayCommand(() => ContinuousMode = true);
+        ShowSingleCommand = new RelayCommand(() => { ContinuousMode = false; MealMode = false; });
+        ShowContinuousCommand = new RelayCommand(() => { MealMode = false; ContinuousMode = true; });
         LoadBrowseCommand = new RelayCommand(() => Run(() => ApplyBrowse(DateOnly.FromDateTime(BrowseFrom), DateOnly.FromDateTime(BrowseTo))));
         LoadEarlierCommand = new RelayCommand(() => Run(() =>
         {

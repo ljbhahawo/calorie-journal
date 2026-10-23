@@ -21,6 +21,7 @@ internal static class BrowseBindingChecks
         var store = new SqliteJournalStore(Path.Combine(directory, "journal.db"));
         store.Initialize(JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data", "foods.json")));
         var journal = new JournalService(store);
+        journal.SaveSettings(new JournalSettings { DefaultWeightMode = false, NewFoodMode = "never" });
         var vm = new MainViewModel(journal, new BackupService(store, Path.Combine(directory, "recovery")), directory);
         var window = new MainWindow(vm); window.Show(); Pump();
         var datePicker = (DatePicker)window.FindName("SelectedDatePicker");

@@ -80,7 +80,7 @@ public sealed class TemplateTests
         var (directory, store, journal) = Open(); var template = Create(journal); journal.SaveTemplateBatch(Guid.NewGuid(), template.Id, Entries(journal, template));
         var backups = new BackupService(store, Path.Combine(directory, "recovery")); var snapshot = store.ReadSnapshot();
         var path = Path.Combine(directory, "完整.calorie-backup.json"); backups.Export(path); var inspected = backups.Inspect(path);
-        Assert.AreEqual(3, inspected.FormatVersion); Assert.HasCount(1, inspected.Templates!); Assert.HasCount(1, inspected.TemplateBatches!);
+        Assert.AreEqual(SqliteJournalStore.BackupFormatVersion, inspected.FormatVersion); Assert.HasCount(1, inspected.Templates!); Assert.HasCount(1, inspected.TemplateBatches!);
         foreach (var bad in new[] { snapshot with { Templates = null }, snapshot with { TemplateBatches = null }, snapshot with { Templates = [template, template] },
             snapshot with { TemplateBatches = [snapshot.TemplateBatches![0], snapshot.TemplateBatches[0]] },
             snapshot with { Templates = [template with { Items = [template.Items[0] with { FoodId = Guid.NewGuid() }] }] },
@@ -89,7 +89,7 @@ public sealed class TemplateTests
             Assert.Throws<ValidationException>(() => backups.Restore(bad));
             Assert.AreEqual(JsonSerializer.Serialize(snapshot.Templates), JsonSerializer.Serialize(store.ReadSnapshot().Templates));
         }
-        var legacy = snapshot with { FormatVersion = 2, SchemaVersion = 2, Templates = null, TemplateBatches = null };
+        var legacy = snapshot with { FormatVersion = 2, SchemaVersion = 2, Templates = null, TemplateBatches = null, Settings = null };
         var archive = backups.Restore(legacy); Assert.IsEmpty(store.ReadTemplates()); Assert.IsEmpty(store.ReadTemplateBatches());
         var saved = backups.Inspect(archive); Assert.HasCount(1, saved.Templates!); Assert.HasCount(1, saved.TemplateBatches!);
         backups.Restore(saved); var actual = store.ReadSnapshot();

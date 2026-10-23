@@ -16,7 +16,7 @@ internal static class MigrationChecks
         legacyDatabase = Path.GetFullPath(legacyDatabase);
         Assert.IsTrue(legacyDatabase.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
         var original = new SqliteJournalStore(legacyDatabase).ReadSnapshot();
-        Assert.IsTrue(original.SchemaVersion is 1 or 2, "必须使用实际旧版程序产生的数据库。");
+        Assert.IsTrue(original.SchemaVersion is 1 or 2 or 3, "必须使用实际旧版程序产生的数据库。");
         var package = JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data/foods.json"));
         var healthy = Copy("healthy");
         healthy.Initialize(package);
@@ -25,7 +25,7 @@ internal static class MigrationChecks
         Assert.AreEqual(original.FormatVersion, before.FormatVersion);
         EqualData(original, before);
         var upgraded = healthy.ReadSnapshot();
-        Assert.AreEqual(SqliteJournalStore.SchemaVersion, upgraded.SchemaVersion); Assert.IsEmpty(upgraded.Templates!); Assert.IsEmpty(upgraded.TemplateBatches!); EqualData(original, upgraded);
+        Assert.AreEqual(SqliteJournalStore.SchemaVersion, upgraded.SchemaVersion); Assert.AreEqual(JournalSettings.Default, upgraded.Settings); EqualData(original, upgraded);
         var backupDatabase = Path.ChangeExtension(healthy.LastMigrationBackup.Replace(".calorie-backup.json", ".db"), ".db");
         Assert.IsTrue(File.Exists(backupDatabase));
         EqualData(original, new SqliteJournalStore(backupDatabase).ReadSnapshot());
@@ -50,7 +50,8 @@ internal static class MigrationChecks
         using (var connection = new SqliteConnection($"Data Source={failed.DatabasePath};Pooling=False"))
         {
             connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name IN ('meal_templates','template_batches')";
-            Assert.AreEqual(0L, command.ExecuteScalar());
+            Assert.AreEqual(original.SchemaVersion >= 3 ? 2L : 0L, command.ExecuteScalar());
+            command.CommandText = "SELECT COUNT(*) FROM metadata WHERE key='settings'"; Assert.AreEqual(0L, command.ExecuteScalar());
             command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('entries') WHERE name='weight_calculation'";
             Assert.AreEqual(original.SchemaVersion >= 2 ? 1L : 0L, command.ExecuteScalar());
         }
@@ -76,5 +77,7 @@ internal static class MigrationChecks
         Assert.AreEqual(JsonSerializer.Serialize(expected.Meals), JsonSerializer.Serialize(actual.Meals));
         Assert.AreEqual(JsonSerializer.Serialize(expected.Entries), JsonSerializer.Serialize(actual.Entries));
         Assert.AreEqual(JsonSerializer.Serialize(expected.Portions ?? []), JsonSerializer.Serialize(actual.Portions ?? []));
+        Assert.AreEqual(JsonSerializer.Serialize(expected.Templates ?? []), JsonSerializer.Serialize(actual.Templates ?? []));
+        Assert.AreEqual(JsonSerializer.Serialize(expected.TemplateBatches ?? []), JsonSerializer.Serialize(actual.TemplateBatches ?? []));
     }
 }

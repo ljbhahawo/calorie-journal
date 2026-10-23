@@ -90,7 +90,9 @@ public static class Validation
 
     public static void Snapshot(JournalSnapshot value)
     {
-        Require(value.FormatVersion == value.SchemaVersion && value.FormatVersion is 1 or 2 or 3, "备份格式或数据库版本不兼容。");
+        Require(value.FormatVersion == value.SchemaVersion && value.FormatVersion is 1 or 2 or 3 or 4, "备份格式或数据库版本不兼容。");
+        if (value.FormatVersion >= 4) { Require(value.Settings is not null, "备份缺少录入设置。"); JournalSettings.Validate(value.Settings); }
+        else Require(value.Settings is null, "旧格式不能包含录入设置。");
         Text(value.AppVersion, "软件版本", 100, true); Text(value.FoodPackageVersion, "食物包版本", 100, true);
         Require(value.ExportedAtUtc != default, "备份时间无效。");
         Require(value.Foods is not null && value.Meals is not null && value.Entries is not null, "备份缺少必要数据。");

@@ -8,8 +8,8 @@ namespace CalorieJournal.Infrastructure;
 
 public sealed partial class SqliteJournalStore : IJournalStore
 {
-    public const int SchemaVersion = 3;
-    public const int BackupFormatVersion = 3;
+    public const int SchemaVersion = 4;
+    public const int BackupFormatVersion = 4;
     public string DatabasePath { get; }
     private readonly string connectionString;
 
@@ -105,7 +105,8 @@ public sealed partial class SqliteJournalStore : IJournalStore
         PutMetadata(connection, transaction, "initialized", "1");
         PutMetadata(connection, transaction, "food_package", package.Version);
         if (version == 0) Execute(connection, transaction, "PRAGMA application_id=0x43414C4A;");
-        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=3;");
+        if (version < 4) PutMetadata(connection, transaction, "settings", JsonSerializer.Serialize(JournalSettings.Default, JsonFiles.Options));
+        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=4;");
         transaction.Commit();
     }
 
@@ -256,7 +257,8 @@ public sealed partial class SqliteJournalStore : IJournalStore
             Entries = Entries(connection, transaction, DateOnly.MinValue, DateOnly.MaxValue),
             Portions = version < 2 ? null : Portions(connection, transaction),
             Templates = version < 3 ? null : Templates(connection, transaction),
-            TemplateBatches = version < 3 ? null : TemplateBatches(connection, transaction)
+            TemplateBatches = version < 3 ? null : TemplateBatches(connection, transaction),
+            Settings = version < 4 ? null : Settings(connection, transaction)
         };
         transaction.Commit();
         return result;
@@ -275,6 +277,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
         foreach (var template in snapshot.Templates ?? []) PutTemplate(connection, transaction, template);
         foreach (var batch in snapshot.TemplateBatches ?? []) PutTemplateBatch(connection, transaction, batch);
         PutMetadata(connection, transaction, "food_package", snapshot.FoodPackageVersion);
+        PutMetadata(connection, transaction, "settings", JsonSerializer.Serialize(snapshot.Settings ?? JournalSettings.Default, JsonFiles.Options));
         transaction.Commit();
     }
 

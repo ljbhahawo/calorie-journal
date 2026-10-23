@@ -74,7 +74,10 @@
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
             <WrapPanel Margin="0,0,0,12">
               <Button x:Name="SingleViewButton" Content="单日" Command="{Binding ShowSingleCommand}">
-                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Style.Triggers><DataTrigger Binding="{Binding ContinuousMode}" Value="False"><Setter Property="Background" Value="#DDEBDD" /><Setter Property="BorderBrush" Value="#90AB95" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding ContinuousMode}" Value="False"/><Condition Binding="{Binding MealMode}" Value="False"/></MultiDataTrigger.Conditions><Setter Property="Background" Value="#DDEBDD"/><Setter Property="BorderBrush" Value="#90AB95"/></MultiDataTrigger></Style.Triggers></Style></Button.Style>
+              </Button>
+              <Button x:Name="MealsViewButton" Content="按餐" Command="{Binding ShowMealsCommand}">
+                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Style.Triggers><DataTrigger Binding="{Binding MealMode}" Value="True"><Setter Property="Background" Value="#DDEBDD"/><Setter Property="BorderBrush" Value="#90AB95"/></DataTrigger></Style.Triggers></Style></Button.Style>
               </Button>
               <Button x:Name="ContinuousViewButton" Content="连续列表" Command="{Binding ShowContinuousCommand}">
                 <Button.Style><Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Style.Triggers><DataTrigger Binding="{Binding ContinuousMode}" Value="True"><Setter Property="Background" Value="#DDEBDD" /><Setter Property="BorderBrush" Value="#90AB95" /></DataTrigger></Style.Triggers></Style></Button.Style>
@@ -83,7 +86,7 @@
             </WrapPanel>
           <ScrollViewer x:Name="SingleDayPanel" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <ScrollViewer.Style><Style TargetType="ScrollViewer"><Style.Triggers><DataTrigger Binding="{Binding ContinuousMode}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></ScrollViewer.Style>
-          <Grid Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" MinHeight="460">
+          <Grid Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" MinHeight="360">
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
             <DockPanel Margin="0,0,0,14" LastChildFill="False">
               <TextBlock Text="当日概览" Style="{StaticResource Heading}" VerticalAlignment="Center" Margin="0,0,12,0" />
@@ -94,15 +97,11 @@
                 <Button x:Name="TodayButton" Content="今天" Command="{Binding TodayCommand}" Margin="0" />
               </StackPanel>
             </DockPanel>
-            <Border Grid.Row="1" Style="{StaticResource Card}" Background="#E7EFDF" BorderBrush="#D8E4CF" Margin="0,0,0,16">
-              <StackPanel>
-                <TextBlock Text="已记录摄入" FontSize="12" Foreground="#546B4E" />
-                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left" Margin="0,6,0,8"><TextBlock Text="{Binding DayTotal}" FontSize="30" FontWeight="SemiBold" Foreground="#254E32" /></Viewbox>
-                <TextBlock Text="{Binding MealTotals}" Foreground="#425C3E" TextWrapping="Wrap" />
-                <TextBlock Text="合计仅反映已记录内容" FontSize="11" Foreground="#60735A" Margin="0,8,0,0" />
-              </StackPanel>
+            <Border x:Name="DayTotalCard" Grid.Row="1" Style="{StaticResource Card}" Padding="14,10" Background="#E7EFDF" BorderBrush="#D8E4CF" Margin="0,0,0,10">
+              <DockPanel><TextBlock DockPanel.Dock="Right" Text="已记录摄入" FontSize="12" Foreground="#546B4E" VerticalAlignment="Center" Margin="12,0,0,0"/><Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock Text="{Binding DayTotal}" FontSize="23" FontWeight="SemiBold" Foreground="#254E32"/></Viewbox></DockPanel>
             </Border>
-            <Border Grid.Row="2" Style="{StaticResource Card}" Padding="0">
+            <Border x:Name="DayEntriesCard" Grid.Row="2" Padding="0">
+              <Border.Style><Style TargetType="Border" BasedOn="{StaticResource Card}"><Style.Triggers><DataTrigger Binding="{Binding MealMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
               <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <Grid Margin="20,16,20,14"><TextBlock Text="摄入明细" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="左右滚动可查看更多字段" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
@@ -131,6 +130,24 @@
                   <Button x:Name="DeleteEntryButton" Content="删除记录" Command="{Binding DeleteEntryCommand}" Style="{StaticResource DangerButton}" Margin="0" />
                 </WrapPanel></Border>
               </Grid>
+            </Border>
+            <Border x:Name="DayMealsPanel" Grid.Row="2">
+              <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding MealMode}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
+              <ListBox x:Name="DayMealsList" ItemsSource="{Binding DayMeals}" BorderThickness="0" Background="Transparent" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.ScrollUnit="Pixel" AutomationProperties.Name="当日按餐浏览">
+                <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0,0,0,12"/></Style></ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate><DataTemplate><Border Style="{StaticResource Card}" Padding="14"><StackPanel>
+                  <Border BorderBrush="{StaticResource Accent}" BorderThickness="4,0,0,0" Padding="10,3"><DockPanel>
+                    <Button x:Name="AddMealEntryButton" DockPanel.Dock="Right" Content="添加本餐" Command="{Binding DataContext.AddMealEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Margin="8,0,0,0"/>
+                    <StackPanel><TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="{Binding Summary}" Foreground="{StaticResource Accent}" Margin="0,5,0,0"/></StackPanel>
+                  </DockPanel></Border>
+                  <ItemsControl ItemsSource="{Binding Entries}"><ItemsControl.ItemTemplate><DataTemplate>
+                    <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,10,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <StackPanel Margin="0,0,10,0"><TextBlock Text="{Binding FoodNameSnapshot}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding EnergyKcal, StringFormat={}{0:0.0} 大卡}" Foreground="{StaticResource Accent}" Margin="0,4,0,0"/><TextBlock Text="{Binding Calculation}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding PreparationSnapshot}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding Note}" Style="{StaticResource Caption}"/></StackPanel>
+                      <WrapPanel Grid.Column="1" VerticalAlignment="Top"><Button x:Name="EditMealEntryButton" Content="修改" Command="{Binding DataContext.EditListedEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="10,5"/><Button x:Name="DeleteMealEntryButton" Content="删除" Command="{Binding DataContext.DeleteListedEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Style="{StaticResource DangerButton}" Padding="10,5" Margin="0"/></WrapPanel>
+                    </Grid></Border>
+                  </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                </StackPanel></Border></DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
             </Border>
           </Grid>
           </ScrollViewer>
@@ -265,6 +282,11 @@
               <TextBlock Text="粘贴自由文字或从Excel复制的表格，先核对年份、餐次和估计值，再备份并追加。" Style="{StaticResource Caption}" Margin="0,0,0,12" />
               <Button x:Name="OpenImportButton" Content="导入历史记录" Command="{Binding OpenImportCommand}" HorizontalAlignment="Left" />
               <Border BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Margin="0,18,0,0" Padding="0,18,0,0"><StackPanel>
+                <TextBlock Text="录入偏好" Style="{StaticResource Heading}"/>
+                <CheckBox x:Name="DefaultWeightSettingBox" Content="新建摄入默认按重量计算" IsChecked="{Binding SettingsDefaultWeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="发现新的手动食物资料时" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="NewFoodPolicyBox" ItemsSource="{Binding NewFoodModes}" SelectedIndex="{Binding SettingsFoodMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="新资料入库方式"/>
+                <TextBlock Text="需要有效的每100克热量；不推算缺失资料，不覆盖已有食物。设置只影响后续操作，当前草稿和历史保持不变。" Style="{StaticResource Caption}" Margin="0,0,0,12"/>
+                <WrapPanel><Button x:Name="SaveSettingsButton" Content="保存录入设置" Command="{Binding SaveSettingsCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,10"/><Button x:Name="ReloadSettingsButton" Content="还原已保存设置" Command="{Binding ReloadSettingsCommand}" Margin="0,0,0,10"/></WrapPanel>
                 <TextBlock Text="数据目录" Style="{StaticResource FieldLabel}" /><TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" FontSize="12" AutomationProperties.Name="数据目录" />
                 <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" Margin="0,0,0,18" />
                 <TextBlock Text="食物数据来源" FontWeight="SemiBold" Margin="0,0,0,8" /><TextBlock Text="{Binding FoodAttribution}" Style="{StaticResource Caption}" />

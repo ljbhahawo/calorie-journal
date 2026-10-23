@@ -2,6 +2,9 @@ namespace CalorieJournal.Core;
 
 public interface IJournalStore
 {
+    JournalSettings ReadSettings();
+    void SaveSettings(JournalSettings value);
+    bool SaveEntryAndFood(IntakeEntry value, FoodItem food);
     FoodItem[] ReadFoods(bool includeDeleted = false);
     MealCategory[] ReadMeals();
     IntakeEntry[] ReadEntries(DateOnly from, DateOnly to);
@@ -82,6 +85,11 @@ public sealed partial class JournalService(IJournalStore store)
 
     public void SaveEntry(IntakeEntry value)
     {
+        store.SaveEntry(ValidateEntrySave(value));
+    }
+
+    private IntakeEntry ValidateEntrySave(IntakeEntry value)
+    {
         value = value with { FoodNameSnapshot = Validation.Text(value.FoodNameSnapshot, "食物名称", 100, true), UpdatedAtUtc = DateTimeOffset.UtcNow };
         Validation.Entry(value);
         var previous = store.FindEntry(value.Id);
@@ -93,7 +101,7 @@ public sealed partial class JournalService(IJournalStore store)
             var food = store.ReadFoods(true).SingleOrDefault(x => x.Id == value.FoodId);
             Validation.Require(food is not null && (!food.IsDeleted || previous?.FoodId == food.Id), "引用食物不存在或已经删除，请重新选择。");
         }
-        store.SaveEntry(value);
+        return value;
     }
 
     public void DeleteEntry(Guid id) => store.DeleteEntry(id);

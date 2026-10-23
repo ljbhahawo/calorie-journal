@@ -74,6 +74,8 @@ public sealed record JournalSnapshot
     public MealTemplate[]? Templates { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TemplateBatchReceipt[]? TemplateBatches { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public JournalSettings? Settings { get; init; }
 }
 
 public sealed record FoodPackage

@@ -22,6 +22,7 @@ public sealed partial class MainViewModel : ObservableObject
     private bool foodDirty;
     private bool mealDirty;
     private IntakeEntry? editingEntry;
+    private Guid newEntryId = Guid.NewGuid();
     private FoodItem? editingFood;
     private FoodItem? newFoodTemplate;
     private FoodItem? librarySelection;
@@ -249,6 +250,7 @@ public sealed partial class MainViewModel : ObservableObject
             if (!model.SavedAnyBatch) return;
             RefreshDay(); RefreshHistory(); Status = "餐食已保存，当日与历史列表已更新。";
         }));
+        InitializeSettings();
         InitializeBrowse();
         RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory(); LoadFood(null);
     }
@@ -295,7 +297,7 @@ public sealed partial class MainViewModel : ObservableObject
         return MessageBox.Show(text, "请确认", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
     }
     private bool ConfirmEntryDiscard() => !entryDirty || Confirm("摄入内容尚未保存，是否放弃修改？");
-    public bool CanClose() => (!entryDirty && !foodDirty && !mealDirty) || Confirm("有未保存的内容，是否放弃并关闭？");
+    public bool CanClose() => (!entryDirty && !foodDirty && !mealDirty && !settingsDirty) || Confirm("有未保存的内容，是否放弃并关闭？");
 
     public void RefreshClockDate()
     {
@@ -350,6 +352,7 @@ public sealed partial class MainViewModel : ObservableObject
         Fill(DayEntries, rows);
         DayTotal = rows.Length == 0 ? "未记录" : $"{rows.Sum(x => x.EnergyKcalTenths) / 10m:0.0} 大卡 · {rows.Length} 项";
         MealTotals = string.Join("    ", rows.GroupBy(x => x.MealNameSnapshot).Select(x => $"{x.Key} {x.Sum(e => e.EnergyKcalTenths) / 10m:0.0}"));
+        Fill(DayMeals, journal.MealsForDay(DateOnly.FromDateTime(SelectedDate)));
     }
 
     private void RefreshHistory()
@@ -375,9 +378,9 @@ public sealed partial class MainViewModel : ObservableObject
         var mealId = EntryMeal?.Id;
         editingEntry = null; ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; savedSource = "用户录入";
         EntryDate = SelectedDate; EntryTime = ""; EntryName = ""; EntryPreparation = ""; EntryNote = "";
-        DirectKcal = ""; Weight = ""; UnitKcal = ""; WeightUnit = "g"; WeightMode = false; SetWeightCalculation(null);
+        DirectKcal = ""; Weight = ""; UnitKcal = ""; WeightUnit = "g"; WeightMode = journal.Settings().DefaultWeightMode; SetWeightCalculation(null);
         RefreshMeals(); EntryMeal = EntryMeals.FirstOrDefault(x => x.Id == mealId) ?? EntryMeals.FirstOrDefault();
-        loading = false; entryDirty = false;
+        newEntryId = Guid.NewGuid(); loading = false; entryDirty = false;
         OnPropertyChanged(nameof(EntryHeading)); OnPropertyChanged(nameof(EntrySource));
     }
 
@@ -404,6 +407,7 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             editingEntry = asNew ? null : row; ChosenFood = null;
+            if (asNew) newEntryId = Guid.NewGuid();
             savedFoodId = missingFood ? null : row.FoodId;
             sourceUnitKcal = row.KcalPer100gHundredthsSnapshot;
             savedSource = row.SourceSnapshot + (missingFood ? " · 复制历史快照（原食物已删除，未关联食物库）" : "");
@@ -439,7 +443,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (sourceUnitKcal is not null && WeightMode && ReadUnitKcal() != sourceUnitKcal && !source.Contains("本次单位热量已调整", StringComparison.Ordinal)) source += " · 本次单位热量已调整";
         var entry = new IntakeEntry
         {
-            Id = editingEntry?.Id ?? Guid.NewGuid(), EntryDate = DateOnly.FromDateTime(EntryDate), LocalTime = EntryTime.Trim(),
+            Id = editingEntry?.Id ?? newEntryId, EntryDate = DateOnly.FromDateTime(EntryDate), LocalTime = EntryTime.Trim(),
             MealCategoryId = EntryMeal.Id,
             MealNameSnapshot = editingEntry?.MealCategoryId == EntryMeal.Id ? editingEntry.MealNameSnapshot : EntryMeal.Name,
             FoodId = savedFoodId, FoodNameSnapshot = EntryName, PreparationSnapshot = EntryPreparation,
@@ -448,13 +452,15 @@ public sealed partial class MainViewModel : ObservableObject
             WeightCalculation = WeightMode ? weightCalculation : null,
             Note = EntryNote, SourceSnapshot = source, CreatedAtUtc = editingEntry?.CreatedAtUtc ?? DateTimeOffset.UtcNow
         };
-        journal.SaveEntry(entry);
+        if (!SaveWithFoodPolicy(entry, out var foodMessage, out var foodAdded)) { Status = "已取消保存，草稿保留。"; return; }
+        if (foodAdded) { Fill(FoodChoices, journal.Foods(EntryFoodQuery)); if (!foodDirty) Fill(LibraryFoods, journal.Foods(LibraryQuery)); }
         entryDirty = false;
         if (SelectedDate.Date != EntryDate.Date) { selectedDate = EntryDate.Date; OnPropertyChanged(nameof(SelectedDate)); }
         ResetEntry(); RefreshDay(); RefreshHistory();
         Status = ContinuousMode && (entry.EntryDate < appliedBrowseFrom || entry.EntryDate > appliedBrowseTo)
             ? "摄入已保存；日期在当前连续列表区间外，可调整查询区间查看。"
             : "摄入已保存，可以继续添加下一项。";
+        if (foodMessage.Length > 0) Status += " " + foodMessage;
     }
 
     private void LoadFood(FoodItem? value)
@@ -500,17 +506,17 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task RestoreAsync()
     {
-        if (entryDirty || foodDirty || mealDirty) { Status = "请先保存或取消正在编辑的摄入、食物或餐次内容，再恢复备份。"; return; }
+        if (entryDirty || foodDirty || mealDirty || settingsDirty) { Status = "请先保存或取消正在编辑的摄入、食物、餐次或设置内容，再恢复备份。"; return; }
         var dialog = new OpenFileDialog { Title = "选择完整备份", Filter = "完整备份|*.calorie-backup.json", InitialDirectory = DataDirectory };
         if (dialog.ShowDialog() != true) return;
         JournalSnapshot? snapshot = null;
         await WorkAsync(() => snapshot = backups.Inspect(dialog.FileName), () => Status = "备份校验完成。");
         if (snapshot is null) return;
-        if (!Confirm($"将完整替换当前数据。\n备份时间：{snapshot.ExportedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}\n食物 {snapshot.Foods.Length} 项，餐次 {snapshot.Meals.Length} 项，摄入 {snapshot.Entries.Length} 项，份量 {snapshot.Portions?.Length ?? 0} 项，模板 {snapshot.Templates?.Length ?? 0} 项，批次 {snapshot.TemplateBatches?.Length ?? 0} 项。\n" + (snapshot.FormatVersion < 3 ? "旧格式未包含的新数据类型恢复后为空；当前完整数据保留在恢复前归档中。\n" : "") + "现有数据会先自动备份，是否恢复？")) return;
+        if (!Confirm($"将完整替换当前数据。\n备份时间：{snapshot.ExportedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}\n食物 {snapshot.Foods.Length} 项，餐次 {snapshot.Meals.Length} 项，摄入 {snapshot.Entries.Length} 项，份量 {snapshot.Portions?.Length ?? 0} 项，模板 {snapshot.Templates?.Length ?? 0} 项，批次 {snapshot.TemplateBatches?.Length ?? 0} 项。\n" + (snapshot.FormatVersion < 4 ? "旧格式未包含的设置采用默认值，其他缺少的新类型为空；当前完整数据保留在恢复前归档中。\n" : "录入设置也将恢复。\n") + "现有数据会先自动备份，是否恢复？")) return;
         var recoveryPath = "";
         await WorkAsync(() => recoveryPath = backups.Restore(snapshot), () =>
         {
-            RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory();
+            LoadSettings(); RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory();
             Status = "已恢复。恢复前数据保存在：" + recoveryPath;
         });
     }
