@@ -54,6 +54,7 @@
                     <StackPanel Grid.Column="1"><TextBlock Text="单位" Style="{StaticResource FieldLabel}" /><ComboBox x:Name="WeightUnitBox" ItemsSource="{Binding WeightUnits}" SelectedItem="{Binding WeightUnit}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="重量单位" /></StackPanel>
                   </Grid>
                   <TextBlock Text="每100克大卡" Style="{StaticResource FieldLabel}" /><TextBox x:Name="UnitKcalBox" Text="{Binding UnitKcal, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="每100克大卡" />
+                  <TextBlock Text="{Binding WeightCalculationDescription}" Style="{StaticResource Caption}" Margin="0,0,0,8"/><Button x:Name="WeightConversionButton" Content="换算可食重量 / 常用份量" Command="{Binding OpenWeightConversionCommand}" IsEnabled="{Binding WeightMode}" HorizontalAlignment="Left" Margin="0,0,0,14"/>
                   <TextBlock Text="直接输入本项大卡 · 非重量模式" Style="{StaticResource FieldLabel}" /><TextBox x:Name="DirectKcalBox" Text="{Binding DirectKcal, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="本项大卡" />
                   <Border Background="#EFF5EB" CornerRadius="7" Padding="12,10" Margin="0,0,0,10"><TextBlock Text="{Binding EnergyPreview}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" /></Border>
                   <TextBlock Text="{Binding EntrySource}" Style="{StaticResource Caption}" FontSize="11" Margin="0,0,0,14" />

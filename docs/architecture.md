@@ -1,6 +1,6 @@
 # 架构与技术设计
 
-用途：规定软件实现边界及后续升级方式。状态：2026-10-23 已完成1.5.0多来源查询、本机程序交付、归档源码重建及返回1.4.0验证；详细证据见开发进度。产品范围见 [需求说明](requirements.md)。
+用途：规定软件实现边界及后续升级方式。状态：2026-10-23已交付1.6.0，1.7可食重量及份量候选通过，正式交付状态见[开发进度](progress.md)。产品范围见[需求说明](requirements.md)。
 
 ## 1. 技术选择
 
@@ -41,7 +41,9 @@ flowchart TD
 
 1.5的`FoodReferenceCatalog`和`FoodReferenceSearch`负责独立参考目录与按来源查询；`FoodLookupService`负责官方档案、Windows NLS简繁转换、主动联网更新及原子替换缓存。`FoodLookupWindow`/`FoodLookupViewModel`显示查询与来源；`MainViewModel.ApplyFoodReference`将选中结果作为待保存的新食物，保留完整来源且保护原草稿。普通记账、启动和查询不联网。详情、限制及验收见[热量资料查询](热量资料查询.md)。
 
-1.6正在开发：Core的`FoodSearch`集中简繁、Unicode归一、别名最长匹配与词边界，供个人库和参考目录复用；参考目录用弱引用缓存只读检索文档。Infrastructure的`ChineseFoodIndex`按来源ID附加独立中文索引，校验官方文件及程序内嵌词表的SHA256，保持原始英文、营养值和数据版本。中文索引元数据不序列化入TFDA旧格式缓存。图标分别作为EXE和WPF资源加载；具体设计及兼容验收见[中文搜索与应用图标](中文搜索与应用图标.md)。
+1.6的`FoodSearch`集中简繁、Unicode归一、别名最长匹配与词边界，供个人库和参考目录复用；参考目录用弱引用缓存只读检索文档。Infrastructure的`ChineseFoodIndex`按来源ID附加独立中文索引，校验官方文件及程序内嵌词表的SHA256，保持原始英文、营养值和数据版本。中文索引元数据不序列化入TFDA旧格式缓存。图标分别作为EXE和WPF资源加载；具体设计及兼容验收见[中文搜索与应用图标](中文搜索与应用图标.md)。
+
+1.7的`WeightCalculator`集中重量和份数计算，`FoodPortion`保存用户定义，`WeightCalculationSnapshot`随摄入保存当时依据。独立换算窗口生成草稿，份量维护单独保存；`MainViewModel.WeightConversion`处理带入和手动重量变化。SQLite结构2增加份量表及结构化JSON依据列，完整备份2含两类新数据；迁移前产生旧结构数据库及旧版可读JSON，事务失败回退。旧版本严格拒绝结构2，跨结构回滚使用旧程序暂存恢复和原子替换；详见[可食重量与常用份量](可食重量与常用份量.md)。
 
 ## 3. 计划目录
 

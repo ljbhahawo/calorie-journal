@@ -1,0 +1,53 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.7.0",
+  "Success": true,
+  "VerificationDate": "2026-10-23",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 2,
+  "BackupFormatVersion": 2,
+  "FoodPackageVersion": "usda-sr-2018-04.zh.1",
+  "ReferenceFormatVersion": 1,
+  "ChineseIndexVersion": "usda-zh-2026-10-23.3",
+  "SearchAliasesVersion": "food-aliases-2026-10-23.3",
+  "Package": {
+    "FileName": "每日热量记录_1.7.0_win-x64.zip",
+    "Bytes": 69204685,
+    "Sha256": "574667B39F6A4EB286E203DCFC9F51145234E8F0070B45224F08E28838E56F48"
+  },
+  "Checks": {
+    "ContinuousListLayoutChecks": 28,
+    "ImportWindowLayoutChecks": 40,
+    "MigrationTransactionFailurePreservesSchemaAndData": true,
+    "OldRestorePointEntryCount": 2,
+    "MigrationBackupFailurePreservesBytes": true,
+    "BusinessAndRealSqliteTestsPassed": 43,
+    "ExplicitSnapshotRollback": true,
+    "RealDesktopOperations": true,
+    "FoodCatalogsUnchanged": true,
+    "LookupWindowLayoutChecks": 28,
+    "OldProgramRefusesNewSchema": true,
+    "DependencyLocksUnchanged": true,
+    "FullEntrySnapshotsRetained": 5,
+    "WeightAndPortionWindowLayoutChecks": 44,
+    "ActualMigrationFrom": "1.6.0",
+    "UserModifiedAndDeletedFoodsRetained": true,
+    "SelfContainedStartupAndBackupRestore": true,
+    "FullPortionSnapshotsRetained": 1,
+    "CompatibleProgramRollback": false,
+    "RollbackTo": "1.6.0",
+    "ArchivedSourceRebuild": true,
+    "MainWindowLayoutChecks": 64,
+    "PreviousStablePackagesUnchanged": true,
+    "AllNewDataArchivedAndRestored": true,
+    "ChineseQueryCasesPassed": 140,
+    "OldProgramRestoresUpgradeBackup": true
+  },
+  "EnvironmentLimits": {
+    "ActualMonitorDpiX": 144,
+    "CrossMonitorDpiSwitchTested": false,
+    "EmptyDependencyCacheTested": false,
+    "SeparateTaskbarVisualObserved": false,
+    "OtherCleanWindowsMachineTested": false
+  }
+}

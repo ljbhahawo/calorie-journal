@@ -17,6 +17,12 @@ public static class BindingCheckProgram
         {
             try
             {
+                if (args is ["--migration-check", var legacyDatabase])
+                {
+                    MigrationChecks.Verify(legacyDatabase);
+                    File.WriteAllText(reportPath, "PASS: 实际旧版数据库迁移、升级前备份及真实失败保护通过。");
+                    result = 0; return;
+                }
                 if (args is ["--lookup-online"])
                 {
                     await LookupBindingChecks.VerifyOnline();
@@ -27,6 +33,7 @@ public static class BindingCheckProgram
                 await ImportBindingChecks.Verify();
                 BrowseBindingChecks.Verify();
                 LookupBindingChecks.Verify();
+                WeightBindingChecks.Verify();
                 File.WriteAllText(reportPath, "PASS: 独立STA进程中的真实WPF绑定、用例和SQLite检查全部通过。");
                 result = 0;
             }

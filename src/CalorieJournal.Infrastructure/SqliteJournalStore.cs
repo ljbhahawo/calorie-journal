@@ -1,13 +1,15 @@
 using System.Globalization;
 using System.Reflection;
+using System.Text.Json;
 using CalorieJournal.Core;
 using Microsoft.Data.Sqlite;
 
 namespace CalorieJournal.Infrastructure;
 
-public sealed class SqliteJournalStore : IJournalStore
+public sealed partial class SqliteJournalStore : IJournalStore
 {
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
+    public const int BackupFormatVersion = 2;
     public string DatabasePath { get; }
     private readonly string connectionString;
 
@@ -19,7 +21,7 @@ public sealed class SqliteJournalStore : IJournalStore
             Pooling = false, DefaultTimeout = 2 }.ToString();
     }
 
-    private SqliteConnection Open()
+    private SqliteConnection Open(bool allowLegacy = false)
     {
         var connection = new SqliteConnection(connectionString);
         connection.Open();
@@ -38,6 +40,11 @@ public sealed class SqliteJournalStore : IJournalStore
             connection.Dispose();
             throw new ValidationException("数据库由更新版本创建，当前程序不能写入。请使用匹配版本或安全恢复旧备份。");
         }
+        if (!allowLegacy && version == 1)
+        {
+            connection.Dispose();
+            throw new ValidationException("旧数据库须先完成升级前备份和结构迁移。");
+        }
         return connection;
     }
 
@@ -46,9 +53,10 @@ public sealed class SqliteJournalStore : IJournalStore
         Validation.Require(package.Version.Length is > 0 and <= 100 && package.Foods.Length is >= 50 and <= 100000, "内置食物包无效或不足50项。");
         foreach (var food in package.Foods) Validation.Food(food);
         Validation.Require(package.Foods.All(x => x.BuiltinKey.Length > 0) && package.Foods.Select(x => x.BuiltinKey).Distinct().Count() == package.Foods.Length, "内置食物键无效或重复。");
-        using var connection = Open();
+        using var connection = Open(true);
+        var version = Convert.ToInt32(Scalar(connection, null, "PRAGMA user_version"), CultureInfo.InvariantCulture);
+        if (version == 1) BackupBeforeMigration();
         using var transaction = connection.BeginTransaction();
-        var version = Convert.ToInt32(Scalar(connection, transaction, "PRAGMA user_version"), CultureInfo.InvariantCulture);
         if (version == 0)
             Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"), CultureInfo.InvariantCulture) == 0, "发现无法识别的已有数据库，不会覆盖或重新初始化。");
         Execute(connection, transaction, """
@@ -71,6 +79,15 @@ public sealed class SqliteJournalStore : IJournalStore
                 note TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS entries_day_meal ON entries(entry_date,meal_id);
             """);
+        if (version < 2)
+            Execute(connection, transaction, "ALTER TABLE entries ADD COLUMN weight_calculation TEXT;");
+        Execute(connection, transaction, """
+            CREATE TABLE IF NOT EXISTS portions(
+                id TEXT PRIMARY KEY, food_id TEXT NOT NULL REFERENCES foods(id), name TEXT NOT NULL COLLATE NOCASE,
+                grams_tenths INTEGER NOT NULL CHECK(grams_tenths BETWEEN 1 AND 1000000), is_deleted INTEGER NOT NULL,
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+            CREATE UNIQUE INDEX IF NOT EXISTS portion_food_name ON portions(food_id,name) WHERE is_deleted=0;
+            """);
         var initialized = Scalar(connection, transaction, "SELECT value FROM metadata WHERE key='initialized'") as string;
         if (initialized is null)
         {
@@ -85,7 +102,8 @@ public sealed class SqliteJournalStore : IJournalStore
         }
         PutMetadata(connection, transaction, "initialized", "1");
         PutMetadata(connection, transaction, "food_package", package.Version);
-        Execute(connection, transaction, "PRAGMA application_id=0x43414C4A; PRAGMA user_version=1;");
+        if (version == 0) Execute(connection, transaction, "PRAGMA application_id=0x43414C4A;");
+        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=2;");
         transaction.Commit();
     }
 
@@ -152,7 +170,8 @@ public sealed class SqliteJournalStore : IJournalStore
             PreparationSnapshot = reader.GetString(7), InputMode = reader.GetString(8),
             WeightGramsTenths = reader.IsDBNull(9) ? null : reader.GetInt64(9), KcalPer100gHundredthsSnapshot = reader.IsDBNull(10) ? null : reader.GetInt64(10),
             SourceSnapshot = reader.GetString(11), EnergyKcalTenths = reader.GetInt64(12), Note = reader.GetString(13),
-            CreatedAtUtc = Time(reader.GetString(14)), UpdatedAtUtc = Time(reader.GetString(15))
+            CreatedAtUtc = Time(reader.GetString(14)), UpdatedAtUtc = Time(reader.GetString(15)),
+            WeightCalculation = reader.FieldCount <= 16 || reader.IsDBNull(16) ? null : JsonSerializer.Deserialize<WeightCalculationSnapshot>(reader.GetString(16), JsonFiles.Options)
         });
         return values.ToArray();
     }
@@ -182,18 +201,19 @@ public sealed class SqliteJournalStore : IJournalStore
         ("$id", value.Id.ToString()), ("$name", value.Name), ("$sort", value.SortOrder), ("$active", value.IsActive));
 
     private static void PutEntry(SqliteConnection connection, SqliteTransaction transaction, IntakeEntry value) => Execute(connection, transaction, """
-        INSERT INTO entries VALUES($id,$date,$time,$meal,$mealName,$food,$foodName,$preparation,$mode,$grams,$kcal,$source,$energy,$note,$created,$updated)
+        INSERT INTO entries VALUES($id,$date,$time,$meal,$mealName,$food,$foodName,$preparation,$mode,$grams,$kcal,$source,$energy,$note,$created,$updated,$calculation)
         ON CONFLICT(id) DO UPDATE SET entry_date=excluded.entry_date,local_time=excluded.local_time,meal_id=excluded.meal_id,meal_name=excluded.meal_name,
         food_id=excluded.food_id,food_name=excluded.food_name,preparation=excluded.preparation,input_mode=excluded.input_mode,grams_tenths=excluded.grams_tenths,
-        kcal_hundredths=excluded.kcal_hundredths,source_snapshot=excluded.source_snapshot,energy_tenths=excluded.energy_tenths,note=excluded.note,updated_at=excluded.updated_at
+        kcal_hundredths=excluded.kcal_hundredths,source_snapshot=excluded.source_snapshot,energy_tenths=excluded.energy_tenths,note=excluded.note,updated_at=excluded.updated_at,weight_calculation=excluded.weight_calculation
         """, ("$id", value.Id.ToString()), ("$date", value.EntryDate.ToString("yyyy-MM-dd")), ("$time", value.LocalTime),
         ("$meal", value.MealCategoryId.ToString()), ("$mealName", value.MealNameSnapshot), ("$food", value.FoodId?.ToString()),
         ("$foodName", value.FoodNameSnapshot), ("$preparation", value.PreparationSnapshot), ("$mode", value.InputMode),
         ("$grams", value.WeightGramsTenths), ("$kcal", value.KcalPer100gHundredthsSnapshot), ("$source", value.SourceSnapshot),
-        ("$energy", value.EnergyKcalTenths), ("$note", value.Note), ("$created", Stamp(value.CreatedAtUtc)), ("$updated", Stamp(value.UpdatedAtUtc)));
+        ("$energy", value.EnergyKcalTenths), ("$note", value.Note), ("$created", Stamp(value.CreatedAtUtc)), ("$updated", Stamp(value.UpdatedAtUtc)),
+        ("$calculation", value.WeightCalculation is null ? null : JsonSerializer.Serialize(value.WeightCalculation, JsonFiles.Options)));
 
     private static void PutMetadata(SqliteConnection connection, SqliteTransaction transaction, string key, string value) => Execute(connection, transaction,
-        "INSERT INTO metadata VALUES($key,$value) ON CONFLICT(key) DO UPDATE SET value=excluded.value", ("$key", key), ("$value", value));
+        "INSERT INTO metadata VALUES($key,$value) ON CONFLICT(key) DO UPDATE SET value=excluded.value WHERE metadata.value<>excluded.value", ("$key", key), ("$value", value));
 
     public void SaveFood(FoodItem value) { using var connection = Open(); using var transaction = connection.BeginTransaction(); PutFood(connection, transaction, value); transaction.Commit(); }
     public void SaveMeal(MealCategory value) { using var connection = Open(); using var transaction = connection.BeginTransaction(); PutMeal(connection, transaction, value); transaction.Commit(); }
@@ -222,15 +242,17 @@ public sealed class SqliteJournalStore : IJournalStore
 
     public JournalSnapshot ReadSnapshot()
     {
-        using var connection = Open();
+        using var connection = Open(true);
         using var transaction = connection.BeginTransaction();
+        var version = Convert.ToInt32(Scalar(connection, transaction, "PRAGMA user_version"), CultureInfo.InvariantCulture);
         var result = new JournalSnapshot
         {
-            FormatVersion = 1, SchemaVersion = SchemaVersion,
+            FormatVersion = version, SchemaVersion = version,
             AppVersion = typeof(SqliteJournalStore).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion,
             FoodPackageVersion = (string?)Scalar(connection, transaction, "SELECT value FROM metadata WHERE key='food_package'") ?? throw new ValidationException("缺少食物包版本。"),
             ExportedAtUtc = DateTimeOffset.UtcNow, Foods = Foods(connection, transaction, true), Meals = Meals(connection, transaction),
-            Entries = Entries(connection, transaction, DateOnly.MinValue, DateOnly.MaxValue)
+            Entries = Entries(connection, transaction, DateOnly.MinValue, DateOnly.MaxValue),
+            Portions = version < 2 ? null : Portions(connection, transaction)
         };
         transaction.Commit();
         return result;
@@ -241,10 +263,11 @@ public sealed class SqliteJournalStore : IJournalStore
         Validation.Snapshot(snapshot);
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
-        Execute(connection, transaction, "DELETE FROM entries; DELETE FROM foods; DELETE FROM meals;");
+        Execute(connection, transaction, "DELETE FROM entries; DELETE FROM portions; DELETE FROM foods; DELETE FROM meals;");
         foreach (var food in snapshot.Foods) PutFood(connection, transaction, food);
         foreach (var meal in snapshot.Meals) PutMeal(connection, transaction, meal);
         foreach (var entry in snapshot.Entries) PutEntry(connection, transaction, entry);
+        foreach (var portion in snapshot.Portions ?? []) PutPortion(connection, transaction, portion);
         PutMetadata(connection, transaction, "food_package", snapshot.FoodPackageVersion);
         transaction.Commit();
     }
@@ -252,7 +275,7 @@ public sealed class SqliteJournalStore : IJournalStore
     public void BackupDatabase(string destination)
     {
         Validation.Require(!File.Exists(destination), "数据库备份路径已存在。");
-        using var source = Open();
+        using var source = Open(true);
         using var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Path.GetFullPath(destination), Pooling = false }.ToString());
         target.Open();
         source.BackupDatabase(target);

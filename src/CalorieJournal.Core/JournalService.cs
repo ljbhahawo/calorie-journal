@@ -8,6 +8,8 @@ public interface IJournalStore
     IntakeEntry? FindEntry(Guid id);
     void SaveFood(FoodItem value);
     void SaveMeal(MealCategory value);
+    FoodPortion[] ReadPortions();
+    void SavePortion(FoodPortion value);
     void SaveEntry(IntakeEntry value);
     void AppendEntries(IntakeEntry[] values);
     void DeleteEntry(Guid id);
@@ -15,7 +17,7 @@ public interface IJournalStore
     void ReplaceSnapshot(JournalSnapshot snapshot);
 }
 
-public sealed class JournalService(IJournalStore store)
+public sealed partial class JournalService(IJournalStore store)
 {
     public FoodItem[] Foods(string query = "")
     {

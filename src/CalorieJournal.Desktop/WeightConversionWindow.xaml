@@ -1,0 +1,30 @@
+<Window x:Class="CalorieJournal.Desktop.WeightConversionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="换算可食重量" Width="700" Height="650" MinWidth="560" MinHeight="460" WindowStartupLocation="CenterOwner"
+        Style="{StaticResource {x:Type Window}}" Language="zh-CN">
+  <Grid Margin="20"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <StackPanel Margin="0,0,0,12"><TextBlock Text="换算可食重量" Style="{StaticResource Heading}"/><TextBlock Text="每份克数由你设置；结果带入后仍需保存摄入。" Style="{StaticResource Caption}"/></StackPanel>
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><StackPanel>
+      <CheckBox x:Name="UsePortionBox" Content="使用常用份量（不勾选时按总重扣除）" IsChecked="{Binding UsePortion}"/>
+      <StackPanel><StackPanel.Style><Style TargetType="StackPanel"><Style.Triggers><DataTrigger Binding="{Binding UsePortion}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+        <TextBlock Text="总重" Style="{StaticResource FieldLabel}"/>
+        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="85"/></Grid.ColumnDefinitions><TextBox x:Name="GrossWeightBox" Text="{Binding Gross, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="总重" Margin="0,0,8,12"/><ComboBox x:Name="GrossUnitBox" Grid.Column="1" ItemsSource="{Binding Units}" SelectedItem="{Binding GrossUnit}" AutomationProperties.Name="总重单位"/></Grid>
+        <TextBlock Text="扣除项 · 皮、壳、骨等，填写名称与重量" Style="{StaticResource FieldLabel}"/>
+        <DataGrid x:Name="DeductionsGrid" ItemsSource="{Binding Deductions}" SelectedItem="{Binding SelectedDeduction}" IsReadOnly="False" CanUserAddRows="False" Height="170" AutomationProperties.Name="扣除重量草稿">
+          <DataGrid.Columns><DataGridTextColumn Header="名称" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="*"/><DataGridTextColumn Header="重量" Binding="{Binding Weight, UpdateSourceTrigger=PropertyChanged}" Width="130"/>
+            <DataGridTemplateColumn Header="单位" Width="90"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox SelectedValue="{Binding Unit, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="Content" Margin="0"><ComboBoxItem Content="g"/><ComboBoxItem Content="kg"/></ComboBox></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+          </DataGrid.Columns>
+        </DataGrid>
+        <WrapPanel Margin="0,8,0,14"><Button x:Name="AddDeductionButton" Content="增加扣除项" Click="AddDeduction"/><Button x:Name="RemoveDeductionButton" Content="移除所选草稿行" Click="RemoveDeduction"/></WrapPanel>
+      </StackPanel>
+      <StackPanel><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding UsePortion}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+        <TextBlock Text="选择当前食物的份量" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="PortionChoiceBox" ItemsSource="{Binding Portions}" SelectedItem="{Binding SelectedPortion}" DisplayMemberPath="Display" AutomationProperties.Name="常用份量"/>
+        <TextBlock Text="份数 · 最多3位小数，最终克数保留0.1g" Style="{StaticResource FieldLabel}"/><TextBox x:Name="PortionCountBox" Text="{Binding PortionCount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="份数"/>
+        <Button x:Name="ManagePortionsButton" Content="管理当前食物的份量" Click="ManagePortions" IsEnabled="{Binding CanManagePortions, Mode=OneWay}" HorizontalAlignment="Left"/>
+        <TextBlock Text="需要先在主窗选择一个有效食物。历史份量显示保存时的数值；主动重新选择才使用新定义。" Style="{StaticResource Caption}" Margin="0,6,0,14"/>
+      </StackPanel>
+      <Border Background="#EFF5EB" Padding="12" CornerRadius="7"><TextBlock x:Name="WeightPreviewText" Text="{Binding Preview}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap"/></Border>
+    </StackPanel></ScrollViewer>
+    <StackPanel Grid.Row="2" Margin="0,12,0,0"><TextBlock Text="{Binding Status}" Style="{StaticResource Caption}" Margin="0,0,0,10"/><WrapPanel><Button x:Name="ApplyWeightButton" Content="带入可食重量" Click="ApplyWeight" Style="{StaticResource PrimaryButton}"/><Button x:Name="CancelWeightButton" Content="取消" Click="Cancel"/></WrapPanel></StackPanel>
+  </Grid>
+</Window>

@@ -1,0 +1,14 @@
+<Window x:Class="CalorieJournal.Desktop.PortionEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="管理常用份量" Width="620" Height="650" MinWidth="500" MinHeight="440" WindowStartupLocation="CenterOwner" Style="{StaticResource {x:Type Window}}" Language="zh-CN">
+  <Grid Margin="20"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <StackPanel Margin="0,0,0,12"><TextBlock Text="管理常用份量" Style="{StaticResource Heading}"/><TextBlock Text="{Binding FoodName}" Style="{StaticResource Caption}"/></StackPanel>
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"><StackPanel>
+      <ListBox x:Name="SavedPortionsList" ItemsSource="{Binding Portions}" SelectedItem="{Binding Selected}" DisplayMemberPath="Display" Height="140" AutomationProperties.Name="已保存的常用份量"/>
+      <TextBlock Text="份量名称 · 例如一勺、一碗、一个" Style="{StaticResource FieldLabel}" Margin="0,12,0,6"/><TextBox x:Name="PortionNameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" AutomationProperties.Name="份量名称"/>
+      <TextBlock Text="每份实际重量" Style="{StaticResource FieldLabel}"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="85"/></Grid.ColumnDefinitions><TextBox x:Name="PortionGramsBox" Text="{Binding Grams, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="每份重量" Margin="0,0,8,12"/><ComboBox x:Name="PortionUnitBox" Grid.Column="1" ItemsSource="{Binding Units}" SelectedItem="{Binding Unit}" AutomationProperties.Name="每份重量单位"/></Grid>
+      <TextBlock Text="这里只保存当前具体食物的称量换算。修改或删除份量不重算历史摄入。" Style="{StaticResource Caption}"/>
+    </StackPanel></ScrollViewer>
+    <StackPanel Grid.Row="2" Margin="0,12,0,0"><TextBlock Text="{Binding Status}" Style="{StaticResource Caption}" Margin="0,0,0,10"/><WrapPanel><Button x:Name="SavePortionButton" Content="保存份量" Click="Save" Style="{StaticResource PrimaryButton}"/><Button x:Name="NewPortionButton" Content="新建 / 取消" Click="New"/><Button x:Name="DeletePortionButton" Content="删除份量" Click="Delete" Style="{StaticResource DangerButton}"/><Button x:Name="ClosePortionsButton" Content="关闭" Click="CloseWindow"/></WrapPanel></StackPanel>
+  </Grid>
+</Window>

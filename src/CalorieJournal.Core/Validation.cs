@@ -77,18 +77,20 @@ public static class Validation
         {
             Require(value.WeightGramsTenths.HasValue && value.KcalPer100gHundredthsSnapshot.HasValue, "按重量计算需要重量和单位热量。");
             Require(value.EnergyKcalTenths == CalculateEnergy(value.WeightGramsTenths!.Value, value.KcalPer100gHundredthsSnapshot!.Value), "保存的热量与重量计算不一致。");
+            if (value.WeightCalculation is not null)
+                Require(value.WeightGramsTenths == WeightCalculator.Calculate(value.WeightCalculation), "可食重量与换算依据不一致。");
         }
         else
         {
             Require(value.InputMode == "direct", "未知录入方式。");
-            Require(value.WeightGramsTenths is null && value.KcalPer100gHundredthsSnapshot is null, "直接录入不能包含重量计算字段。");
+            Require(value.WeightGramsTenths is null && value.KcalPer100gHundredthsSnapshot is null && value.WeightCalculation is null, "直接录入不能包含重量计算字段。");
             Require(value.EnergyKcalTenths is >= 0 and <= 999_999, "单项大卡须在0到99999.9之间。");
         }
     }
 
     public static void Snapshot(JournalSnapshot value)
     {
-        Require(value.FormatVersion == 1 && value.SchemaVersion == 1, "备份格式或数据库版本不兼容。");
+        Require(value.FormatVersion == value.SchemaVersion && value.FormatVersion is 1 or 2, "备份格式或数据库版本不兼容。");
         Text(value.AppVersion, "软件版本", 100, true); Text(value.FoodPackageVersion, "食物包版本", 100, true);
         Require(value.ExportedAtUtc != default, "备份时间无效。");
         Require(value.Foods is not null && value.Meals is not null && value.Entries is not null, "备份缺少必要数据。");
@@ -107,5 +109,15 @@ public static class Validation
         var foods = value.Foods.Select(x => x.Id).ToHashSet();
         var meals = value.Meals.Select(x => x.Id).ToHashSet();
         Require(value.Entries.All(x => meals.Contains(x.MealCategoryId) && (x.FoodId is null || foods.Contains(x.FoodId.Value))), "备份中存在无效食物或餐次引用。");
+        if (value.FormatVersion == 1)
+            Require((value.Portions is null || value.Portions.Length == 0) && value.Entries.All(x => x.WeightCalculation is null), "旧格式备份不能包含新份量或换算字段。");
+        else
+        {
+            Require(value.Portions is not null && value.Portions.Length <= 100000 && value.Portions.All(x => x is not null), "备份缺少份量数据或条目无效。");
+            foreach (var portion in value.Portions) WeightCalculator.Portion(portion);
+            Require(value.Portions.Select(x => x.Id).Distinct().Count() == value.Portions.Length, "份量ID重复。");
+            Require(value.Portions.All(x => foods.Contains(x.FoodId)), "份量引用食物不存在。");
+            Require(value.Portions.Where(x => !x.IsDeleted).Select(x => (x.FoodId, Name: x.Name.Trim().ToUpperInvariant())).Distinct().Count() == value.Portions.Count(x => !x.IsDeleted), "同一食物的份量名称重复。");
+        }
     }
 }

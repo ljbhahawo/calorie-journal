@@ -46,6 +46,8 @@ public sealed record IntakeEntry
     public string InputMode { get; init; } = "direct";
     public long? WeightGramsTenths { get; init; }
     public long? KcalPer100gHundredthsSnapshot { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WeightCalculationSnapshot? WeightCalculation { get; init; }
     public string SourceSnapshot { get; init; } = "用户录入";
     public required long EnergyKcalTenths { get; init; }
     public string Note { get; init; } = "";
@@ -53,7 +55,7 @@ public sealed record IntakeEntry
     public DateTimeOffset UpdatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
     [JsonIgnore] public decimal EnergyKcal => EnergyKcalTenths / 10m;
     [JsonIgnore] public string Calculation => InputMode == "weight"
-        ? $"{WeightGramsTenths / 10m:0.0} g × {KcalPer100gHundredthsSnapshot / 100m:0.00} kcal/100g" : "直接输入大卡";
+        ? (WeightCalculation is null ? "" : WeightCalculation.Description + "；") + $"{WeightGramsTenths / 10m:0.0} g × {KcalPer100gHundredthsSnapshot / 100m:0.00} kcal/100g" : "直接输入大卡";
 }
 
 public sealed record JournalSnapshot
@@ -66,6 +68,8 @@ public sealed record JournalSnapshot
     public required FoodItem[] Foods { get; init; }
     public required MealCategory[] Meals { get; init; }
     public required IntakeEntry[] Entries { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public FoodPortion[]? Portions { get; init; }
 }
 
 public sealed record FoodPackage

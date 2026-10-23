@@ -261,7 +261,7 @@ public sealed class JournalTests
     {
         using (var connection = new SqliteConnection($"Data Source={store.DatabasePath};Pooling=False"))
         {
-            connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "PRAGMA user_version=2"; command.ExecuteNonQuery();
+            connection.Open(); using var command = connection.CreateCommand(); command.CommandText = $"PRAGMA user_version={SqliteJournalStore.SchemaVersion + 1}"; command.ExecuteNonQuery();
         }
         Assert.Throws<ValidationException>(() => store.Initialize(package));
         var otherPath = Path.Combine(directory, "other.db");
