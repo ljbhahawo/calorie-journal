@@ -1,0 +1,89 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.11.0",
+  "Success": true,
+  "VerificationDate": "2026-10-23",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 6,
+  "BackupFormatVersion": 6,
+  "FoodPackageVersion": "usda-sr-2018-04.zh.1",
+  "ReferenceFormatVersion": 1,
+  "ChineseIndexVersion": "usda-zh-2026-10-23.3",
+  "SearchAliasesVersion": "food-aliases-2026-10-23.3",
+  "Package": {
+    "FileName": "每日热量记录_1.11.0_win-x64.zip",
+    "Sha256": "1FFD09990860E08B7CC324075092DFB79DAFCC7A73156CE9A7695F14233FF905",
+    "Bytes": 69403127
+  },
+  "Checks": {
+    "AllNineCollectionsIdentical": true,
+    "PreviousStablePackagesUnchanged": true,
+    "PreviousStablePackageCount": 13,
+    "DependencyLocksUnchanged": true,
+    "ExplicitOldRestorePointRequired": true,
+    "ActuallyTestedRollbackSchemas": [
+      5,
+      6
+    ],
+    "PersonalRecordLayoutChecks": 40,
+    "MissingAndZeroExerciseEnergy": true,
+    "FullBatchSnapshotsRetained": 2,
+    "BodySnapshotsRetained": 2,
+    "GoalsRetained": 2,
+    "FullTemplateSnapshotsRetained": 2,
+    "GoalEffectiveHistoryAndPause": true,
+    "ExerciseNeverOffsetsIntakeOrGoal": true,
+    "BusinessAndRealSqliteTestsPassed": 69,
+    "FoodCatalogsUnchanged": true,
+    "FullPortionSnapshotsRetained": 2,
+    "WpfLayoutChecks": 336,
+    "AllNewDataArchivedAndRestored": true,
+    "RealDesktopOperations": true,
+    "SelfContainedStartupAndBackupRestore": true,
+    "SettingsRetained": true,
+    "RollbackTo": "1.10.0",
+    "ChineseQueryCasesPassed": 140,
+    "ExercisesRetained": 2,
+    "ArchivedSourceRebuild": true,
+    "FullEntrySnapshotsRetained": 10
+  },
+  "ActualMigrations": [
+    {
+      "Success": true,
+      "FromVersion": "1.6.0",
+      "ToSchema": 6,
+      "FromSchema": 1
+    },
+    {
+      "Success": true,
+      "FromVersion": "1.7.0",
+      "ToSchema": 6,
+      "FromSchema": 2
+    },
+    {
+      "Success": true,
+      "FromVersion": "1.8.0",
+      "ToSchema": 6,
+      "FromSchema": 3
+    },
+    {
+      "Success": true,
+      "FromVersion": "1.8.1",
+      "ToSchema": 6,
+      "FromSchema": 4
+    },
+    {
+      "Success": true,
+      "FromVersion": "1.10.0",
+      "ToSchema": 6,
+      "FromSchema": 5
+    }
+  ],
+  "EnvironmentLimits": {
+    "OtherCleanWindowsMachineTested": false,
+    "ActualMonitorDpiX": 144,
+    "CrossMonitorDpiSwitchTested": false,
+    "SeparateTaskbarVisualObserved": false,
+    "EmptyDependencyCacheTested": false
+  }
+}

@@ -98,8 +98,10 @@
                 <Button x:Name="TodayButton" Content="今天" Command="{Binding TodayCommand}" Margin="0" />
               </StackPanel>
             </DockPanel>
-            <Border x:Name="DayTotalCard" Grid.Row="1" Style="{StaticResource Card}" Padding="14,10" Background="#E7EFDF" BorderBrush="#D8E4CF" Margin="0,0,0,10">
-              <DockPanel><TextBlock DockPanel.Dock="Right" Text="已记录摄入" FontSize="12" Foreground="#546B4E" VerticalAlignment="Center" Margin="12,0,0,0"/><Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock Text="{Binding DayTotal}" FontSize="23" FontWeight="SemiBold" Foreground="#254E32"/></Viewbox></DockPanel>
+            <Border x:Name="DayTotalCard" Grid.Row="1" Style="{StaticResource Card}" Padding="14,5" Background="#E7EFDF" BorderBrush="#D8E4CF" Margin="0,0,0,10">
+              <StackPanel><DockPanel><TextBlock DockPanel.Dock="Right" Text="已记录摄入" FontSize="12" Foreground="#546B4E" VerticalAlignment="Center" Margin="12,0,0,0"/><Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock Text="{Binding DayTotal}" FontSize="23" FontWeight="SemiBold" Foreground="#254E32"/></Viewbox></DockPanel>
+                <TextBlock x:Name="DayGoalTextBlock" Text="{Binding DayGoalText}" ToolTip="{Binding DayGoalText}" TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#546B4E" Margin="0,3,0,0"/>
+              </StackPanel>
             </Border>
             <Border x:Name="DayEntriesCard" Grid.Row="2" Padding="0">
               <Border.Style><Style TargetType="Border" BasedOn="{StaticResource Card}"><Style.Triggers><DataTrigger Binding="{Binding MealMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
@@ -403,6 +405,61 @@
           <WrapPanel Grid.Row="4" Margin="0,8,0,0"><Button x:Name="OpenStatisticsDayButton" Content="查看所选日期" Command="{Binding OpenStatisticsDayCommand}"/><TextBlock Text="平均只计算有记录日期，不判断当天是否完整记账。" Style="{StaticResource Caption}" VerticalAlignment="Center"/></WrapPanel>
         </Grid></Border>
         </ScrollViewer>
+      </TabItem>
+      <TabItem Header="目标与锻炼">
+        <TabControl x:Name="PersonalTabs">
+          <TabItem Header="摄入目标">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="290"/><ColumnDefinition Width="16"/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <Border Style="{StaticResource Card}" Padding="0"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <StackPanel Margin="18,14"><TextBlock Text="{Binding GoalHeading}" Style="{StaticResource Heading}"/><TextBlock Text="由你设置，不自动推荐数值" Style="{StaticResource Caption}"/></StackPanel>
+                <ScrollViewer x:Name="GoalFormScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="18,0,16,0"><StackPanel>
+                  <TextBlock Text="生效日期 · 可预设未来目标" Style="{StaticResource FieldLabel}"/><DatePicker x:Name="GoalDatePicker" SelectedDate="{Binding GoalDate}" AutomationProperties.Name="目标生效日期"/>
+                  <TextBlock Text="每日摄入目标 · 大卡" Style="{StaticResource FieldLabel}"/><TextBox x:Name="GoalEnergyBox" Text="{Binding GoalEnergy, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding GoalEnergyEnabled}" AutomationProperties.Name="每日摄入目标大卡"/>
+                  <CheckBox x:Name="GoalPauseBox" Content="从生效日起暂停目标" IsChecked="{Binding GoalPaused}" Margin="0,10"/>
+                  <TextBlock Text="备注 · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="GoalNoteBox" Text="{Binding GoalNote, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="65" MaxLength="2000" AutomationProperties.Name="目标备注"/>
+                  <TextBlock Text="新增调整保留更早目标。修改已有条目会修正对应区间的比较，保存时须确认。目标持续至下一条生效日前一天。" Style="{StaticResource Caption}" Margin="0,10"/>
+                </StackPanel></ScrollViewer>
+                <WrapPanel Grid.Row="2" Margin="18,10"><Button x:Name="SaveGoalButton" Content="保存目标" Command="{Binding SaveGoalCommand}" Style="{StaticResource PrimaryButton}"/><Button x:Name="NewGoalButton" Content="新建 / 取消" Command="{Binding NewGoalCommand}" Margin="0"/></WrapPanel>
+              </Grid></Border>
+              <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <StackPanel><TextBlock Text="目标生效历史与比较" Style="{StaticResource Heading}"/><WrapPanel Margin="0,8,0,0"><DatePicker x:Name="GoalComparePicker" SelectedDate="{Binding GoalCompareDate}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="130" Margin="0,0,8,8" AutomationProperties.Name="目标比较日期"/><Button x:Name="CompareGoalButton" Content="查看比较" Command="{Binding CompareGoalCommand}" Margin="0,0,0,8"/></WrapPanel>
+                  <TextBlock x:Name="GoalComparisonTextBlock" Text="{Binding GoalComparisonText}" TextWrapping="Wrap" Foreground="{StaticResource Accent}" Margin="0,0,0,8"/>
+                  <TextBlock Text="比较只使用当天已记录摄入；未记录时不计算差值。锻炼不抵扣摄入或增加目标额度。" Style="{StaticResource Caption}" Margin="0,0,0,10"/>
+                </StackPanel>
+                <DataGrid x:Name="GoalsGrid" Grid.Row="1" ItemsSource="{Binding GoalRows}" SelectedItem="{Binding SelectedGoal}" MinHeight="65" AutomationProperties.Name="目标调整历史"><DataGrid.Columns>
+                  <DataGridTextColumn Header="生效日期" Binding="{Binding Goal.EffectiveDate, StringFormat=yyyy-MM-dd}" Width="108"/><DataGridTextColumn Header="结束日期" Binding="{Binding UntilText}" Width="108"/><DataGridTextColumn Header="自设目标" Binding="{Binding Goal.TargetText}" Width="150"/><DataGridTextColumn Header="备注" Binding="{Binding Goal.Note}" Width="180"/>
+                </DataGrid.Columns></DataGrid>
+                <WrapPanel Grid.Row="2" Margin="0,10,0,0"><Button x:Name="EditGoalButton" Content="修改目标" Command="{Binding EditGoalCommand}"/><Button x:Name="DeleteGoalButton" Content="删除目标" Command="{Binding DeleteGoalCommand}" Style="{StaticResource DangerButton}"/></WrapPanel>
+              </Grid></Border>
+            </Grid>
+          </TabItem>
+          <TabItem Header="锻炼记录">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="290"/><ColumnDefinition Width="16"/><ColumnDefinition/></Grid.ColumnDefinitions>
+              <Border Style="{StaticResource Card}" Padding="0"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <StackPanel Margin="18,14"><TextBlock Text="{Binding ExerciseHeading}" Style="{StaticResource Heading}"/><TextBlock Text="独立记录，不抵扣摄入" Style="{StaticResource Caption}"/></StackPanel>
+                <ScrollViewer x:Name="ExerciseFormScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="18,0,16,0"><StackPanel>
+                  <TextBlock Text="锻炼日期" Style="{StaticResource FieldLabel}"/><DatePicker x:Name="ExerciseDatePicker" SelectedDate="{Binding ExerciseDate}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" AutomationProperties.Name="锻炼日期"/>
+                  <TextBlock Text="活动名称" Style="{StaticResource FieldLabel}"/><TextBox x:Name="ExerciseActivityBox" Text="{Binding ExerciseActivity, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" AutomationProperties.Name="锻炼活动名称"/>
+                  <TextBlock Text="时长 · 分钟" Style="{StaticResource FieldLabel}"/><TextBox x:Name="ExerciseDurationBox" Text="{Binding ExerciseDuration, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="锻炼时长分钟"/>
+                  <TextBlock Text="手动消耗 · 大卡 · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="ExerciseEnergyBox" Text="{Binding ExerciseEnergy, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="锻炼手动消耗大卡"/>
+                  <TextBlock Text="可抄录器械或个人估计值，留空表示未填写。" Style="{StaticResource Caption}"/>
+                  <TextBlock Text="备注 · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="ExerciseNoteBox" Text="{Binding ExerciseNote, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="65" MaxLength="2000" AutomationProperties.Name="锻炼备注"/>
+                </StackPanel></ScrollViewer>
+                <WrapPanel Grid.Row="2" Margin="18,10"><Button x:Name="SaveExerciseButton" Content="保存锻炼" Command="{Binding SaveExerciseCommand}" Style="{StaticResource PrimaryButton}"/><Button x:Name="NewExerciseButton" Content="新建 / 取消" Command="{Binding NewExerciseCommand}" Margin="0"/></WrapPanel>
+              </Grid></Border>
+              <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <StackPanel><TextBlock Text="锻炼历史" Style="{StaticResource Heading}"/><WrapPanel Margin="0,8,0,0"><DatePicker x:Name="ExerciseFromPicker" SelectedDate="{Binding ExerciseFrom}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="128" Margin="0,0,6,8" AutomationProperties.Name="锻炼查询开始日期"/><DatePicker x:Name="ExerciseToPicker" SelectedDate="{Binding ExerciseTo}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="128" Margin="0,0,6,8" AutomationProperties.Name="锻炼查询结束日期"/><Button x:Name="QueryExerciseButton" Content="查询" Command="{Binding QueryExerciseCommand}" Margin="0,0,0,8"/></WrapPanel>
+                  <TextBlock x:Name="ExerciseSummaryText" Text="{Binding ExerciseSummary}" TextWrapping="Wrap" Foreground="{StaticResource Accent}" Margin="0,0,0,8"/>
+                  <TextBlock Text="手动消耗仅供记录；未填写的部分不计入合计。摄入及自设目标比较保持独立。" Style="{StaticResource Caption}" Margin="0,0,0,10"/>
+                </StackPanel>
+                <DataGrid x:Name="ExercisesGrid" Grid.Row="1" ItemsSource="{Binding ExerciseRows}" SelectedItem="{Binding SelectedExercise}" MinHeight="65" AutomationProperties.Name="锻炼记录列表"><DataGrid.Columns>
+                  <DataGridTextColumn Header="日期" Binding="{Binding Date, StringFormat=yyyy-MM-dd}" Width="108"/><DataGridTextColumn Header="活动" Binding="{Binding Activity}" Width="120"/><DataGridTextColumn Header="分钟" Binding="{Binding DurationMinutes, StringFormat=F1}" Width="80"/><DataGridTextColumn Header="消耗大卡" Binding="{Binding EnergyText}" Width="95"/><DataGridTextColumn Header="备注" Binding="{Binding Note}" Width="180"/>
+                </DataGrid.Columns></DataGrid>
+                <WrapPanel Grid.Row="2" Margin="0,10,0,0"><Button x:Name="EditExerciseButton" Content="修改锻炼" Command="{Binding EditExerciseCommand}"/><Button x:Name="DeleteExerciseButton" Content="删除锻炼" Command="{Binding DeleteExerciseCommand}" Style="{StaticResource DangerButton}"/></WrapPanel>
+              </Grid></Border>
+            </Grid>
+          </TabItem>
+        </TabControl>
       </TabItem>
     </TabControl>
     <Border Grid.Row="2" Margin="2,14,2,0">

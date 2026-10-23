@@ -78,6 +78,10 @@ public sealed record JournalSnapshot
     public JournalSettings? Settings { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public BodyMeasurement[]? BodyMeasurements { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IntakeGoal[]? IntakeGoals { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ExerciseRecord[]? Exercises { get; init; }
 }
 
 public sealed record FoodPackage

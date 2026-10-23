@@ -45,6 +45,9 @@ if ($SnapshotPath) {
     $snapshotInfo = Get-Content -LiteralPath $SnapshotPath -Raw | ConvertFrom-Json
     if ($snapshotInfo.SchemaVersion -ne $target.Manifest.SchemaVersion -or $snapshotInfo.FormatVersion -ne $target.Manifest.BackupFormatVersion) { throw '所选备份与目标版本不兼容。' }
     Write-Host "恢复点：$($snapshotInfo.ExportedAtUtc)；当前工作视图将恢复到该备份，之后的记录保留在回滚前归档中。"
+    if ($current.Manifest.SchemaVersion -ge 6 -and $target.Manifest.SchemaVersion -lt 6) {
+        Write-Host '目标旧版不能显示摄入目标、锻炼及恢复点后的新增资料；全部当前资料将先完整归档。返回新版可显式恢复该归档，旧版期间新增资料不自动合并。'
+    }
 }
 if (-not $PSCmdlet.ShouldProcess($dataRoot, "归档当前数据并切换到版本 $($target.Manifest.Version)")) { return }
 

@@ -8,8 +8,8 @@ namespace CalorieJournal.Infrastructure;
 
 public sealed partial class SqliteJournalStore : IJournalStore
 {
-    public const int SchemaVersion = 5;
-    public const int BackupFormatVersion = 5;
+    public const int SchemaVersion = 6;
+    public const int BackupFormatVersion = 6;
     public string DatabasePath { get; }
     private readonly string connectionString;
 
@@ -90,6 +90,9 @@ public sealed partial class SqliteJournalStore : IJournalStore
             CREATE TABLE IF NOT EXISTS meal_templates(id TEXT PRIMARY KEY, body TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS template_batches(id TEXT PRIMARY KEY, body TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS body_measurements(id TEXT PRIMARY KEY, entry_date TEXT NOT NULL UNIQUE, body TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS intake_goals(id TEXT PRIMARY KEY, effective_date TEXT NOT NULL UNIQUE, body TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS exercise_records(id TEXT PRIMARY KEY, entry_date TEXT NOT NULL, body TEXT NOT NULL);
+            CREATE INDEX IF NOT EXISTS exercises_day ON exercise_records(entry_date);
             """);
         var initialized = Scalar(connection, transaction, "SELECT value FROM metadata WHERE key='initialized'") as string;
         if (initialized is null)
@@ -107,7 +110,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
         PutMetadata(connection, transaction, "food_package", package.Version);
         if (version == 0) Execute(connection, transaction, "PRAGMA application_id=0x43414C4A;");
         if (version < 4) PutMetadata(connection, transaction, "settings", JsonSerializer.Serialize(JournalSettings.Default, JsonFiles.Options));
-        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=5;");
+        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=6;");
         transaction.Commit();
     }
 
@@ -260,7 +263,9 @@ public sealed partial class SqliteJournalStore : IJournalStore
             Templates = version < 3 ? null : Templates(connection, transaction),
             TemplateBatches = version < 3 ? null : TemplateBatches(connection, transaction),
             Settings = version < 4 ? null : Settings(connection, transaction),
-            BodyMeasurements = version < 5 ? null : BodyMeasurements(connection, transaction)
+            BodyMeasurements = version < 5 ? null : BodyMeasurements(connection, transaction),
+            IntakeGoals = version < 6 ? null : IntakeGoals(connection, transaction),
+            Exercises = version < 6 ? null : Exercises(connection, transaction, DateOnly.MinValue, DateOnly.MaxValue)
         };
         transaction.Commit();
         return result;
@@ -271,7 +276,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
         Validation.Snapshot(snapshot);
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
-        Execute(connection, transaction, "DELETE FROM body_measurements; DELETE FROM template_batches; DELETE FROM meal_templates; DELETE FROM entries; DELETE FROM portions; DELETE FROM foods; DELETE FROM meals;");
+        Execute(connection, transaction, "DELETE FROM exercise_records; DELETE FROM intake_goals; DELETE FROM body_measurements; DELETE FROM template_batches; DELETE FROM meal_templates; DELETE FROM entries; DELETE FROM portions; DELETE FROM foods; DELETE FROM meals;");
         foreach (var food in snapshot.Foods) PutFood(connection, transaction, food);
         foreach (var meal in snapshot.Meals) PutMeal(connection, transaction, meal);
         foreach (var entry in snapshot.Entries) PutEntry(connection, transaction, entry);
@@ -279,6 +284,8 @@ public sealed partial class SqliteJournalStore : IJournalStore
         foreach (var template in snapshot.Templates ?? []) PutTemplate(connection, transaction, template);
         foreach (var batch in snapshot.TemplateBatches ?? []) PutTemplateBatch(connection, transaction, batch);
         foreach (var item in snapshot.BodyMeasurements ?? []) PutBodyMeasurement(connection, transaction, item);
+        foreach (var goal in snapshot.IntakeGoals ?? []) PutIntakeGoal(connection, transaction, goal);
+        foreach (var exercise in snapshot.Exercises ?? []) PutExercise(connection, transaction, exercise);
         PutMetadata(connection, transaction, "food_package", snapshot.FoodPackageVersion);
         PutMetadata(connection, transaction, "settings", JsonSerializer.Serialize(snapshot.Settings ?? JournalSettings.Default, JsonFiles.Options));
         transaction.Commit();

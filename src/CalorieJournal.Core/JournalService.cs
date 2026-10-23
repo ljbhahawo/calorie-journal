@@ -2,6 +2,12 @@ namespace CalorieJournal.Core;
 
 public interface IJournalStore
 {
+    IntakeGoal[] ReadIntakeGoals();
+    void SaveIntakeGoal(IntakeGoal value);
+    void DeleteIntakeGoal(Guid id);
+    ExerciseRecord[] ReadExercises(DateOnly from, DateOnly to);
+    void SaveExercise(ExerciseRecord value);
+    void DeleteExercise(Guid id);
     BodyMeasurement[] ReadBodyMeasurements();
     void SaveBodyMeasurement(BodyMeasurement value);
     void DeleteBodyMeasurement(Guid id);

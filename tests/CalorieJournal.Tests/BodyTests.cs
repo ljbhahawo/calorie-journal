@@ -54,7 +54,7 @@ public sealed class BodyTests
         var before = store.ReadSnapshot(); var backups = new BackupService(store, Path.Combine(root, "recovery"));
         foreach (var invalid in new[] { before with { BodyMeasurements = null }, before with { BodyMeasurements = [before.BodyMeasurements![0], before.BodyMeasurements[0]] }, before with { BodyMeasurements = [before.BodyMeasurements![0] with { FormulaVersion = "unknown" }] } }) Assert.Throws<ValidationException>(() => backups.Restore(invalid));
         var file = Path.Combine(root, "body.calorie-backup.json"); backups.Export(file);
-        var old = before with { FormatVersion = 4, SchemaVersion = 4, BodyMeasurements = null }; var archive = backups.Restore(old);
+        var old = before with { FormatVersion = 4, SchemaVersion = 4, BodyMeasurements = null, IntakeGoals = null, Exercises = null }; var archive = backups.Restore(old);
         Assert.IsEmpty(store.ReadBodyMeasurements()); Assert.AreEqual(before.Settings, journal.Settings()); backups.Restore(backups.Inspect(archive));
         Assert.AreEqual(JsonSerializer.Serialize(before.BodyMeasurements), JsonSerializer.Serialize(store.ReadSnapshot().BodyMeasurements));
         journal.DeleteBodyMeasurement(before.BodyMeasurements![0].Id); backups.Restore(backups.Inspect(file)); Assert.HasCount(1, store.ReadBodyMeasurements());
