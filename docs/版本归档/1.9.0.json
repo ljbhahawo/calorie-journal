@@ -41,6 +41,26 @@
     "BusinessAndRealSqliteTestsPassed": 57,
     "RealDesktopOperations": true
   },
+  "AdditionalActualMigrations": [
+    { "FromVersion": "1.8.0", "FromSchema": 3, "ToSchema": 5, "Success": true },
+    { "FromVersion": "1.7.0", "FromSchema": 2, "ToSchema": 5, "Success": true },
+    { "FromVersion": "1.6.0", "FromSchema": 1, "ToSchema": 5, "Success": true }
+  ],
+  "GitHubRelease": {
+    "Repository": "ljbhahawo/calorie-journal",
+    "Private": false,
+    "Url": "https://github.com/ljbhahawo/calorie-journal/releases/tag/v1.9.0",
+    "ReleaseId": 421671351,
+    "Draft": false,
+    "Tag": "v1.9.0",
+    "StableCommit": "58c08817875660a6b23301342dca1fac3457183d",
+    "AnnotatedTagObject": "cdfe65e9100cc120079035940aa6681f2a457c24",
+    "RemoteTagVerified": true,
+    "ProgramAsset": "calorie-journal_1.9.0_win-x64.zip",
+    "RollbackAsset": "calorie-journal_1.8.1_win-x64.zip",
+    "ChecksumAsset": "SHA256SUMS.txt",
+    "AllThreeAssetsSizeAndSha256Verified": true
+  },
   "EnvironmentLimits": {
     "SeparateTaskbarVisualObserved": false,
     "CrossMonitorDpiSwitchTested": false,
