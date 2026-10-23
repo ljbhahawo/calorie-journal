@@ -115,5 +115,14 @@
     "BodyTimeSeriesImplemented": false,
     "OneGiBActualFileTested": false,
     "ActualMonitorDpiX": 144
+  },
+  "Publication": {
+    "PreviousStableReleasePreserved": true,
+    "AllThreeAssetsSizeAndSha256Verified": true,
+    "FunctionalCommit": "f26ee7cc5575e238aed5081da77dd89e679dc529",
+    "AnnotatedTag": "v1.13.0",
+    "ReleaseId": 422402989,
+    "ReleaseUrl": "https://github.com/ljbhahawo/calorie-journal/releases/tag/v1.13.0",
+    "TagObject": "195ae671a33058ab7d960503eacc68d5a946c34a"
   }
 }
