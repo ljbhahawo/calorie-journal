@@ -1,6 +1,6 @@
 param(
-    [string]$OldVersion = '1.0.0-rc.1',
-    [string]$NewVersion = '1.0.0-rc.2',
+    [string]$OldVersion = '1.9.0',
+    [string]$NewVersion = '1.10.0',
     [string]$FixtureDatabase
 )
 $ErrorActionPreference = 'Stop'
@@ -37,11 +37,16 @@ $extra = $original.Entries[0].PSObject.Copy()
 $extra.Id = [Guid]::NewGuid().ToString()
 $extra.FoodId = $null; $extra.FoodNameSnapshot = '跨候选版回滚的明确测试输入'; $extra.InputMode = 'direct'
 $extra.WeightGramsTenths = $null; $extra.KcalPer100gHundredthsSnapshot = $null; $extra.EnergyKcalTenths = 1234
+$extra.PSObject.Properties.Remove('WeightCalculation')
 $extra.SourceSnapshot = '软件回滚验证的明确输入，不是真实用户摄入'
 $original.Entries = @($original.Entries) + @($extra)
 $expectedEntries = @($original.Entries)
 $expectedCount = $expectedEntries.Count
 function Assert-Entries($Snapshot) {
+    foreach($name in @('Foods','Meals','Portions','Templates','TemplateBatches','BodyMeasurements')){
+        if(($Snapshot.$name | Sort-Object Id | ConvertTo-Json -Depth 20 -Compress) -cne ($original.$name | Sort-Object Id | ConvertTo-Json -Depth 20 -Compress)){throw "回滚改变了$name"}
+    }
+    if(($Snapshot.Settings | ConvertTo-Json -Compress) -cne ($original.Settings | ConvertTo-Json -Compress)){throw '回滚改变了录入设置。'}
     if ($Snapshot.Entries.Count -ne $expectedCount) { throw '回滚前后记录数量不同。' }
     foreach ($expectedEntry in $expectedEntries) {
         $actualEntry = $Snapshot.Entries | Where-Object { $_.Id -eq $expectedEntry.Id }
@@ -88,7 +93,7 @@ if (@(Get-ChildItem -LiteralPath (Join-Path $dataRoot 'recovery') -File).Count -
 $safePointer | Set-Content -LiteralPath $pointerPath -Encoding utf8
 Assert-Entries (Export-Snapshot $newRoot '错误拒绝后的记录')
 
-$result = @{From=$newVersion; To=$oldVersion; Return=$newVersion; CurrentRecordsRetained=$expectedCount; EntrySnapshotsIdentical=$true; CompatibleProgramRollback=$true; ExplicitSnapshotRestore=$true; NewDataArchivedAndRestored=$true; UnknownPointerRejectedBeforeChanges=$true; SchemaVersionsActuallyTested=@(1); PreviousVersionStability=(Get-Content -LiteralPath (Join-Path $oldRoot 'manifest.json') -Raw | ConvertFrom-Json).Stability; TestRoot=$testRoot}
+$result = @{From=$newVersion; To=$oldVersion; Return=$newVersion; CurrentRecordsRetained=$expectedCount; EntrySnapshotsIdentical=$true; AllSevenCollectionsIdentical=$true; SettingsIdentical=$true; BodyMeasurementsRetained=$original.BodyMeasurements.Count; PortionsRetained=$original.Portions.Count; TemplatesRetained=$original.Templates.Count; BatchesRetained=$original.TemplateBatches.Count; CompatibleProgramRollback=$true; ExplicitSnapshotRestore=$true; NewDataArchivedAndRestored=$true; UnknownPointerRejectedBeforeChanges=$true; SchemaVersionsActuallyTested=@($original.SchemaVersion); PreviousVersionStability=(Get-Content -LiteralPath (Join-Path $oldRoot 'manifest.json') -Raw | ConvertFrom-Json).Stability; TestRoot=$testRoot}
 $reportName = if ($oldVersion -eq '1.0.0-rc.1' -and $newVersion -eq '1.0.0-rc.2') { 'cross-candidate-rollback.json' } else { "cross-rollback_$($newVersion)_to_$($oldVersion).json" }
 $result | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $projectRoot ('artifacts/test-results/' + $reportName)) -Encoding utf8
 $result | ConvertTo-Json -Depth 5

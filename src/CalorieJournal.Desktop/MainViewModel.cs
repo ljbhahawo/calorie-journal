@@ -253,6 +253,7 @@ public sealed partial class MainViewModel : ObservableObject
         InitializeSettings();
         InitializeBody();
         InitializeBrowse();
+        InitializeStatistics();
         RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory(); LoadFood(null);
     }
 
@@ -275,6 +276,7 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnTabIndexChanged(int value)
     {
         if (value == 2) Run(RefreshHistory);
+        if (value == 5) Run(RefreshStatistics);
     }
     partial void OnChosenFoodChanged(FoodItem? value)
     {
@@ -309,6 +311,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         lastToday = DateTime.Today;
         OnPropertyChanged(nameof(TodayDate));
+        RefreshStatistics();
         NextDayCommand.NotifyCanExecuteChanged();
     }
 
@@ -360,6 +363,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         Fill(HistoryRows, journal.History(appliedHistoryFrom, appliedHistoryTo));
         if (ContinuousMode) RefreshBrowse();
+        RefreshStatistics();
     }
 
     private void LoadHistory()

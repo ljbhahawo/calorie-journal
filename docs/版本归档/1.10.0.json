@@ -1,0 +1,50 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.10.0",
+  "Success": true,
+  "VerificationDate": "2026-10-23",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 5,
+  "BackupFormatVersion": 5,
+  "FoodPackageVersion": "usda-sr-2018-04.zh.1",
+  "ReferenceFormatVersion": 1,
+  "ChineseIndexVersion": "usda-zh-2026-10-23.3",
+  "SearchAliasesVersion": "food-aliases-2026-10-23.3",
+  "Package": {
+    "Sha256": "6E97A4C7CCC4B1097E9C968AB2B6B29F6604445AB4F748B69A6F7467D3F6664C",
+    "FileName": "每日热量记录_1.10.0_win-x64.zip",
+    "Bytes": 69356778
+  },
+  "Checks": {
+    "SelfContainedStartupAndBackupRestore": true,
+    "ChineseQueryCasesPassed": 140,
+    "DependencyLocksUnchanged": true,
+    "FullBatchSnapshotsRetained": 1,
+    "SettingsRetained": true,
+    "CompatibleProgramRollback": true,
+    "ArchivedSourceRebuild": true,
+    "FoodCatalogsUnchanged": true,
+    "PreviousStablePackageCount": 12,
+    "StatisticsLayoutChecks": 32,
+    "AllSevenCollectionsIdentical": true,
+    "BodySnapshotsRetained": 2,
+    "FullPortionSnapshotsRetained": 1,
+    "RollbackTo": "1.9.0",
+    "BusinessAndRealSqliteTestsPassed": 62,
+    "WpfLayoutChecks": 296,
+    "CleanupFreedBytes": 22602240119,
+    "FullTemplateSnapshotsRetained": 1,
+    "ExplicitSnapshotRestore": true,
+    "AllDataArchivedAndRestored": true,
+    "FullEntrySnapshotsRetained": 6,
+    "PreviousStablePackagesUnchanged": true,
+    "RealDesktopOperations": true
+  },
+  "EnvironmentLimits": {
+    "SeparateTaskbarVisualObserved": false,
+    "ActualMonitorDpiX": 144,
+    "EmptyDependencyCacheTested": false,
+    "OtherCleanWindowsMachineTested": false,
+    "CrossMonitorDpiSwitchTested": false
+  }
+}

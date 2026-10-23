@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="每日热量记录" Width="1240" Height="820" MinWidth="920" MinHeight="600"
         WindowStartupLocation="CenterScreen" Language="zh-CN" Style="{StaticResource {x:Type Window}}">
+  <Window.Resources><BooleanToVisibilityConverter x:Key="BoolVisibility"/></Window.Resources>
   <Grid Margin="24,18,24,14">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" />
@@ -350,6 +351,58 @@
             </StackPanel>
           </Grid></Border>
         </Grid>
+      </TabItem>
+      <TabItem Header="摄入统计">
+        <ScrollViewer x:Name="StatisticsPageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Border Style="{StaticResource Card}" Padding="16" MinHeight="540" Height="{Binding ActualHeight, ElementName=StatisticsPageScroll}"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="1.8*"/><RowDefinition MinHeight="80"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <StackPanel>
+            <TextBlock Text="周 / 月摄入统计" Style="{StaticResource Heading}"/>
+            <WrapPanel Margin="0,8,0,0">
+              <ComboBox x:Name="StatisticsModeBox" ItemsSource="{Binding StatisticsModes}" SelectedIndex="{Binding StatisticsMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="118" Margin="0,0,8,8" AutomationProperties.Name="统计方式"/>
+              <DatePicker x:Name="StatisticsAnchorPicker" SelectedDate="{Binding StatisticsAnchor}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="132" Margin="0,0,8,8" Visibility="{Binding StatisticsCalendarMode, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="选择周或月中的日期"/>
+              <StackPanel Orientation="Horizontal" Visibility="{Binding StatisticsCustomMode, Converter={StaticResource BoolVisibility}}">
+                <DatePicker x:Name="StatisticsFromPicker" SelectedDate="{Binding StatisticsFrom}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="132" Margin="0,0,8,8" AutomationProperties.Name="统计开始日期"/>
+                <DatePicker x:Name="StatisticsToPicker" SelectedDate="{Binding StatisticsTo}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="132" Margin="0,0,8,8" AutomationProperties.Name="统计结束日期"/>
+              </StackPanel>
+              <Button x:Name="QueryStatisticsButton" Content="查询" Command="{Binding QueryStatisticsCommand}" Margin="0,0,8,8"/>
+              <Button x:Name="PreviousStatisticsButton" Content="上一周 / 月" Command="{Binding PreviousStatisticsCommand}" Margin="0,0,8,8"/>
+              <Button x:Name="NextStatisticsButton" Content="下一周 / 月" Command="{Binding NextStatisticsCommand}" Margin="0,0,8,8"/>
+              <Button x:Name="CurrentStatisticsButton" Content="当前" Command="{Binding CurrentStatisticsCommand}" Margin="0,0,0,8"/>
+            </WrapPanel>
+            <TextBlock Text="{Binding StatisticsRange}" Style="{StaticResource Caption}"/>
+          </StackPanel>
+          <WrapPanel Grid.Row="1" Margin="0,8,0,8">
+            <StackPanel Margin="0,0,24,0"><TextBlock Text="已记录总量" Style="{StaticResource Caption}"/><TextBlock Text="{Binding StatisticsTotal}" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></StackPanel>
+            <StackPanel Margin="0,0,24,0"><TextBlock Text="已记录日平均" Style="{StaticResource Caption}"/><TextBlock Text="{Binding StatisticsAverage}" FontSize="18"/></StackPanel>
+            <TextBlock Text="{Binding StatisticsCoverage}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+          </WrapPanel>
+          <ScrollViewer x:Name="StatisticsTrendPanel" Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,5,0,8"><TextBlock Text="每日趋势" FontWeight="SemiBold"/><TextBlock Text="{Binding StatisticsScale}" Style="{StaticResource Caption}"/>
+              <ScrollViewer x:Name="StatisticsTrendScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <ItemsControl x:Name="StatisticsTrendItems" ItemsSource="{Binding StatisticsTrend}" MinWidth="{Binding StatisticsChartWidth}" HorizontalAlignment="Stretch">
+                  <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate><DataTemplate><StackPanel ToolTip="{Binding Description}" Margin="2,0,2,0">
+                    <TextBlock Text="{Binding Value}" FontSize="11" TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    <Grid Height="122" Margin="0,3,0,0"><Border BorderBrush="#CBD6CC" BorderThickness="0,0,0,1"/>
+                      <Border x:Name="StatisticsBar" Width="18" Height="{Binding BarHeight}" Background="{StaticResource Accent}" CornerRadius="3,3,0,0" VerticalAlignment="Bottom"/>
+                      <Ellipse x:Name="StatisticsZeroMarker" Width="6" Height="6" Fill="{StaticResource Accent}" VerticalAlignment="Bottom" Visibility="{Binding IsZero, Converter={StaticResource BoolVisibility}}"/>
+                      <TextBlock x:Name="StatisticsMissingMarker" Text="—" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Visibility="{Binding IsMissing, Converter={StaticResource BoolVisibility}}"/>
+                    </Grid><TextBlock Text="{Binding Label}" FontSize="11" TextAlignment="Center" Margin="0,3,0,0"/>
+                  </StackPanel></DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+              <TextBlock Text="绿色柱：已记录 · 绿色圆点：记录为0 · —：未记录（空缺）" Style="{StaticResource Caption}" Margin="0,5,0,0"/>
+            </StackPanel>
+          </ScrollViewer>
+          <DataGrid x:Name="StatisticsGrid" Grid.Row="3" ItemsSource="{Binding StatisticsDays}" SelectedItem="{Binding SelectedStatisticsDay}" AutomationProperties.Name="每日统计数值"><DataGrid.Columns>
+            <DataGridTextColumn Header="日期" Binding="{Binding Date, StringFormat=yyyy-MM-dd}" Width="140"/>
+            <DataGridTextColumn Header="摄入大卡" Binding="{Binding EnergyText}" Width="140"/>
+            <DataGridTextColumn Header="条目数" Binding="{Binding Count}" Width="90"/>
+            <DataGridTextColumn Header="记录状态" Binding="{Binding State}" Width="*"/>
+          </DataGrid.Columns></DataGrid>
+          <WrapPanel Grid.Row="4" Margin="0,8,0,0"><Button x:Name="OpenStatisticsDayButton" Content="查看所选日期" Command="{Binding OpenStatisticsDayCommand}"/><TextBlock Text="平均只计算有记录日期，不判断当天是否完整记账。" Style="{StaticResource Caption}" VerticalAlignment="Center"/></WrapPanel>
+        </Grid></Border>
+        </ScrollViewer>
       </TabItem>
     </TabControl>
     <Border Grid.Row="2" Margin="2,14,2,0">
