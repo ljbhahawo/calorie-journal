@@ -16,16 +16,16 @@ internal static class MigrationChecks
         legacyDatabase = Path.GetFullPath(legacyDatabase);
         Assert.IsTrue(legacyDatabase.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
         var original = new SqliteJournalStore(legacyDatabase).ReadSnapshot();
-        Assert.AreEqual(1, original.SchemaVersion, "必须使用实际1.6程序产生的数据库。");
+        Assert.IsTrue(original.SchemaVersion is 1 or 2, "必须使用实际旧版程序产生的数据库。");
         var package = JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data/foods.json"));
         var healthy = Copy("healthy");
         healthy.Initialize(package);
         Assert.IsNotNull(healthy.LastMigrationBackup);
         var before = JsonFiles.Read<JournalSnapshot>(healthy.LastMigrationBackup);
-        Assert.AreEqual(1, before.FormatVersion);
+        Assert.AreEqual(original.FormatVersion, before.FormatVersion);
         EqualData(original, before);
         var upgraded = healthy.ReadSnapshot();
-        Assert.AreEqual(2, upgraded.SchemaVersion); Assert.IsEmpty(upgraded.Portions!); EqualData(original, upgraded);
+        Assert.AreEqual(SqliteJournalStore.SchemaVersion, upgraded.SchemaVersion); Assert.IsEmpty(upgraded.Templates!); Assert.IsEmpty(upgraded.TemplateBatches!); EqualData(original, upgraded);
         var backupDatabase = Path.ChangeExtension(healthy.LastMigrationBackup.Replace(".calorie-backup.json", ".db"), ".db");
         Assert.IsTrue(File.Exists(backupDatabase));
         EqualData(original, new SqliteJournalStore(backupDatabase).ReadSnapshot());
@@ -46,13 +46,13 @@ internal static class MigrationChecks
             command.ExecuteNonQuery();
         }
         Assert.Throws<SqliteException>(() => failed.Initialize(package));
-        var failedData = failed.ReadSnapshot(); Assert.AreEqual(1, failedData.SchemaVersion); EqualData(original, failedData);
+        var failedData = failed.ReadSnapshot(); Assert.AreEqual(original.SchemaVersion, failedData.SchemaVersion); EqualData(original, failedData);
         using (var connection = new SqliteConnection($"Data Source={failed.DatabasePath};Pooling=False"))
         {
-            connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name='portions'";
+            connection.Open(); using var command = connection.CreateCommand(); command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE name IN ('meal_templates','template_batches')";
             Assert.AreEqual(0L, command.ExecuteScalar());
             command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('entries') WHERE name='weight_calculation'";
-            Assert.AreEqual(0L, command.ExecuteScalar());
+            Assert.AreEqual(original.SchemaVersion >= 2 ? 1L : 0L, command.ExecuteScalar());
         }
         JsonFiles.WriteNew(Path.Combine(root, "migration-component.json"), new
         {
@@ -75,5 +75,6 @@ internal static class MigrationChecks
         Assert.AreEqual(JsonSerializer.Serialize(expected.Foods), JsonSerializer.Serialize(actual.Foods));
         Assert.AreEqual(JsonSerializer.Serialize(expected.Meals), JsonSerializer.Serialize(actual.Meals));
         Assert.AreEqual(JsonSerializer.Serialize(expected.Entries), JsonSerializer.Serialize(actual.Entries));
+        Assert.AreEqual(JsonSerializer.Serialize(expected.Portions ?? []), JsonSerializer.Serialize(actual.Portions ?? []));
     }
 }

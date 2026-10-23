@@ -9,16 +9,16 @@ public sealed partial class SqliteJournalStore
 {
     public string? LastMigrationBackup { get; private set; }
 
-    private void BackupBeforeMigration()
+    private void BackupBeforeMigration(int fromVersion)
     {
         var root = Path.Combine(Path.GetDirectoryName(DatabasePath)!, "recovery");
         Directory.CreateDirectory(root);
-        var prefix = Path.Combine(root, $"升级前_结构1_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}");
+        var prefix = Path.Combine(root, $"升级前_结构{fromVersion}_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}");
         var database = prefix + ".db";
         BackupDatabase(database);
         var snapshot = new SqliteJournalStore(database).ReadSnapshot();
         Validation.Snapshot(snapshot);
-        Validation.Require(snapshot.SchemaVersion == 1, "升级前数据库备份版本不符，停止迁移。");
+        Validation.Require(snapshot.SchemaVersion == fromVersion, "升级前数据库备份版本不符，停止迁移。");
         var backup = prefix + ".calorie-backup.json";
         JsonFiles.WriteNew(backup, snapshot);
         var reread = JsonFiles.Read<JournalSnapshot>(backup);
@@ -26,7 +26,7 @@ public sealed partial class SqliteJournalStore
         using var stream = File.OpenRead(database);
         JsonFiles.WriteNew(prefix + ".manifest.json", new
         {
-            Application = "CalorieJournal", FromSchema = 1, ToSchema = SchemaVersion,
+            Application = "CalorieJournal", FromSchema = fromVersion, ToSchema = SchemaVersion,
             CreatedAtUtc = DateTimeOffset.UtcNow, DatabaseFile = Path.GetFileName(database),
             BackupFile = Path.GetFileName(backup), DatabaseSha256 = Convert.ToHexString(SHA256.HashData(stream))
         });

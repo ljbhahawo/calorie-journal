@@ -90,7 +90,7 @@ public static class Validation
 
     public static void Snapshot(JournalSnapshot value)
     {
-        Require(value.FormatVersion == value.SchemaVersion && value.FormatVersion is 1 or 2, "备份格式或数据库版本不兼容。");
+        Require(value.FormatVersion == value.SchemaVersion && value.FormatVersion is 1 or 2 or 3, "备份格式或数据库版本不兼容。");
         Text(value.AppVersion, "软件版本", 100, true); Text(value.FoodPackageVersion, "食物包版本", 100, true);
         Require(value.ExportedAtUtc != default, "备份时间无效。");
         Require(value.Foods is not null && value.Meals is not null && value.Entries is not null, "备份缺少必要数据。");
@@ -119,5 +119,6 @@ public static class Validation
             Require(value.Portions.All(x => foods.Contains(x.FoodId)), "份量引用食物不存在。");
             Require(value.Portions.Where(x => !x.IsDeleted).Select(x => (x.FoodId, Name: x.Name.Trim().ToUpperInvariant())).Distinct().Count() == value.Portions.Count(x => !x.IsDeleted), "同一食物的份量名称重复。");
         }
+        TemplateValidation.Snapshot(value);
     }
 }

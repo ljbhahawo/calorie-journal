@@ -8,8 +8,8 @@ namespace CalorieJournal.Infrastructure;
 
 public sealed partial class SqliteJournalStore : IJournalStore
 {
-    public const int SchemaVersion = 2;
-    public const int BackupFormatVersion = 2;
+    public const int SchemaVersion = 3;
+    public const int BackupFormatVersion = 3;
     public string DatabasePath { get; }
     private readonly string connectionString;
 
@@ -40,7 +40,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
             connection.Dispose();
             throw new ValidationException("数据库由更新版本创建，当前程序不能写入。请使用匹配版本或安全恢复旧备份。");
         }
-        if (!allowLegacy && version == 1)
+        if (!allowLegacy && version > 0 && version < SchemaVersion)
         {
             connection.Dispose();
             throw new ValidationException("旧数据库须先完成升级前备份和结构迁移。");
@@ -55,7 +55,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
         Validation.Require(package.Foods.All(x => x.BuiltinKey.Length > 0) && package.Foods.Select(x => x.BuiltinKey).Distinct().Count() == package.Foods.Length, "内置食物键无效或重复。");
         using var connection = Open(true);
         var version = Convert.ToInt32(Scalar(connection, null, "PRAGMA user_version"), CultureInfo.InvariantCulture);
-        if (version == 1) BackupBeforeMigration();
+        if (version > 0 && version < SchemaVersion) BackupBeforeMigration(version);
         using var transaction = connection.BeginTransaction();
         if (version == 0)
             Validation.Require(Convert.ToInt64(Scalar(connection, transaction, "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"), CultureInfo.InvariantCulture) == 0, "发现无法识别的已有数据库，不会覆盖或重新初始化。");
@@ -87,6 +87,8 @@ public sealed partial class SqliteJournalStore : IJournalStore
                 grams_tenths INTEGER NOT NULL CHECK(grams_tenths BETWEEN 1 AND 1000000), is_deleted INTEGER NOT NULL,
                 created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
             CREATE UNIQUE INDEX IF NOT EXISTS portion_food_name ON portions(food_id,name) WHERE is_deleted=0;
+            CREATE TABLE IF NOT EXISTS meal_templates(id TEXT PRIMARY KEY, body TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS template_batches(id TEXT PRIMARY KEY, body TEXT NOT NULL);
             """);
         var initialized = Scalar(connection, transaction, "SELECT value FROM metadata WHERE key='initialized'") as string;
         if (initialized is null)
@@ -103,7 +105,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
         PutMetadata(connection, transaction, "initialized", "1");
         PutMetadata(connection, transaction, "food_package", package.Version);
         if (version == 0) Execute(connection, transaction, "PRAGMA application_id=0x43414C4A;");
-        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=2;");
+        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=3;");
         transaction.Commit();
     }
 
@@ -252,7 +254,9 @@ public sealed partial class SqliteJournalStore : IJournalStore
             FoodPackageVersion = (string?)Scalar(connection, transaction, "SELECT value FROM metadata WHERE key='food_package'") ?? throw new ValidationException("缺少食物包版本。"),
             ExportedAtUtc = DateTimeOffset.UtcNow, Foods = Foods(connection, transaction, true), Meals = Meals(connection, transaction),
             Entries = Entries(connection, transaction, DateOnly.MinValue, DateOnly.MaxValue),
-            Portions = version < 2 ? null : Portions(connection, transaction)
+            Portions = version < 2 ? null : Portions(connection, transaction),
+            Templates = version < 3 ? null : Templates(connection, transaction),
+            TemplateBatches = version < 3 ? null : TemplateBatches(connection, transaction)
         };
         transaction.Commit();
         return result;
@@ -263,11 +267,13 @@ public sealed partial class SqliteJournalStore : IJournalStore
         Validation.Snapshot(snapshot);
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
-        Execute(connection, transaction, "DELETE FROM entries; DELETE FROM portions; DELETE FROM foods; DELETE FROM meals;");
+        Execute(connection, transaction, "DELETE FROM template_batches; DELETE FROM meal_templates; DELETE FROM entries; DELETE FROM portions; DELETE FROM foods; DELETE FROM meals;");
         foreach (var food in snapshot.Foods) PutFood(connection, transaction, food);
         foreach (var meal in snapshot.Meals) PutMeal(connection, transaction, meal);
         foreach (var entry in snapshot.Entries) PutEntry(connection, transaction, entry);
         foreach (var portion in snapshot.Portions ?? []) PutPortion(connection, transaction, portion);
+        foreach (var template in snapshot.Templates ?? []) PutTemplate(connection, transaction, template);
+        foreach (var batch in snapshot.TemplateBatches ?? []) PutTemplateBatch(connection, transaction, batch);
         PutMetadata(connection, transaction, "food_package", snapshot.FoodPackageVersion);
         transaction.Commit();
     }

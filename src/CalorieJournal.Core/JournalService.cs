@@ -10,6 +10,10 @@ public interface IJournalStore
     void SaveMeal(MealCategory value);
     FoodPortion[] ReadPortions();
     void SavePortion(FoodPortion value);
+    MealTemplate[] ReadTemplates();
+    void SaveTemplate(MealTemplate value);
+    TemplateBatchReceipt[] ReadTemplateBatches();
+    void AppendTemplateBatch(TemplateBatchReceipt receipt, IntakeEntry[] entries);
     void SaveEntry(IntakeEntry value);
     void AppendEntries(IntakeEntry[] values);
     void DeleteEntry(Guid id);

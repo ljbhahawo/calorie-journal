@@ -93,7 +93,7 @@ public sealed class PortionTests
             FoodNameSnapshot = "明确扣重测试输入", InputMode = "weight", WeightGramsTenths = 1060, KcalPer100gHundredthsSnapshot = 10000, EnergyKcalTenths = 1060, WeightCalculation = calculation });
         var expected = store.ReadSnapshot(); var backups = new BackupService(store, Path.Combine(directory, "recovery"));
         var path = Path.Combine(directory, "完整.calorie-backup.json"); backups.Export(path);
-        Assert.AreEqual(2, backups.Inspect(path).FormatVersion);
+        Assert.AreEqual(SqliteJournalStore.BackupFormatVersion, backups.Inspect(path).FormatVersion);
         journal.SavePortion(portion with { GramsTenths = 600 });
         backups.Restore(backups.Inspect(path));
         Assert.AreEqual(JsonSerializer.Serialize(expected.Portions), JsonSerializer.Serialize(store.ReadSnapshot().Portions));

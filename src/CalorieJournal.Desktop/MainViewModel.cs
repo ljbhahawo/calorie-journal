@@ -154,6 +154,7 @@ public sealed partial class MainViewModel : ObservableObject
     public IRelayCommand OpenImportCommand { get; }
     public IRelayCommand OpenFoodLookupCommand { get; }
     public IRelayCommand OpenWeightConversionCommand { get; }
+    public IRelayCommand OpenTemplatesCommand { get; }
 
     public MainViewModel(JournalService journal, BackupService backups, string dataDirectory)
     {
@@ -239,6 +240,14 @@ public sealed partial class MainViewModel : ObservableObject
             var window = new WeightConversionWindow(model, journal) { Owner = Application.Current.MainWindow };
             window.ShowDialog();
             if (window.Result is not null) ApplyWeightCalculation(window.Result);
+        }));
+        OpenTemplatesCommand = new RelayCommand(() => Run(() =>
+        {
+            if (entryDirty || foodDirty || mealDirty) { Status = "请先保存或取消正在编辑的摄入、食物或餐次，再打开餐食模板。"; return; }
+            var model = new TemplateViewModel(journal, SelectedDate);
+            new TemplateWindow(model) { Owner = Application.Current.MainWindow }.ShowDialog();
+            if (!model.SavedAnyBatch) return;
+            RefreshDay(); RefreshHistory(); Status = "餐食已保存，当日与历史列表已更新。";
         }));
         InitializeBrowse();
         RefreshMeals(); RefreshFoods(); ResetEntry(); RefreshDay(); RefreshHistory(); LoadFood(null);
@@ -497,7 +506,7 @@ public sealed partial class MainViewModel : ObservableObject
         JournalSnapshot? snapshot = null;
         await WorkAsync(() => snapshot = backups.Inspect(dialog.FileName), () => Status = "备份校验完成。");
         if (snapshot is null) return;
-        if (!Confirm($"将完整替换当前数据。\n备份时间：{snapshot.ExportedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}\n食物 {snapshot.Foods.Length} 项，餐次 {snapshot.Meals.Length} 项，摄入 {snapshot.Entries.Length} 项，份量 {snapshot.Portions?.Length ?? 0} 项。\n" + (snapshot.FormatVersion == 1 ? "这是旧格式备份，恢复后常用份量为空；当前份量保留在恢复前归档中。\n" : "") + "现有数据会先自动备份，是否恢复？")) return;
+        if (!Confirm($"将完整替换当前数据。\n备份时间：{snapshot.ExportedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}\n食物 {snapshot.Foods.Length} 项，餐次 {snapshot.Meals.Length} 项，摄入 {snapshot.Entries.Length} 项，份量 {snapshot.Portions?.Length ?? 0} 项，模板 {snapshot.Templates?.Length ?? 0} 项，批次 {snapshot.TemplateBatches?.Length ?? 0} 项。\n" + (snapshot.FormatVersion < 3 ? "旧格式未包含的新数据类型恢复后为空；当前完整数据保留在恢复前归档中。\n" : "") + "现有数据会先自动备份，是否恢复？")) return;
         var recoveryPath = "";
         await WorkAsync(() => recoveryPath = backups.Restore(snapshot), () =>
         {

@@ -70,6 +70,10 @@ public sealed record JournalSnapshot
     public required IntakeEntry[] Entries { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public FoodPortion[]? Portions { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public MealTemplate[]? Templates { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public TemplateBatchReceipt[]? TemplateBatches { get; init; }
 }
 
 public sealed record FoodPackage

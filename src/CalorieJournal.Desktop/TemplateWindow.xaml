@@ -1,0 +1,60 @@
+<Window x:Class="CalorieJournal.Desktop.TemplateWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="常用餐食模板" Width="1080" Height="790" MinWidth="740" MinHeight="570" WindowStartupLocation="CenterOwner"
+        Style="{StaticResource {x:Type Window}}" Language="zh-CN">
+  <Window.Resources>
+    <DataTemplate x:Key="TemplateLine">
+      <Grid Margin="0,4,0,8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <TextBlock Text="{Binding FoodName}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Grid.Row="1" Text="{Binding FoodDetail}" Style="{StaticResource Caption}" Margin="0,3,0,4"/>
+        <WrapPanel Grid.Row="2">
+          <TextBox Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" Width="90" Margin="0,0,6,0" AutomationProperties.Name="明细重量或份数"/>
+          <ComboBox ItemsSource="{Binding Units}" SelectedItem="{Binding Unit}" Width="65" Margin="0,0,6,0" AutomationProperties.Name="明细单位"/>
+          <ComboBox ItemsSource="{Binding Portions}" SelectedItem="{Binding SelectedPortion}" DisplayMemberPath="Display" Width="175" Margin="0,0,6,0" AutomationProperties.Name="明细常用份量" ToolTip="选择份量后将单位改为份，数值填写实际份数"/>
+          <TextBlock Text="{Binding Preview}" TextWrapping="Wrap" MaxWidth="380" VerticalAlignment="Center" Foreground="{StaticResource Accent}"/>
+        </WrapPanel>
+      </Grid>
+    </DataTemplate>
+  </Window.Resources>
+  <Grid Margin="18"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <StackPanel><TextBlock Text="常用餐食模板" Style="{StaticResource Heading}"/><TextBlock Text="模板保存组合；整餐核对按当前资料计算，明确保存后才记录摄入。" Style="{StaticResource Caption}"/></StackPanel>
+    <WrapPanel Grid.Row="1" Margin="0,12,0,12">
+      <TextBox x:Name="TemplateFoodQueryBox" Text="{Binding FoodQuery, UpdateSourceTrigger=PropertyChanged}" Width="160" MaxLength="100" Margin="0,0,6,0" AutomationProperties.Name="搜索个人食物库"/>
+      <ComboBox x:Name="TemplateFoodChoiceBox" ItemsSource="{Binding Foods}" SelectedItem="{Binding SelectedFood}" DisplayMemberPath="Name" Width="230" Margin="0,0,6,0" AutomationProperties.Name="模板食物候选"/>
+      <Button x:Name="AddTemplateFoodButton" Content="增加食物" Click="AddFood"/><Button x:Name="ReplaceTemplateFoodButton" Content="更换所选食物" Click="ReplaceFood"/>
+    </WrapPanel>
+    <TabControl x:Name="TemplateTabs" Grid.Row="2" SelectedIndex="{Binding TabIndex}">
+      <TabItem Header="模板管理"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="14"/><ColumnDefinition/></Grid.ColumnDefinitions>
+        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <TextBox x:Name="TemplateQueryBox" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" AutomationProperties.Name="搜索餐食模板" ToolTip="按模板名称搜索"/>
+          <ListBox x:Name="TemplatesList" Grid.Row="1" ItemsSource="{Binding Templates}" SelectedItem="{Binding Selected}" DisplayMemberPath="Name" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+          <Button x:Name="NewTemplateButton" Grid.Row="2" Content="新增模板" Click="NewTemplate" Margin="0,10,0,0"/>
+        </Grid>
+        <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+            <TextBlock Text="模板名称" Style="{StaticResource FieldLabel}"/><TextBox x:Name="TemplateNameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="100"/>
+            <TextBlock Text="默认餐次（可不指定）" Style="{StaticResource FieldLabel}"/>
+            <DockPanel><Button x:Name="ClearTemplateMealButton" DockPanel.Dock="Right" Content="不指定" Click="ClearMeal" Margin="8,5,0,13"/><ComboBox x:Name="TemplateMealBox" ItemsSource="{Binding Meals}" SelectedItem="{Binding PreferredMeal}" DisplayMemberPath="Name"/></DockPanel>
+            <TextBlock Text="模板备注" Style="{StaticResource FieldLabel}"/><TextBox x:Name="TemplateNoteBox" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" MaxLength="1000"/>
+            <TextBlock Text="食物与可食重量 · 可选择常用份量并将单位改为份" Style="{StaticResource Caption}"/>
+            <ListBox x:Name="TemplateItemsList" ItemsSource="{Binding EditItems}" SelectedItem="{Binding SelectedEditItem}" ItemTemplate="{StaticResource TemplateLine}" BorderThickness="0" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Margin="0,6,0,6"/>
+            <Button x:Name="RemoveTemplateItemButton" Content="移除所选草稿行" Click="RemoveLine" HorizontalAlignment="Left"/>
+          </StackPanel></ScrollViewer>
+          <WrapPanel Grid.Row="1" Margin="0,12,0,0"><Button x:Name="SaveTemplateButton" Content="保存模板" Click="SaveTemplate" Style="{StaticResource PrimaryButton}"/><Button x:Name="BeginTemplateReviewButton" Content="带入整餐核对" Click="BeginReview"/><Button x:Name="DeleteTemplateButton" Content="删除模板" Click="DeleteTemplate"/></WrapPanel>
+        </Grid>
+      </Grid></TabItem>
+      <TabItem Header="整餐核对"><Grid><Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel IsEnabled="{Binding CanEditReview, Mode=OneWay}">
+          <WrapPanel><StackPanel Width="190" Margin="0,0,12,0"><TextBlock Text="记录日期" Style="{StaticResource FieldLabel}"/><DatePicker x:Name="TemplateReviewDatePicker" SelectedDate="{Binding ReviewDate}"/></StackPanel><StackPanel Width="190"><TextBlock Text="本次餐次（必选）" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="TemplateReviewMealBox" ItemsSource="{Binding Meals}" SelectedItem="{Binding ReviewMeal}" DisplayMemberPath="Name"/></StackPanel></WrapPanel>
+          <TextBlock Text="本次备注" Style="{StaticResource FieldLabel}"/><TextBox x:Name="TemplateReviewNoteBox" Text="{Binding ReviewNote, UpdateSourceTrigger=PropertyChanged}" MaxLength="1000"/>
+          <TextBlock Text="取消勾选可跳过某项；修改只影响本次摄入，模板保持不变。" Style="{StaticResource Caption}"/>
+          <ListBox x:Name="TemplateReviewItemsList" ItemsSource="{Binding ReviewItems}" SelectedItem="{Binding SelectedReviewItem}" BorderThickness="0" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Margin="0,8,0,8">
+            <ListBox.ItemTemplate><DataTemplate><DockPanel><CheckBox DockPanel.Dock="Left" IsChecked="{Binding Included}" Content="记录" Margin="0,8,12,0" VerticalAlignment="Top"/><ContentControl Content="{Binding}" ContentTemplate="{StaticResource TemplateLine}"/></DockPanel></DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+          <Button x:Name="RemoveReviewItemButton" Content="移除所选草稿行" Click="RemoveLine" HorizontalAlignment="Left"/>
+        </StackPanel></ScrollViewer>
+        <StackPanel Grid.Row="1" Margin="0,12,0,0"><TextBlock x:Name="TemplateReviewTotalText" Text="{Binding ReviewTotal, Mode=OneWay}" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource Accent}" TextWrapping="Wrap" Margin="0,0,0,10"/><WrapPanel><Button x:Name="SaveTemplateBatchButton" Content="保存整餐摄入" Click="SaveBatch" IsEnabled="{Binding CanEditReview, Mode=OneWay}" Style="{StaticResource PrimaryButton}"/><Button x:Name="CancelTemplateReviewButton" Content="关闭本次核对" Click="CancelReview"/></WrapPanel></StackPanel>
+      </Grid></TabItem>
+    </TabControl>
+    <DockPanel Grid.Row="3" Margin="0,12,0,0"><Button x:Name="CloseTemplatesButton" DockPanel.Dock="Right" Content="返回" Click="CloseWindow" Margin="12,0,0,0"/><TextBlock Text="{Binding Status}" Style="{StaticResource Caption}" VerticalAlignment="Center"/></DockPanel>
+  </Grid>
+</Window>
