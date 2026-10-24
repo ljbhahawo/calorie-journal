@@ -2,6 +2,17 @@
   "Application": "CalorieJournal",
   "Version": "1.15.0",
   "Success": true,
+  "Publication": {
+    "ReleaseId": 422599678,
+    "Url": "https://github.com/ljbhahawo/calorie-journal/releases/tag/v1.15.0",
+    "Public": true,
+    "Draft": false,
+    "Commit": "ae3f2106852ef50da3bfb20541f252e25ef96434",
+    "AnnotatedTag": "v1.15.0",
+    "TagObject": "3b9bfd1261e66e39dfa9a38d99e97494fa56c179",
+    "AllThreeAssetsSizeAndSha256Verified": true,
+    "RollbackVersion": "1.14.0"
+  },
   "VerificationDate": "2026-10-24",
   "SdkVersion": "10.0.402",
   "SchemaVersion": 9,
