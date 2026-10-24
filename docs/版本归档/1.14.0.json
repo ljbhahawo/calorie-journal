@@ -54,5 +54,14 @@
     "EmptyDependencyCacheTested": false,
     "ActualMonitorDpiX": 144,
     "OtherCleanWindowsMachineTested": false
+  },
+  "Publication": {
+    "ReleaseId": 422481772,
+    "AnnotatedTag": "v1.14.0",
+    "PreviousStableReleasePreserved": true,
+    "AllThreeAssetsSizeAndSha256Verified": true,
+    "TagObject": "1cf2d8a8ab80762d1e5c435405a3a185d5b014e7",
+    "ReleaseUrl": "https://github.com/ljbhahawo/calorie-journal/releases/tag/v1.14.0",
+    "FunctionalCommit": "79e750e674cc936abbb989622015428436ebca32"
   }
 }
