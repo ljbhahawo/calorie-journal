@@ -14,10 +14,10 @@ public sealed partial class SheetMealViewModel : ObservableObject
     public ObservableCollection<SheetEntryViewModel> Rows { get; } = [];
     public IRelayCommand AddCommand { get; }
     public SheetMealViewModel(DateOnly date, MealCategory meal, Action<SheetMealViewModel> add) { Date = date; Meal = meal; AddCommand = new RelayCommand(() => add(this)); }
-    public void Update(MealCategory meal, IntakeEntry[] entries)
+    public void Update(MealCategory meal, IntakeEntry[] entries, bool proteinEnabled)
     {
         Meal = meal; Title = string.Join(" / ", new[] { meal.Name }.Concat(entries.Select(x => x.MealNameSnapshot)).Distinct()) + (meal.IsActive ? "" : "（已停用）");
-        Summary = entries.Length == 0 ? "未记录" : $"{entries.Sum(x => x.EnergyKcalTenths) / 10m:0.0} 大卡 · {entries.Length}项 · {Nutrition.ProteinSummary(entries)}";
+        Summary = entries.Length == 0 ? "未记录" : $"{entries.Sum(x => x.EnergyKcalTenths) / 10m:0.0} 大卡 · {entries.Length}项" + (proteinEnabled ? " · " + Nutrition.ProteinSummary(entries) : "");
     }
 }
 public sealed partial class SheetDayViewModel(DateOnly date) : ObservableObject
@@ -38,6 +38,7 @@ public sealed partial class MainViewModel
     [ObservableProperty] private DateTime sheetTo = DateTime.Today;
     public ObservableCollection<SheetDayViewModel> SheetDays { get; } = [];
     public bool HasSheetDrafts => sheetRows.Values.Any(x => x.HasDraft);
+    internal bool ContainsSheetRow(SheetEntryViewModel row) => sheetRows.TryGetValue(row.Id, out var current) && ReferenceEquals(current, row);
     public string SheetRangeText => $"{appliedSheetFrom:yyyy-MM-dd} 至 {appliedSheetTo:yyyy-MM-dd} · {SheetDays.Count}天 · 空行及草稿不计入合计";
     public IRelayCommand QuerySheetCommand { get; private set; } = null!;
     public IRelayCommand EarlierSheetCommand { get; private set; } = null!;
@@ -69,12 +70,12 @@ public sealed partial class MainViewModel
         foreach (var day in days)
         {
             var model = SheetDays.FirstOrDefault(x => x.Date == day.Date) ?? new SheetDayViewModel(day.Date);
-            model.Summary = day.Summary + " · " + day.ProteinSummary;
+            model.Summary = day.Summary + (ProteinEnabled ? " · " + day.ProteinSummary : "");
             var groups = new List<SheetMealViewModel>();
             foreach (var meal in meals.Where(x => x.IsActive || day.Entries.Any(e => e.MealCategoryId == x.Id) || sheetRows.Values.Any(r => r.HasDraft && r.Original is null && DateOnly.FromDateTime(r.Date) == day.Date && r.Meal?.Id == x.Id)))
             {
                 var group = model.Meals.FirstOrDefault(x => x.Meal.Id == meal.Id) ?? new SheetMealViewModel(day.Date, meal, g => Run(() => AddSheetRow(g)));
-                var entries = day.Entries.Where(x => x.MealCategoryId == meal.Id).ToArray(); group.Update(meal, entries);
+                var entries = day.Entries.Where(x => x.MealCategoryId == meal.Id).ToArray(); group.Update(meal, entries, ProteinEnabled);
                 var rows = new List<SheetEntryViewModel>();
                 foreach (var entry in entries)
                 {
@@ -122,7 +123,7 @@ public sealed partial class MainViewModel
             RefreshSheet(); Status = "已取消本行修改。";
         }), row => Run(() =>
         {
-            if (row.Original is null) { row.Message = "空行尚未写入，请使用取消移除。"; return; }
+            if (row.Original is null) { row.Message = "空行尚未写入，请使用移除空行。"; return; }
             DeleteEntry(row.Original);
             if (!journal.Entries(row.Original.EntryDate).Any(x => x.Id == row.Id)) { RemoveSheetRow(row); RefreshSheet(); }
         }), knownMeals);

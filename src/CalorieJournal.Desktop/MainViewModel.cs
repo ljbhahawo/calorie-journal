@@ -479,9 +479,11 @@ public sealed partial class MainViewModel : ObservableObject
     {
         ValidateRequiredEntryFields();
         Validation.Require(EntryMeal is not null, "请选择餐次。");
+        Validation.Require(ProteinEnabled || editingEntry?.ProteinGramsHundredths is null || WeightMode == (editingEntry.InputMode == "weight"), "此记录已有蛋白质，切换录入方式前请在设置启用蛋白质。");
+        Validation.Require(ProteinEnabled || editingEntry?.ProteinGramsHundredths is null || (EntryName == editingEntry.FoodNameSnapshot && EntryPreparation == editingEntry.PreparationSnapshot && savedFoodId == editingEntry.FoodId), "此记录已有蛋白质，修改食物名称或来源前请在设置启用蛋白质，以核对营养资料。");
         var source = savedSource;
         if (sourceUnitKcal is not null && WeightMode && ReadUnitKcal() != sourceUnitKcal && !source.Contains("本次单位热量已调整", StringComparison.Ordinal)) source += " · 本次单位热量已调整";
-        if (savedFoodId is not null && WeightMode && ReadOptionalProtein(UnitProtein, 100m, "每100克蛋白质") != sourceUnitProtein && !source.Contains("本次单位蛋白质已调整", StringComparison.Ordinal)) source += " · 本次单位蛋白质已调整";
+        if (savedFoodId is not null && WeightMode && ReadUnitProtein() != sourceUnitProtein && !source.Contains("本次单位蛋白质已调整", StringComparison.Ordinal)) source += " · 本次单位蛋白质已调整";
         if (savedFoodId is not null && !WeightMode && !source.Contains("本项直接录入", StringComparison.Ordinal)) source += " · 本项直接录入，热量及蛋白质请核对";
         var entry = new IntakeEntry
         {
@@ -493,7 +495,7 @@ public sealed partial class MainViewModel : ObservableObject
             KcalPer100gHundredthsSnapshot = WeightMode ? ReadUnitKcal() : null, EnergyKcalTenths = ReadEnergy(),
             WeightCalculation = WeightMode ? weightCalculation : null,
             KilojoulesHundredthsSnapshot = ReadEntryKilojoules(), ProteinGramsHundredths = ReadProtein(),
-            ProteinPer100gHundredthsSnapshot = WeightMode ? ReadOptionalProtein(UnitProtein, 100m, "每100克蛋白质") : null,
+            ProteinPer100gHundredthsSnapshot = WeightMode ? ReadUnitProtein() : null,
             Note = EntryNote, SourceSnapshot = source, CreatedAtUtc = editingEntry?.CreatedAtUtc ?? DateTimeOffset.UtcNow
         };
         if (!SaveWithFoodPolicy(entry, out var foodMessage, out var foodAdded)) { Status = "已取消保存，草稿保留。"; return; }

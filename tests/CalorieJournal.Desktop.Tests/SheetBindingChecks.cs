@@ -107,6 +107,7 @@ internal static class SheetBindingChecks
         }
         T RowControl<T>(SheetEntryViewModel value, string nameValue, int column) where T : FrameworkElement
         {
+            column = nameValue switch { "SaveSheetRowButton" or "CancelSheetRowButton" => 7, "SheetFoodInput" => 0, "SheetDirectEnergyBox" => 5, _ => column };
             var grid = GridFor(value); grid.SelectedItem = value; grid.ScrollIntoView(value, grid.Columns[column]); Pump();
             return Descendants<T>(grid).First(x => x.Name == nameValue && ReferenceEquals(x.DataContext, value));
         }

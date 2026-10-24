@@ -13,6 +13,9 @@ public sealed partial class MainViewModel
     [ObservableProperty] private bool settingsDefaultWeight;
     [ObservableProperty] private int settingsFoodMode;
     [ObservableProperty] private int settingsDailyPage;
+    [ObservableProperty] private bool settingsProteinEnabled = true;
+    [ObservableProperty] private bool proteinEnabled = true;
+    public Visibility ProteinVisibility => ProteinEnabled ? Visibility.Visible : Visibility.Collapsed;
     public string[] DailyPages { get; } = ["现有表单", "表格记录"];
     [ObservableProperty] private bool mealMode;
     public ObservableCollection<DailyMealGroup> DayMeals { get; } = [];
@@ -35,8 +38,12 @@ public sealed partial class MainViewModel
             Validation.Require(SettingsFoodMode is >= 0 and <= 2, "请选择新资料入库方式。");
             Validation.Require(SettingsDailyPage is 0 or 1, "请选择每日记录页面。");
             Validation.Require((SettingsDailyPage == 1) == SheetMode || (!entryDirty && !HasSheetDrafts), "请先保存或取消摄入草稿，再切换每日记录页面。");
-            journal.SaveSettings(new JournalSettings { DefaultWeightMode = SettingsDefaultWeight, NewFoodMode = new[] { "ask", "auto", "never" }[SettingsFoodMode], DailyRecordPage = SettingsDailyPage == 1 ? "sheet" : null });
+            Validation.Require(SettingsProteinEnabled == ProteinEnabled || (!entryDirty && !HasSheetDrafts), "请先保存或放弃摄入草稿，再修改蛋白质开关。");
+            journal.SaveSettings(new JournalSettings { DefaultWeightMode = SettingsDefaultWeight, NewFoodMode = new[] { "ask", "auto", "never" }[SettingsFoodMode], DailyRecordPage = SettingsDailyPage == 1 ? "sheet" : null, ProteinEnabled = SettingsProteinEnabled ? null : false });
+            ProteinEnabled = SettingsProteinEnabled;
+            foreach (var row in sheetRows.Values) row.RefreshProteinSetting();
             SheetMode = SettingsDailyPage == 1;
+            if (SheetMode) RefreshSheet();
             settingsDirty = false; Status = "录入设置已保存，后续新建采用新默认；当前草稿和历史保持不变。";
         }));
         ReloadSettingsCommand = new RelayCommand(() => Run(() => { LoadSettings(); Status = "已恢复上次保存的录入设置，当前摄入草稿保持不变。"; }));
@@ -57,12 +64,16 @@ public sealed partial class MainViewModel
         SettingsDefaultWeight = value.DefaultWeightMode;
         SettingsFoodMode = value.NewFoodMode switch { "ask" => 0, "auto" => 1, "never" => 2, _ => throw new ValidationException("入库设置无效。") };
         SettingsDailyPage = value.DailyRecordPage == "sheet" ? 1 : 0;
+        SettingsProteinEnabled = value.RecordsProtein; ProteinEnabled = value.RecordsProtein;
+        foreach (var row in sheetRows.Values) row.RefreshProteinSetting();
         SheetMode = SettingsDailyPage == 1;
         loading = wasLoading; settingsDirty = false;
     }
     partial void OnSettingsDefaultWeightChanged(bool value) { if (!loading) settingsDirty = true; }
     partial void OnSettingsFoodModeChanged(int value) { if (!loading) settingsDirty = true; }
     partial void OnSettingsDailyPageChanged(int value) { if (!loading) settingsDirty = true; }
+    partial void OnSettingsProteinEnabledChanged(bool value) { if (!loading) settingsDirty = true; }
+    partial void OnProteinEnabledChanged(bool value) { OnPropertyChanged(nameof(ProteinVisibility)); }
 
     private bool SaveWithFoodPolicy(IntakeEntry entry, out string message, out bool added)
     {

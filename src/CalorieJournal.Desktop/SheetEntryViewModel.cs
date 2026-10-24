@@ -21,6 +21,18 @@ public sealed partial class SheetEntryViewModel : ObservableObject
     public string[] WeightUnits { get; } = ["g", "kg"];
     public string[] EnergyUnits { get; } = ["大卡", "kJ"];
     [ObservableProperty] private DateTime date;
+    private bool dateInputValid = true;
+    public DateTime? DateInput
+    {
+        get => dateInputValid ? Date : null;
+        set
+        {
+            var changed = dateInputValid != (value is not null) || value is { } next && next != Date;
+            dateInputValid = value is not null; if (value is { } dateValue) Date = dateValue;
+            if (changed && !loading) Dirty = true; OnPropertyChanged();
+        }
+    }
+    partial void OnDateChanged(DateTime value) { dateInputValid = true; OnPropertyChanged(nameof(DateInput)); }
     [ObservableProperty] private MealCategory? meal;
     [ObservableProperty] private string name = "";
     [ObservableProperty] private string preparation = "";
@@ -38,7 +50,12 @@ public sealed partial class SheetEntryViewModel : ObservableObject
     [ObservableProperty] private string source = "用户录入";
     [ObservableProperty] private bool dirty;
     [ObservableProperty] private string message = "";
+    public bool MessageIsError => Message.StartsWith("保存未完成：", StringComparison.Ordinal);
+    partial void OnMessageChanged(string value) => OnPropertyChanged(nameof(MessageIsError));
+    public bool ProteinEnabled { get; private set; }
+    public void RefreshProteinSetting() { ProteinEnabled = journal.Settings().RecordsProtein; OnPropertyChanged(nameof(ProteinEnabled)); OnPropertyChanged(nameof(ProteinPreview)); }
     public bool HasDraft => Original is null || Dirty;
+    public string DiscardText => Original is null ? Dirty ? "放弃新增" : "移除空行" : "放弃修改";
     public bool DirectMode => !WeightMode;
     public string StateText => Original is null ? "新增 · 未保存" : Dirty ? "已修改 · 未保存" : "已保存";
     public string EnergyPreview { get { try { return $"{ReadEnergy() / 10m:0.0} 大卡"; } catch (ValidationException) { return "待填写热量"; } } }
@@ -53,7 +70,7 @@ public sealed partial class SheetEntryViewModel : ObservableObject
     public SheetEntryViewModel(JournalService journal, DateOnly date, MealCategory meal, IntakeEntry? original,
         Action<SheetEntryViewModel> save, Action<SheetEntryViewModel> cancel, Action<SheetEntryViewModel> delete, MealCategory[]? knownMeals = null)
     {
-        this.journal = journal; Id = original?.Id ?? Guid.NewGuid();
+        this.journal = journal; Id = original?.Id ?? Guid.NewGuid(); RefreshProteinSetting();
         SaveCommand = new RelayCommand(() => save(this)); CancelCommand = new RelayCommand(() => cancel(this)); DeleteCommand = new RelayCommand(() => delete(this));
         ManualSourceCommand = new RelayCommand(DetachFood);
         ConvertWeightCommand = new RelayCommand(() =>
@@ -78,7 +95,7 @@ public sealed partial class SheetEntryViewModel : ObservableObject
         loading = true;
         try
         {
-            Original = value; Meals = (knownMeals ?? journal.Meals()).Where(x => x.IsActive || x.Id == value?.MealCategoryId).ToArray();
+            Original = value; dateInputValid = true; Meals = (knownMeals ?? journal.Meals()).Where(x => x.IsActive || x.Id == value?.MealCategoryId).ToArray();
             Date = targetDate.ToDateTime(TimeOnly.MinValue); Meal = Meals.FirstOrDefault(x => x.Id == targetMeal.Id);
             Name = value?.FoodNameSnapshot ?? ""; Preparation = value?.PreparationSnapshot ?? ""; Time = value?.LocalTime ?? ""; Note = value?.Note ?? "";
             WeightMode = value is null ? journal.Settings().DefaultWeightMode : value.InputMode == "weight";
@@ -93,7 +110,7 @@ public sealed partial class SheetEntryViewModel : ObservableObject
             Source = value?.SourceSnapshot ?? "用户录入"; calculation = value?.WeightCalculation; Dirty = false; Message = "";
         }
         finally { loading = false; }
-        OnPropertyChanged(nameof(Meals)); OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(HasDraft)); OnPropertyChanged(nameof(WeightDescription));
+        OnPropertyChanged(nameof(Meals)); OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(HasDraft)); OnPropertyChanged(nameof(DiscardText)); OnPropertyChanged(nameof(WeightDescription));
     }
     public FoodItem[] Suggest(string query) => string.IsNullOrWhiteSpace(query) ? [] : journal.Foods(query).Take(12).ToArray();
     public void UseFood(FoodItem food)
@@ -117,11 +134,12 @@ public sealed partial class SheetEntryViewModel : ObservableObject
     {
         base.OnPropertyChanged(e);
         if (e.PropertyName == nameof(WeightMode)) OnPropertyChanged(nameof(DirectMode));
-        if (e.PropertyName is nameof(Dirty)) { OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(HasDraft)); return; }
+        if (e.PropertyName is nameof(Dirty)) { OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(HasDraft)); OnPropertyChanged(nameof(DiscardText)); return; }
         if (e.PropertyName is nameof(Date) or nameof(Meal) or nameof(Name) or nameof(Preparation) or nameof(Time) or nameof(Note) or nameof(WeightMode) or nameof(Weight) or nameof(WeightUnit) or nameof(UnitEnergy) or nameof(UnitEnergyType) or nameof(UnitProtein) or nameof(DirectEnergy) or nameof(DirectEnergyType) or nameof(DirectProtein))
         {
             OnPropertyChanged(nameof(EnergyPreview)); OnPropertyChanged(nameof(ProteinPreview));
             if (loading) return;
+            if (MessageIsError) Message = "";
             Dirty = true;
             if (e.PropertyName == nameof(Name) && foodId is not null && Name != referencedName) DetachFood();
             if (e.PropertyName is nameof(Weight) or nameof(WeightUnit)) { calculation = null; OnPropertyChanged(nameof(WeightDescription)); }
@@ -142,18 +160,23 @@ public sealed partial class SheetEntryViewModel : ObservableObject
     private long ReadUnitEnergy() => IsKj(UnitEnergyType) ? Nutrition.UnitKcal(Nutrition.Kilojoules(Validation.Number(UnitEnergy, "每100克kJ"), 10000)) : Validation.Scaled(Validation.Number(UnitEnergy, "每100克大卡"), 100, 0, 10000, "每100克大卡");
     private long? ReadKj() => IsKj(WeightMode ? UnitEnergyType : DirectEnergyType) ? Nutrition.Kilojoules(Validation.Number(WeightMode ? UnitEnergy : DirectEnergy, "kJ"), WeightMode ? 10000 : 99999.9m) : null;
     private long ReadEnergy() => WeightMode ? Nutrition.Energy(ReadWeight(), ReadUnitEnergy(), ReadKj()) : IsKj(DirectEnergyType) ? Nutrition.DirectKcal(ReadKj()!.Value) : Validation.Scaled(Validation.Number(DirectEnergy, "本项大卡"), 10, 0, 99999.9m, "本项大卡");
-    private long? ReadProtein() => WeightMode ? Nutrition.Protein(ReadWeight(), OptionalProtein(UnitProtein, 100)) : OptionalProtein(DirectProtein, 100000);
+    private long? ReadUnitProtein() => ProteinEnabled ? OptionalProtein(UnitProtein, 100) : Original?.ProteinPer100gHundredthsSnapshot;
+    private long? ReadProtein() => WeightMode ? Nutrition.Protein(ReadWeight(), ReadUnitProtein()) : ProteinEnabled ? OptionalProtein(DirectProtein, 100000) : Original?.ProteinGramsHundredths;
     public IntakeEntry CreateEntry()
     {
         Validation.Require(Meal is not null, "请选择有效餐次。");
+        Validation.Require(dateInputValid, "请填写有效日期。");
+        Validation.Text(Name, "食物名称", 100, true);
+        Validation.Require(ProteinEnabled || Original?.ProteinGramsHundredths is null || WeightMode == (Original.InputMode == "weight"), "此记录已有蛋白质，切换录入方式前请在设置启用蛋白质。");
+        Validation.Require(ProteinEnabled || Original?.ProteinGramsHundredths is null || (Name == Original.FoodNameSnapshot && Preparation == Original.PreparationSnapshot && foodId == Original.FoodId), "此记录已有蛋白质，修改食物名称或来源前请在设置启用蛋白质，以核对营养资料。");
         var source = Source;
-        if (foodId is not null && WeightMode && (ReadUnitEnergy() != referencedEnergy || OptionalProtein(UnitProtein, 100) != referencedProtein || ReadKj() != referencedKj) && !source.Contains("本次单位营养资料已调整", StringComparison.Ordinal)) source += " · 本次单位营养资料已调整";
+        if (foodId is not null && WeightMode && (ReadUnitEnergy() != referencedEnergy || ReadUnitProtein() != referencedProtein || ReadKj() != referencedKj) && !source.Contains("本次单位营养资料已调整", StringComparison.Ordinal)) source += " · 本次单位营养资料已调整";
         if (foodId is not null && !WeightMode && !source.Contains("本项直接录入", StringComparison.Ordinal)) source += " · 本项直接录入，热量及蛋白质请核对";
         var entry = new IntakeEntry { Id = Id, EntryDate = DateOnly.FromDateTime(Date), MealCategoryId = Meal.Id,
             MealNameSnapshot = Original is { } original && original.MealCategoryId == Meal.Id ? original.MealNameSnapshot : Meal.Name,
             LocalTime = Time, FoodId = foodId, FoodNameSnapshot = Name, PreparationSnapshot = Preparation, Note = Note,
             InputMode = WeightMode ? "weight" : "direct", WeightGramsTenths = WeightMode ? ReadWeight() : null, KcalPer100gHundredthsSnapshot = WeightMode ? ReadUnitEnergy() : null,
-            EnergyKcalTenths = ReadEnergy(), ProteinPer100gHundredthsSnapshot = WeightMode ? OptionalProtein(UnitProtein, 100) : null, ProteinGramsHundredths = ReadProtein(), KilojoulesHundredthsSnapshot = ReadKj(),
+            EnergyKcalTenths = ReadEnergy(), ProteinPer100gHundredthsSnapshot = WeightMode ? ReadUnitProtein() : null, ProteinGramsHundredths = ReadProtein(), KilojoulesHundredthsSnapshot = ReadKj(),
             WeightCalculation = WeightMode ? calculation : null, SourceSnapshot = source, CreatedAtUtc = Original?.CreatedAtUtc ?? DateTimeOffset.UtcNow };
         Validation.Entry(entry); return entry;
     }

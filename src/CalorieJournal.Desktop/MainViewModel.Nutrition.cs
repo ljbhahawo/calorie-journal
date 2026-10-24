@@ -45,7 +45,8 @@ public sealed partial class MainViewModel
     private static bool IsKilojoules(string unit) { Validation.Require(unit is "大卡" or "kJ", "请选择有效能量单位。"); return unit == "kJ"; }
     private long? ReadEntryKilojoules() => IsKilojoules(WeightMode ? EntryEnergyUnit : DirectEnergyUnit) ? Nutrition.Kilojoules(Validation.Number(WeightMode ? UnitKcal : DirectKcal, "千焦kJ"), WeightMode ? 10000m : 99999.9m) : null;
     private long ReadFoodUnitKcal() => IsKilojoules(FoodEnergyUnit) ? Nutrition.UnitKcal(Nutrition.Kilojoules(Validation.Number(FoodUnitKcal, "食物每100克千焦"), 10000m)) : Validation.Scaled(Validation.Number(FoodUnitKcal, "每100克大卡"), 100, 0, 10000m, "每100克大卡");
-    private long? ReadProtein() => WeightMode ? Nutrition.Protein(ReadWeight(), ReadOptionalProtein(UnitProtein, 100m, "每100克蛋白质")) : ReadOptionalProtein(DirectProtein, 100000m, "本项蛋白质");
+    private long? ReadUnitProtein() => ProteinEnabled ? ReadOptionalProtein(UnitProtein, 100m, "每100克蛋白质") : editingEntry?.ProteinPer100gHundredthsSnapshot;
+    private long? ReadProtein() => WeightMode ? Nutrition.Protein(ReadWeight(), ReadUnitProtein()) : ProteinEnabled ? ReadOptionalProtein(DirectProtein, 100000m, "本项蛋白质") : editingEntry?.ProteinGramsHundredths;
     public void EnterDirectEnergy()
     {
         if (!loading && !IsBusy && WeightMode) { WeightMode = false; Status = "已切换直接录入，按本项热量及可选蛋白质保存。"; }

@@ -11,6 +11,11 @@ public partial class FoodNameInput : UserControl
     private bool choosing;
     public FoodNameInput() { InitializeComponent(); Unloaded += (_, _) => SuggestionsPopup.IsOpen = false; }
     public void FocusName() { NameInput.Focus(); NameInput.CaretIndex = NameInput.Text.Length; }
+    public bool ChooseOnEnter()
+    {
+        if (SuggestionsPopup.IsOpen && SuggestionsList.SelectedItem is FoodItem) { Choose(); return true; }
+        SuggestionsPopup.IsOpen = false; return false;
+    }
     private void NameChanged(object sender, TextChangedEventArgs e) { if (!choosing && NameInput.IsKeyboardFocusWithin) Suggest(); }
     private void NameFocused(object sender, KeyboardFocusChangedEventArgs e) { if (!choosing) Suggest(); }
     private void Suggest()

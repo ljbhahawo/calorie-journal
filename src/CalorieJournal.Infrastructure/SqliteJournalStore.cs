@@ -8,8 +8,8 @@ namespace CalorieJournal.Infrastructure;
 
 public sealed partial class SqliteJournalStore : IJournalStore
 {
-    public const int SchemaVersion = 8;
-    public const int BackupFormatVersion = 8;
+    public const int SchemaVersion = 9;
+    public const int BackupFormatVersion = 9;
     public string DatabasePath { get; }
     private readonly string connectionString;
 
@@ -120,7 +120,7 @@ public sealed partial class SqliteJournalStore : IJournalStore
         PutMetadata(connection, transaction, "food_package", package.Version);
         if (version == 0) Execute(connection, transaction, "PRAGMA application_id=0x43414C4A;");
         if (version < 4) PutMetadata(connection, transaction, "settings", JsonSerializer.Serialize(JournalSettings.Default, JsonFiles.Options));
-        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=8;");
+        if (version < SchemaVersion) Execute(connection, transaction, "PRAGMA user_version=9;");
         transaction.Commit();
     }
 

@@ -23,7 +23,7 @@ public sealed partial class TemplateLineViewModel : ObservableObject
     [ObservableProperty] private PortionOption? selectedPortion;
     public string Preview
     {
-        get { try { var item = CreateItem(); return $"{item.WeightGramsTenths / 10m:0.0}g · {Nutrition.Energy(item.WeightGramsTenths, item.KcalPer100gHundredthsSnapshot, item.KilojoulesPer100gHundredthsSnapshot) / 10m:0.0}大卡 · 蛋白质 {Nutrition.ProteinText(Nutrition.Protein(item.WeightGramsTenths, item.ProteinPer100gHundredthsSnapshot))}"; }
+        get { try { var item = CreateItem(); return $"{item.WeightGramsTenths / 10m:0.0}g · {Nutrition.Energy(item.WeightGramsTenths, item.KcalPer100gHundredthsSnapshot, item.KilojoulesPer100gHundredthsSnapshot) / 10m:0.0}大卡" + (journal.Settings().RecordsProtein ? $" · 蛋白质 {Nutrition.ProteinText(Nutrition.Protein(item.WeightGramsTenths, item.ProteinPer100gHundredthsSnapshot))}" : ""); }
             catch (ValidationException exception) { return exception.Message; } }
     }
     public TemplateLineViewModel(JournalService journal, TemplateItem item)
@@ -98,7 +98,7 @@ public sealed partial class TemplateViewModel : ObservableObject
                 var items = ReviewItems.Where(x => x.Included).Select(x => x.CreateItem()).ToArray();
                 var proteins = items.Select(x => Nutrition.Protein(x.WeightGramsTenths, x.ProteinPer100gHundredthsSnapshot)).ToArray();
                 var summary = proteins.Any(x => x is not null) ? $"蛋白质已记录 {proteins.Sum(x => x ?? 0) / 100m:0.00} g · {proteins.Count(x => x is null)}项未填写" : "蛋白质未填写";
-                return items.Length == 0 ? "尚未选择食物" : $"已选 {items.Length} 项 · 合计 {items.Sum(x => Nutrition.Energy(x.WeightGramsTenths, x.KcalPer100gHundredthsSnapshot, x.KilojoulesPer100gHundredthsSnapshot)) / 10m:0.0} 大卡 · {summary}";
+                return items.Length == 0 ? "尚未选择食物" : $"已选 {items.Length} 项 · 合计 {items.Sum(x => Nutrition.Energy(x.WeightGramsTenths, x.KcalPer100gHundredthsSnapshot, x.KilojoulesPer100gHundredthsSnapshot)) / 10m:0.0} 大卡" + (journal.Settings().RecordsProtein ? " · " + summary : "");
             }
             catch (ValidationException exception) { return "请修正明细：" + exception.Message; }
         }
@@ -230,6 +230,7 @@ public sealed partial class TemplateViewModel : ObservableObject
     {
         Validation.Require(CanEditReview && batchId is not null && batchTemplateId is not null, "本批已保存或未带入模板，请重新带入后再记录。");
         Validation.Require(ReviewMeal is not null, "请选择本次摄入的启用餐次。");
+        var proteinEnabled = journal.Settings().RecordsProtein;
         var entries = ReviewItems.Where(x => x.Included).Select(row =>
         {
             var item = row.CreateItem();
@@ -237,8 +238,8 @@ public sealed partial class TemplateViewModel : ObservableObject
                 FoodId = item.FoodId, FoodNameSnapshot = item.FoodNameSnapshot, PreparationSnapshot = item.PreparationSnapshot, InputMode = "weight",
                 WeightGramsTenths = item.WeightGramsTenths, KcalPer100gHundredthsSnapshot = item.KcalPer100gHundredthsSnapshot,
                 EnergyKcalTenths = Nutrition.Energy(item.WeightGramsTenths, item.KcalPer100gHundredthsSnapshot, item.KilojoulesPer100gHundredthsSnapshot), WeightCalculation = item.WeightCalculation,
-                KilojoulesHundredthsSnapshot = item.KilojoulesPer100gHundredthsSnapshot, ProteinPer100gHundredthsSnapshot = item.ProteinPer100gHundredthsSnapshot,
-                ProteinGramsHundredths = Nutrition.Protein(item.WeightGramsTenths, item.ProteinPer100gHundredthsSnapshot),
+                KilojoulesHundredthsSnapshot = item.KilojoulesPer100gHundredthsSnapshot, ProteinPer100gHundredthsSnapshot = proteinEnabled ? item.ProteinPer100gHundredthsSnapshot : null,
+                ProteinGramsHundredths = proteinEnabled ? Nutrition.Protein(item.WeightGramsTenths, item.ProteinPer100gHundredthsSnapshot) : null,
                 SourceSnapshot = item.SourceSnapshot, Note = ReviewNote };
         }).ToArray();
         journal.SaveTemplateBatch(batchId.Value, batchTemplateId.Value, entries);

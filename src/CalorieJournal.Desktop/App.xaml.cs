@@ -10,15 +10,16 @@ public partial class App : Application
 {
     private FileStream? instanceLock;
     private string? diagnosticDirectory;
+    private bool quietDiagnostics;
 
     private void ReportFailure(Exception exception, string title)
     {
         if (diagnosticDirectory is not null)
             File.WriteAllText(Path.Combine(diagnosticDirectory, "startup-error.json"), JsonSerializer.Serialize(new
             {
-                ExceptionType = exception.GetType().FullName, exception.Message, exception.StackTrace
+                OccurredAtUtc = DateTimeOffset.UtcNow, ExceptionType = exception.GetType().FullName, exception.Message, exception.StackTrace
             }, JsonFiles.Options));
-        else
+        if (!quietDiagnostics)
             MessageBox.Show(exception.Message, title, MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
@@ -59,7 +60,8 @@ public partial class App : Application
                 else throw new ValidationException("未知参数。请查阅随包提供的使用说明。");
             }
             Directory.CreateDirectory(dataDirectory);
-            if (startupCheck || exportPath is not null || restorePath is not null || databaseArchivePath is not null) diagnosticDirectory = dataDirectory;
+            diagnosticDirectory = dataDirectory;
+            quietDiagnostics = startupCheck || exportPath is not null || restorePath is not null || databaseArchivePath is not null;
             Validation.Require(new[] { exportPath, restorePath, databaseArchivePath }.Count(x => x is not null) <= 1, "不能同时执行多个导出或恢复操作。");
             instanceLock = new FileStream(Path.Combine(dataDirectory, "instance.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             if (databaseArchivePath is not null)

@@ -8,6 +8,8 @@ public sealed record JournalSettings
     public required bool DefaultWeightMode { get; init; }
     public required string NewFoodMode { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? DailyRecordPage { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public bool? ProteinEnabled { get; init; }
+    [JsonIgnore] public bool RecordsProtein => ProteinEnabled != false;
     public static JournalSettings Default => new() { DefaultWeightMode = true, NewFoodMode = "ask" };
     public static void Validate(JournalSettings value)
     {

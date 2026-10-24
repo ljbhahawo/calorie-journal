@@ -4,7 +4,9 @@
         xmlns:local="clr-namespace:CalorieJournal.Desktop"
         Title="每日热量记录" Width="1240" Height="820" MinWidth="920" MinHeight="600"
         WindowStartupLocation="CenterScreen" Language="zh-CN" Style="{StaticResource {x:Type Window}}">
-  <Window.Resources><BooleanToVisibilityConverter x:Key="BoolVisibility"/></Window.Resources>
+  <Window.Resources><BooleanToVisibilityConverter x:Key="BoolVisibility"/>
+    <Style x:Key="DailyProteinCaption" TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Setter Property="Visibility" Value="{Binding DataContext.ProteinVisibility, RelativeSource={RelativeSource AncestorType=Window}}"/></Style>
+  </Window.Resources>
   <Grid Margin="24,18,24,14">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" />
@@ -64,14 +66,14 @@
                     <TextBox x:Name="UnitKcalBox" Text="{Binding UnitKcal, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="每100克能量" Margin="0,0,8,8"/>
                     <ComboBox x:Name="EntryEnergyUnitBox" Grid.Column="1" ItemsSource="{Binding EnergyUnits}" SelectedItem="{Binding EntryEnergyUnit}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="每100克能量单位"/>
                   </Grid><TextBlock Text="{Binding UnitEnergyPreview}" Style="{StaticResource Caption}"/>
-                  <TextBlock Text="每100克蛋白质 · g · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="UnitProteinBox" Text="{Binding UnitProtein, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="每100克蛋白质g"/>
+                  <StackPanel Visibility="{Binding ProteinVisibility}"><TextBlock Text="每100克蛋白质 · g · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="UnitProteinBox" Text="{Binding UnitProtein, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="每100克蛋白质g"/></StackPanel>
                   <TextBlock Text="{Binding WeightCalculationDescription}" Style="{StaticResource Caption}" Margin="0,0,0,8"/><Button x:Name="WeightConversionButton" Content="换算可食重量 / 常用份量" Command="{Binding OpenWeightConversionCommand}" IsEnabled="{Binding WeightMode}" HorizontalAlignment="Left" Margin="0,0,0,10"/>
                   <Button x:Name="OpenTemplatesButton" Content="餐食模板 · 整餐核对" Command="{Binding OpenTemplatesCommand}" HorizontalAlignment="Left" Margin="0,0,0,14"/>
                   <TextBlock Text="本项热量 · 直接模式必填 · 点击切换" Style="{StaticResource FieldLabel}"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="82"/></Grid.ColumnDefinitions>
                     <TextBox x:Name="DirectKcalBox" Text="{Binding DirectKcal, UpdateSourceTrigger=PropertyChanged}" PreviewMouseLeftButtonDown="DirectEnergyClicked" GotKeyboardFocus="DirectEnergyFocused" AutomationProperties.Name="直接输入本项热量" Margin="0,0,8,8"/>
                     <ComboBox x:Name="DirectEnergyUnitBox" Grid.Column="1" ItemsSource="{Binding EnergyUnits}" SelectedItem="{Binding DirectEnergyUnit}" AutomationProperties.Name="本项热量单位"/>
-                  </Grid><TextBlock Text="本项蛋白质 · g · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="DirectProteinBox" Text="{Binding DirectProtein, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DirectProteinEnabled}" AutomationProperties.Name="本项蛋白质g"/>
-                  <TextBlock Text="{Binding ProteinPreview}" Style="{StaticResource Caption}" Margin="0,0,0,6"/>
+                  </Grid><StackPanel Visibility="{Binding ProteinVisibility}"><TextBlock Text="本项蛋白质 · g · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="DirectProteinBox" Text="{Binding DirectProtein, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DirectProteinEnabled}" AutomationProperties.Name="本项蛋白质g"/></StackPanel>
+                  <TextBlock Text="{Binding ProteinPreview}" Style="{StaticResource DailyProteinCaption}" Margin="0,0,0,6"/>
                   <Border Background="#EFF5EB" CornerRadius="7" Padding="12,10" Margin="0,0,0,10"><TextBlock Text="{Binding EnergyPreview}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" /></Border>
                   <TextBlock Text="{Binding EntrySource}" Style="{StaticResource Caption}" FontSize="11" Margin="0,0,0,14" />
                   <TextBlock Text="备注 · 可选" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryNoteBox" Text="{Binding EntryNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60" MaxLength="1000" TextWrapping="Wrap" AutomationProperties.Name="摄入备注" />
@@ -114,7 +116,7 @@
               </StackPanel>
             </DockPanel>
             <Border x:Name="DayTotalCard" Grid.Row="1" Style="{StaticResource Card}" Padding="14,5" Background="#E7EFDF" BorderBrush="#D8E4CF" Margin="0,0,0,10">
-              <StackPanel><DockPanel><TextBlock x:Name="DayProteinTextBlock" DockPanel.Dock="Right" Text="{Binding DayProteinText}" ToolTip="{Binding DayProteinText}" TextTrimming="CharacterEllipsis" MaxWidth="240" FontSize="12" Foreground="#546B4E" VerticalAlignment="Center" Margin="12,0,0,0"/><Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock Text="{Binding DayTotal}" FontSize="23" FontWeight="SemiBold" Foreground="#254E32"/></Viewbox></DockPanel>
+              <StackPanel><DockPanel><TextBlock x:Name="DayProteinTextBlock" Visibility="{Binding ProteinVisibility}" DockPanel.Dock="Right" Text="{Binding DayProteinText}" ToolTip="{Binding DayProteinText}" TextTrimming="CharacterEllipsis" MaxWidth="240" FontSize="12" Foreground="#546B4E" VerticalAlignment="Center" Margin="12,0,0,0"/><Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock Text="{Binding DayTotal}" FontSize="23" FontWeight="SemiBold" Foreground="#254E32"/></Viewbox></DockPanel>
                 <TextBlock x:Name="DayGoalTextBlock" Text="{Binding DayGoalText}" ToolTip="{Binding DayGoalText}" TextTrimming="CharacterEllipsis" FontSize="12" Foreground="#546B4E" Margin="0,3,0,0"/>
               </StackPanel>
             </Border>
@@ -157,11 +159,11 @@
                 <ListBox.ItemTemplate><DataTemplate><Border Style="{StaticResource Card}" Padding="14"><StackPanel>
                   <Border x:Name="DayMealHeader" Background="#E8F0E8" CornerRadius="6" BorderBrush="{StaticResource Accent}" BorderThickness="4,0,0,0" Padding="10,8"><DockPanel>
                     <Button x:Name="AddMealEntryButton" DockPanel.Dock="Right" Content="添加本餐" Command="{Binding DataContext.AddMealEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Margin="8,0,0,0"/>
-                    <StackPanel><TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="{Binding Summary}" Foreground="{StaticResource Accent}" Margin="0,5,0,0"/><TextBlock Text="{Binding ProteinSummary}" Style="{StaticResource Caption}"/></StackPanel>
+                    <StackPanel><TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="{Binding Summary}" Foreground="{StaticResource Accent}" Margin="0,5,0,0"/><TextBlock Text="{Binding ProteinSummary}" Style="{StaticResource DailyProteinCaption}"/></StackPanel>
                   </DockPanel></Border>
                   <Border Margin="18,8,0,0" BorderBrush="#BDD0BF" BorderThickness="2,0,0,0" Padding="14,0,0,0"><ItemsControl ItemsSource="{Binding Entries}"><ItemsControl.ItemTemplate><DataTemplate>
                     <Border x:Name="DayMealEntryCard" Background="#F8FAF7" CornerRadius="5" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Margin="0,4,0,4" Padding="10"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                      <StackPanel Margin="0,0,10,0"><TextBlock Text="{Binding FoodNameSnapshot}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding EnergyKcal, StringFormat={}{0:0.0} 大卡}" Foreground="{StaticResource Accent}" Margin="0,4,0,0"/><TextBlock Text="{Binding ProteinText, StringFormat=蛋白质 {0}}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding Calculation}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding PreparationSnapshot}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding Note}" Style="{StaticResource Caption}"/></StackPanel>
+                      <StackPanel Margin="0,0,10,0"><TextBlock Text="{Binding FoodNameSnapshot}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding EnergyKcal, StringFormat={}{0:0.0} 大卡}" Foreground="{StaticResource Accent}" Margin="0,4,0,0"/><TextBlock Text="{Binding ProteinText, StringFormat=蛋白质 {0}}" Style="{StaticResource DailyProteinCaption}"/><TextBlock Text="{Binding Calculation}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding PreparationSnapshot}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding Note}" Style="{StaticResource Caption}"/></StackPanel>
                       <WrapPanel Grid.Column="1" VerticalAlignment="Top"><Button x:Name="EditMealEntryButton" Content="修改" Command="{Binding DataContext.EditListedEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="10,5"/><Button x:Name="DeleteMealEntryButton" Content="删除" Command="{Binding DataContext.DeleteListedEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Style="{StaticResource DangerButton}" Padding="10,5" Margin="0"/></WrapPanel>
                     </Grid></Border>
                   </DataTemplate></ItemsControl.ItemTemplate></ItemsControl></Border>
@@ -190,13 +192,13 @@
                     <StackPanel>
                       <Border x:Name="ContinuousDateHeader" Background="#E5EDE7" CornerRadius="6" Padding="12"><DockPanel LastChildFill="True">
                         <Button x:Name="AddListedEntryButton" DockPanel.Dock="Right" Content="添加" Padding="10,5" MinHeight="32" Margin="8,0,0,0" Command="{Binding DataContext.AddListedEntryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" AutomationProperties.Name="{Binding Date, StringFormat=为{0:yyyy-MM-dd}添加摄入}" />
-                        <StackPanel><TextBlock Text="{Binding Date, StringFormat=yyyy-MM-dd · dddd}" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="{Binding Summary}" Foreground="{StaticResource Accent}" Margin="0,5,0,0"/><TextBlock Text="{Binding ProteinSummary}" Style="{StaticResource Caption}"/></StackPanel>
+                        <StackPanel><TextBlock Text="{Binding Date, StringFormat=yyyy-MM-dd · dddd}" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="{Binding Summary}" Foreground="{StaticResource Accent}" Margin="0,5,0,0"/><TextBlock Text="{Binding ProteinSummary}" Style="{StaticResource DailyProteinCaption}"/></StackPanel>
                       </DockPanel></Border>
                       <TextBlock Text="点击添加，为这一天记录摄入" Margin="0,12,0,0">
                         <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Entries.Length}" Value="0"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                       </TextBlock>
                       <Border Margin="16,10,0,0" BorderBrush="#BDD0BF" BorderThickness="2,0,0,0" Padding="12,0,0,0"><ItemsControl ItemsSource="{Binding Meals}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,0,0,12">
-                        <Border x:Name="ContinuousMealHeader" Background="#F0F4ED" BorderBrush="#9BB69F" BorderThickness="3,0,0,0" Padding="10,7"><StackPanel><DockPanel><TextBlock DockPanel.Dock="Right" Text="{Binding Summary}" Foreground="{StaticResource Accent}" Margin="8,0,0,0"/><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/></DockPanel><TextBlock Text="{Binding ProteinSummary}" Style="{StaticResource Caption}"/></StackPanel></Border>
+                        <Border x:Name="ContinuousMealHeader" Background="#F0F4ED" BorderBrush="#9BB69F" BorderThickness="3,0,0,0" Padding="10,7"><StackPanel><DockPanel><TextBlock DockPanel.Dock="Right" Text="{Binding Summary}" Foreground="{StaticResource Accent}" Margin="8,0,0,0"/><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/></DockPanel><TextBlock Text="{Binding ProteinSummary}" Style="{StaticResource DailyProteinCaption}"/></StackPanel></Border>
                         <Border Margin="14,4,0,0" BorderBrush="#D1DDD0" BorderThickness="1,0,0,0" Padding="10,0,0,0"><ItemsControl ItemsSource="{Binding Entries}"><ItemsControl.ItemTemplate><DataTemplate>
                         <Border x:Name="ContinuousEntryCard" Background="#FBFCFA" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" CornerRadius="4" Padding="10,10,8,6" Margin="0,4,0,0">
                           <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
@@ -204,7 +206,7 @@
                               <TextBlock Text="{Binding FoodNameSnapshot}" FontWeight="SemiBold" TextWrapping="Wrap" />
                               <WrapPanel Margin="0,4,0,0"><TextBlock Text="{Binding MealNameSnapshot}" Style="{StaticResource Caption}" Margin="0,0,10,0" /><TextBlock Text="{Binding LocalTime}" Style="{StaticResource Caption}" Margin="0,0,10,0" /><TextBlock Text="{Binding EnergyKcal, StringFormat={}{0:0.0} 大卡}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" /></WrapPanel>
                               <TextBlock Text="{Binding Calculation}" Style="{StaticResource Caption}" Margin="0,4,0,0" />
-                              <TextBlock Text="{Binding ProteinText, StringFormat=蛋白质 {0}}" Style="{StaticResource Caption}"/>
+                              <TextBlock Text="{Binding ProteinText, StringFormat=蛋白质 {0}}" Style="{StaticResource DailyProteinCaption}"/>
                               <TextBlock Text="{Binding PreparationSnapshot}" Style="{StaticResource Caption}" />
                               <TextBlock Text="{Binding Note}" Style="{StaticResource Caption}" TextTrimming="CharacterEllipsis" MaxHeight="38" ToolTip="{Binding Note}" />
                             </StackPanel>
@@ -315,6 +317,8 @@
                 <TextBlock Text="录入偏好" Style="{StaticResource Heading}"/>
                 <TextBlock Text="每日记录页面" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="DailyPageSettingBox" ItemsSource="{Binding DailyPages}" SelectedIndex="{Binding SettingsDailyPage, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="每日记录页面"/>
                 <CheckBox x:Name="DefaultWeightSettingBox" Content="新建摄入默认按重量计算" IsChecked="{Binding SettingsDefaultWeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <CheckBox x:Name="ProteinSettingBox" Content="每日记录显示并录入蛋白质" IsChecked="{Binding SettingsProteinEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="关闭后，新增摄入不记录蛋白质，历史快照保留；食物资料库仍保留营养来源。" Style="{StaticResource Caption}" Margin="0,0,0,8"/>
                 <TextBlock Text="发现新的手动食物资料时" Style="{StaticResource FieldLabel}"/><ComboBox x:Name="NewFoodPolicyBox" ItemsSource="{Binding NewFoodModes}" SelectedIndex="{Binding SettingsFoodMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="新资料入库方式"/>
                 <TextBlock Text="需要有效的每100克热量；不推算缺失资料，不覆盖已有食物。设置只影响后续操作，当前草稿和历史保持不变。" Style="{StaticResource Caption}" Margin="0,0,0,12"/>
                 <WrapPanel><Button x:Name="SaveSettingsButton" Content="保存录入设置" Command="{Binding SaveSettingsCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,10"/><Button x:Name="ReloadSettingsButton" Content="还原已保存设置" Command="{Binding ReloadSettingsCommand}" Margin="0,0,0,10"/></WrapPanel>

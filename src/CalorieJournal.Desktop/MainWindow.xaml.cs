@@ -14,12 +14,19 @@ public partial class MainWindow : Window
         MainTabs.Items.Remove(SettingsTab);
         MainTabs.Items.Add(SettingsTab);
         DataContext = viewModel;
+        EntriesGrid.Columns[2].Visibility = viewModel.ProteinVisibility;
+        viewModel.PropertyChanged += ProteinSettingChanged;
+        Closed += (_, _) => viewModel.PropertyChanged -= ProteinSettingChanged;
         viewModel.EntryValidationFailed += FocusMissingEntry;
         Closed += (_, _) => viewModel.EntryValidationFailed -= FocusMissingEntry;
         EntryDatePicker.SelectedDateChanged += (_, _) => viewModel.EntryDateInputValid = EntryDatePicker.SelectedDate is not null;
         EntryDatePicker.DateValidationError += (_, e) => { viewModel.EntryDateInputValid = false; e.ThrowException = false; };
         Activated += (_, _) => viewModel.RefreshClockDate();
-        Closing += (_, e) => { if (viewModel.IsBusy || !viewModel.CanClose()) e.Cancel = true; };
+        Closing += (_, e) => { if (!viewModel.IsBusy) SheetDailyPage.SaveActiveBeforeClose(); if (viewModel.IsBusy || !viewModel.CanClose()) e.Cancel = true; };
+    }
+    private void ProteinSettingChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.ProteinVisibility)) EntriesGrid.Columns[2].Visibility = ((MainViewModel)DataContext).ProteinVisibility;
     }
     private void DirectEnergyClicked(object sender, MouseButtonEventArgs e) => ((MainViewModel)DataContext).EnterDirectEnergy();
     private void DirectEnergyFocused(object sender, KeyboardFocusChangedEventArgs e) => ((MainViewModel)DataContext).EnterDirectEnergy();

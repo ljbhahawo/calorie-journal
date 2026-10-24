@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory)][string]$NewVersion,
-    [string]$OldVersion = '1.12.0',
+    [string]$OldVersion = '1.14.0',
     [Parameter(Mandatory)][string]$FixtureDatabase
 )
 $ErrorActionPreference = 'Stop'
@@ -10,13 +10,13 @@ $newRoot = Join-Path $projectRoot "artifacts/releases/$NewVersion"
 $oldRoot = Join-Path $projectRoot "artifacts/releases/$OldVersion"
 $newManifest = Get-Content -LiteralPath (Join-Path $newRoot 'manifest.json') -Raw | ConvertFrom-Json
 $oldManifest = Get-Content -LiteralPath (Join-Path $oldRoot 'manifest.json') -Raw | ConvertFrom-Json
-if ($newManifest.SchemaVersion -ne 8 -or $oldManifest.SchemaVersion -ne 7 -or $oldManifest.Stability -ne 'stable') { throw '此演练需要结构8新版和结构7旧稳定包。' }
+if ($newManifest.SchemaVersion -ne 9 -or $oldManifest.SchemaVersion -ne 8 -or $oldManifest.Stability -ne 'stable') { throw '此演练需要结构9新版和结构8旧稳定包。' }
 $fixture = [IO.Path]::GetFullPath($FixtureDatabase)
 if (-not $fixture.StartsWith((Join-Path $projectRoot 'workspace/tests') + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw '只允许workspace/tests中的明确测试库。' }
 $oldReportFile = Get-ChildItem -LiteralPath (Join-Path $projectRoot 'artifacts/test-results') -Filter "source_$($OldVersion)_*.json" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 $oldReport = Get-Content -LiteralPath $oldReportFile.FullName -Raw | ConvertFrom-Json
 if (-not $oldReport.Success) { throw '旧版源码验证未通过。' }
-$oldFixture = Get-ChildItem -LiteralPath (Join-Path $projectRoot ($oldReport.TestRoot + '/tests')) -Directory -Filter 'wpf_nutrition_*' | Select-Object -First 1
+$oldFixture = Get-ChildItem -LiteralPath (Join-Path $projectRoot ($oldReport.TestRoot + '/tests')) -Directory -Filter 'wpf_sheet_*' | Select-Object -First 1
 if (-not $oldFixture) { throw '缺少旧版实际测试库。' }
 $testRoot = Join-Path $projectRoot ('workspace/schema_rollback_' + [Guid]::NewGuid().ToString('N'))
 $dataRoot = Join-Path $testRoot 'data'
@@ -49,6 +49,7 @@ $newData = Export $newRoot $fixtureRoot 'new-explicit-test-inputs'
 if ($newData.Settings -eq $null -or $newData.Entries.Count -lt 2 -or $newData.BodyMeasurements.Count -lt 2 -or $newData.IntakeGoals.Count -lt 2 -or $newData.Exercises.Count -lt 2) { throw '测试库缺少目标、锻炼、身体记录、设置或摄入。' }
 if (@($newData.Entries | Where-Object { $null -ne $_.ProteinGramsHundredths }).Count -lt 2 -or @($newData.Entries | Where-Object { $null -ne $_.KilojoulesHundredthsSnapshot }).Count -lt 2) { throw '缺少实际蛋白质和千焦快照' }
 if ($newData.Settings.DailyRecordPage -ne 'sheet') { throw '缺少真实表格页面设置' }
+if ($newData.Settings.ProteinEnabled -ne $false) { throw '缺少实际关闭蛋白质的设置' }
 # 合并两组已经真实写入的明确测试输入，仅用于独立演练目录。
 $merged = $upgraded
 $merged.Foods = @(@($upgraded.Foods) + @($newData.Foods) | Group-Object Id | ForEach-Object { $_.Group[-1] })
@@ -99,7 +100,7 @@ if(($expected.Settings|ConvertTo-Json -Compress) -cne ($newArchive.Settings|Conv
 $returned = Export $newRoot $dataRoot 'returned-new'
 Same-Collections $expected $returned @('Foods','Meals','Entries','Portions','Templates','TemplateBatches','BodyMeasurements','IntakeGoals','Exercises')
 if(($expected.Settings|ConvertTo-Json -Compress) -cne ($returned.Settings|ConvertTo-Json -Compress)){throw '返回新版后设置不一致'}
-$result = @{Success=$true;From=$NewVersion;To=$OldVersion;Return=$NewVersion;ActuallyTestedSchemas=@(7,8);RequiresExplicitOldRestorePoint=$true;InvalidOldSnapshotDoesNotReplaceWorkingData=$true;OldViewMatchesChosenRestorePoint=$true;AllNewDataArchivedBeforeRollback=$true;AllNewDataRestoredOnReturn=$true;AllNineCollectionsIdentical=$true;NutritionFieldsIdentical=$true;PagePreferenceRetained=($returned.Settings.DailyRecordPage -eq 'sheet');RetainedProteinEntries=@($returned.Entries|Where-Object {$null -ne $_.ProteinGramsHundredths}).Count;RetainedKilojouleEntries=@($returned.Entries|Where-Object {$null -ne $_.KilojoulesHundredthsSnapshot}).Count;SettingsIdentical=$true;RetainedSettings=$returned.Settings;RetainedBodyMeasurements=$returned.BodyMeasurements.Count;RetainedIntakeGoals=$returned.IntakeGoals.Count;RetainedExercises=$returned.Exercises.Count;RetainedCurrentEntries=$returned.Entries.Count;RetainedPortions=$returned.Portions.Count;RetainedTemplates=$returned.Templates.Count;RetainedTemplateBatches=$returned.TemplateBatches.Count;OldVisibleEntries=$oldView.Entries.Count;OldRestorePoint=$old.ExportedAtUtc;TestRoot=$testRoot}
+$result = @{Success=$true;From=$NewVersion;To=$OldVersion;Return=$NewVersion;ActuallyTestedSchemas=@($oldManifest.SchemaVersion,$newManifest.SchemaVersion);RequiresExplicitOldRestorePoint=$true;InvalidOldSnapshotDoesNotReplaceWorkingData=$true;OldViewMatchesChosenRestorePoint=$true;AllNewDataArchivedBeforeRollback=$true;AllNewDataRestoredOnReturn=$true;AllNineCollectionsIdentical=$true;NutritionFieldsIdentical=$true;PagePreferenceRetained=($returned.Settings.DailyRecordPage -eq 'sheet');ProteinPreferenceRetained=($returned.Settings.ProteinEnabled -eq $false);RetainedProteinEntries=@($returned.Entries|Where-Object {$null -ne $_.ProteinGramsHundredths}).Count;RetainedKilojouleEntries=@($returned.Entries|Where-Object {$null -ne $_.KilojoulesHundredthsSnapshot}).Count;SettingsIdentical=$true;RetainedSettings=$returned.Settings;RetainedBodyMeasurements=$returned.BodyMeasurements.Count;RetainedIntakeGoals=$returned.IntakeGoals.Count;RetainedExercises=$returned.Exercises.Count;RetainedCurrentEntries=$returned.Entries.Count;RetainedPortions=$returned.Portions.Count;RetainedTemplates=$returned.Templates.Count;RetainedTemplateBatches=$returned.TemplateBatches.Count;OldVisibleEntries=$oldView.Entries.Count;OldRestorePoint=$old.ExportedAtUtc;TestRoot=$testRoot}
 $reportPath = Join-Path $projectRoot "artifacts/test-results/schema-rollback_$($NewVersion)_to_$($OldVersion).json"
 $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $reportPath -Encoding utf8
 $result | ConvertTo-Json -Depth 6

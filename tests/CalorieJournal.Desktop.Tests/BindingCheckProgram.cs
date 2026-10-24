@@ -52,6 +52,7 @@ public static class BindingCheckProgram
                     ("sheet", () => Sync(SheetBindingChecks.Verify), "wpf_sheet_*", ["nutrition"])
                     ,("form", () => Sync(FormExperienceChecks.Verify), null, ["bindings"])
                     ,("trend", () => Sync(BodyTrendChecks.Verify), null, ["bindings"])
+                    ,("sheet-interaction", () => Sync(SheetInteractionChecks.Verify), "wpf_sheet_interaction_*", ["sheet"])
                 };
                 var requested = args is ["--check", var name] ? name : args.Length == 0 ? "all" : throw new InvalidOperationException("未知WPF检查参数。");
                 var selected = new HashSet<string>();

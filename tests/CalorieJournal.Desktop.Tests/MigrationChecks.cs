@@ -16,7 +16,7 @@ internal static class MigrationChecks
         legacyDatabase = Path.GetFullPath(legacyDatabase);
         Assert.IsTrue(legacyDatabase.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
         var original = new SqliteJournalStore(legacyDatabase).ReadSnapshot();
-        Assert.IsTrue(original.SchemaVersion is >= 1 and <= 7, "必须使用实际旧版程序产生的数据库。");
+        Assert.IsTrue(original.SchemaVersion is >= 1 and <= 8, "必须使用实际旧版程序产生的数据库。");
         var package = JsonFiles.Read<FoodPackage>(Path.Combine(AppContext.BaseDirectory, "data/foods.json"));
         var healthy = Copy("healthy");
         healthy.Initialize(package);

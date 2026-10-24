@@ -40,12 +40,26 @@ public sealed class SettingsTests
         Assert.AreEqual("sheet", Open(root).Journal.Settings().DailyRecordPage);
         Assert.Throws<ValidationException>(() => journal.SaveSettings(JournalSettings.Default with { DailyRecordPage = "invalid" }));
         var backups = new BackupService(store, Path.Combine(root, "recovery")); var full = store.ReadSnapshot();
-        Assert.AreEqual(8, full.FormatVersion); Assert.Throws<ValidationException>(() => backups.Restore(full with { FormatVersion = 7, SchemaVersion = 7 }));
+        Assert.AreEqual(9, full.FormatVersion); Assert.Throws<ValidationException>(() => backups.Restore(full with { FormatVersion = 7, SchemaVersion = 7 }));
         var previous = full with { FormatVersion = 7, SchemaVersion = 7, Settings = full.Settings! with { DailyRecordPage = null } };
         var recovery = backups.Restore(previous); Assert.IsNull(journal.Settings().DailyRecordPage);
         backups.Restore(backups.Inspect(recovery)); Assert.AreEqual("sheet", journal.Settings().DailyRecordPage);
         Assert.AreEqual(JsonSerializer.Serialize(full.Foods), JsonSerializer.Serialize(store.ReadSnapshot().Foods));
         Assert.IsFalse(JsonSerializer.Serialize(JournalSettings.Default, JsonFiles.Options).Contains("DailyRecordPage"));
+    }
+    [TestMethod]
+    public void ProteinPreferencePreservesAllDataAndRequiresVersionNine()
+    {
+        var (root, store, journal) = Open(); var before = store.ReadSnapshot();
+        Assert.IsTrue(journal.Settings().RecordsProtein);
+        journal.SaveSettings(journal.Settings() with { ProteinEnabled = false });
+        Assert.IsFalse(Open(root).Journal.Settings().RecordsProtein);
+        var saved = store.ReadSnapshot(); var backups = new BackupService(store, Path.Combine(root, "recovery"));
+        Assert.Throws<ValidationException>(() => backups.Restore(saved with { FormatVersion = 8, SchemaVersion = 8 }));
+        var archive = backups.Restore(saved with { FormatVersion = 8, SchemaVersion = 8, Settings = saved.Settings! with { ProteinEnabled = null } });
+        Assert.IsTrue(journal.Settings().RecordsProtein); backups.Restore(backups.Inspect(archive)); Assert.IsFalse(journal.Settings().RecordsProtein);
+        CollectionAssert.AreEqual(before.Foods, store.ReadSnapshot().Foods);
+        Assert.IsFalse(JsonSerializer.Serialize(JournalSettings.Default, JsonFiles.Options).Contains("ProteinEnabled"));
     }
     [TestMethod]
     public void ManualDataDeduplicatesWithoutOverwritingAndCanSaveWithoutAdding()

@@ -8,7 +8,7 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 if ($OldVersion -notmatch '^\d+\.\d+\.\d+$') { throw '旧版必须是已验收稳定版本。' }
 $oldRoot = Join-Path $projectRoot "artifacts/releases/$OldVersion"
 $oldManifest = Get-Content -LiteralPath (Join-Path $oldRoot 'manifest.json') -Raw | ConvertFrom-Json
-if ($oldManifest.Stability -ne 'stable' -or $oldManifest.SchemaVersion -notin @(1,2,3,4,5,6,7)) { throw '此检查需要旧结构1至7稳定包。' }
+if ($oldManifest.Stability -ne 'stable' -or $oldManifest.SchemaVersion -notin @(1,2,3,4,5,6,7,8)) { throw '此检查需要旧结构1至8稳定包。' }
 $oldExe = Join-Path $oldRoot 'app/CalorieJournal.exe'
 if (-not $NewExecutable) { $NewExecutable = Join-Path $projectRoot 'src/CalorieJournal.Desktop/bin/Debug/net10.0-windows/CalorieJournal.exe' }
 if (-not $CheckExecutable) { $CheckExecutable = Join-Path $projectRoot 'tests/CalorieJournal.Desktop.Tests/bin/Debug/net10.0-windows/CalorieJournal.Desktop.Tests.exe' }
@@ -20,7 +20,7 @@ $oldSourceReport = Get-ChildItem -LiteralPath (Join-Path $projectRoot 'artifacts
 if (-not $oldSourceReport) { throw '请先对旧稳定包执行Verify-Source，产生实际旧版测试库。' }
 $oldSource = Get-Content -LiteralPath $oldSourceReport.FullName -Raw | ConvertFrom-Json
 if (-not $oldSource.Success -or $oldSource.Version -ne $OldVersion) { throw '旧版源码验证未通过。' }
-$fixtureFilter = if ($oldManifest.SchemaVersion -ge 7) { 'wpf_nutrition_*' } elseif ($oldManifest.SchemaVersion -ge 6) { 'wpf_personal_*' } elseif ($oldManifest.SchemaVersion -ge 5) { 'wpf_statistics_*' } elseif ($oldManifest.SchemaVersion -ge 3) { 'wpf_template_*' } elseif ($oldManifest.SchemaVersion -eq 2) { 'wpf_weight_*' } else { 'wpf_lookup_*' }
+$fixtureFilter = if ($oldManifest.SchemaVersion -ge 8) { 'wpf_sheet_*' } elseif ($oldManifest.SchemaVersion -ge 7) { 'wpf_nutrition_*' } elseif ($oldManifest.SchemaVersion -ge 6) { 'wpf_personal_*' } elseif ($oldManifest.SchemaVersion -ge 5) { 'wpf_statistics_*' } elseif ($oldManifest.SchemaVersion -ge 3) { 'wpf_template_*' } elseif ($oldManifest.SchemaVersion -eq 2) { 'wpf_weight_*' } else { 'wpf_lookup_*' }
 $oldFixture = Get-ChildItem -LiteralPath (Join-Path $projectRoot ($oldSource.TestRoot + '/tests')) -Directory -Filter $fixtureFilter | Select-Object -First 1
 if (-not $oldFixture) { throw '缺少已验证旧版源码产生的明确WPF测试库。' }
 Copy-Item -LiteralPath (Join-Path $oldFixture.FullName 'journal.db') -Destination (Join-Path $legacyRoot 'journal.db')
@@ -75,7 +75,7 @@ Invoke-App $NewExecutable @('--data-dir',$appRoot,'--startup-check')
 $afterPath = Join-Path $testRoot 'upgraded.calorie-backup.json'
 Invoke-App $NewExecutable @('--data-dir',$appRoot,'--export-backup',$afterPath)
 $after = Get-Content -LiteralPath $afterPath -Raw | ConvertFrom-Json
-if ($after.SchemaVersion -ne 8 -or $after.FormatVersion -ne 8 -or $after.Settings.DailyRecordPage) { throw '新程序迁移版本或默认页面不符。' }
+if ($after.SchemaVersion -ne 9 -or $after.FormatVersion -ne 9 -or $null -ne $after.Settings.ProteinEnabled -or ($oldManifest.SchemaVersion -lt 8 -and $after.Settings.DailyRecordPage)) { throw '新程序迁移版本或默认设置不符。' }
 if ($oldManifest.SchemaVersion -lt 6 -and ($after.IntakeGoals.Count -ne 0 -or $after.Exercises.Count -ne 0)) { throw '旧结构目标与锻炼应为空。' }
 if ($oldManifest.SchemaVersion -ge 6) { foreach ($collection in @('IntakeGoals','Exercises')) { if (($oldSnapshot.$collection | ConvertTo-Json -Depth 20 -Compress) -cne ($after.$collection | ConvertTo-Json -Depth 20 -Compress)) { throw "迁移改变$collection" } } }
 if ((@($oldSnapshot.BodyMeasurements) | ConvertTo-Json -Depth 16 -Compress) -cne (@($after.BodyMeasurements) | ConvertTo-Json -Depth 16 -Compress) -and $oldManifest.SchemaVersion -ge 5) { throw '迁移改变已有身体记录。' }
@@ -103,6 +103,6 @@ foreach ($entry in $oldSnapshot.Entries) {
 }
 if ((@($oldSnapshot.Portions) | ConvertTo-Json -Depth 16 -Compress) -cne (@($after.Portions) | ConvertTo-Json -Depth 16 -Compress) -and $oldManifest.SchemaVersion -ge 2) { throw '迁移改变旧份量。' }
 if($oldManifest.SchemaVersion -ge 3){foreach($collection in @('Templates','TemplateBatches')){if(($oldSnapshot.$collection|ConvertTo-Json -Depth 20 -Compress) -cne ($after.$collection|ConvertTo-Json -Depth 20 -Compress)){throw "迁移改变$collection"}}}
-$result = @{Success=$true;TestRoot=$testRoot;OldVersion=$OldVersion;ActuallyTestedSchemas=@($oldManifest.SchemaVersion,8);ActualOldProgramExport=$true;ActualNewProgramMigration=$true;UserModifiedAndDeletedFoodsRetained=$true;OldProgramRefusesNewSchemaWithoutChangingBytes=$true;OldProgramReadsUpgradeDatabase=$true;OldProgramRestoresUpgradeBackup=$true;OriginalFoodMealEntryFieldsRetained=$true;ExistingBodyGoalsAndExercisesRetained=$true;HistoricalNutritionSnapshotsRetained=$true;OnlyUnmodifiedBuiltinProteinEnriched=$true;DefaultClassicPage=$true;BackupFailurePreservesBytes=$true;RealSqliteFailureRollsBackSchemaAndData=$true}
+$result = @{Success=$true;TestRoot=$testRoot;OldVersion=$OldVersion;ActuallyTestedSchemas=@($oldManifest.SchemaVersion,9);ActualOldProgramExport=$true;ActualNewProgramMigration=$true;UserModifiedAndDeletedFoodsRetained=$true;OldProgramRefusesNewSchemaWithoutChangingBytes=$true;OldProgramReadsUpgradeDatabase=$true;OldProgramRestoresUpgradeBackup=$true;OriginalFoodMealEntryFieldsRetained=$true;ExistingBodyGoalsAndExercisesRetained=$true;HistoricalNutritionSnapshotsRetained=$true;OnlyUnmodifiedBuiltinProteinEnriched=$true;PagePreferenceRetained=$true;ProteinDefaultsEnabled=$true;BackupFailurePreservesBytes=$true;RealSqliteFailureRollsBackSchemaAndData=$true}
 $result | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $testRoot 'result.json') -Encoding utf8
 $result | ConvertTo-Json -Depth 5
