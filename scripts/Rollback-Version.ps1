@@ -41,7 +41,9 @@ if (Test-Path -LiteralPath $pointer) {
 if ($current.Manifest.SchemaVersion -ne $target.Manifest.SchemaVersion -and -not $SnapshotPath) { throw '数据格式不兼容，必须明确选择目标旧版可读取的完整备份。' }
 if ($SnapshotPath) {
     $SnapshotPath = (Resolve-Path -LiteralPath $SnapshotPath).Path
-    if ((Get-Item -LiteralPath $SnapshotPath).Length -gt 52428800) { throw '备份超过50MB限制。' }
+    $maximumBytes = if ($null -eq $target.Manifest.MaximumBackupBytes) { 52428800L } else { [long]$target.Manifest.MaximumBackupBytes }
+    if ($maximumBytes -lt 1 -or $maximumBytes -gt 1073741824L) { throw '目标程序的备份容量声明无效，已停止恢复。' }
+    if ((Get-Item -LiteralPath $SnapshotPath).Length -gt $maximumBytes) { throw "备份超过目标程序$($maximumBytes / 1048576)MiB限制。" }
     $snapshotInfo = Get-Content -LiteralPath $SnapshotPath -Raw | ConvertFrom-Json
     if ($snapshotInfo.SchemaVersion -ne $target.Manifest.SchemaVersion -or $snapshotInfo.FormatVersion -ne $target.Manifest.BackupFormatVersion) { throw '所选备份与目标版本不兼容。' }
     Write-Host "恢复点：$($snapshotInfo.ExportedAtUtc)；当前工作视图将恢复到该备份，之后的记录保留在回滚前归档中。"

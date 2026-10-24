@@ -273,6 +273,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (e.PropertyName is nameof(Weight) or nameof(WeightUnit) or nameof(WeightMode) or nameof(UnitProtein) or nameof(DirectProtein)) OnPropertyChanged(nameof(ProteinPreview));
         if (e.PropertyName == nameof(WeightMode)) OnPropertyChanged(nameof(DirectProteinEnabled));
         if (e.PropertyName is nameof(UnitKcal) or nameof(EntryEnergyUnit)) OnPropertyChanged(nameof(UnitEnergyPreview));
+        if (e.PropertyName is nameof(EntryDate) or nameof(EntryMeal) or nameof(EntryName) or nameof(Weight) or nameof(UnitKcal) or nameof(DirectKcal) or nameof(WeightMode)) EntryValidationMessage = "";
         if (e.PropertyName is nameof(FoodUnitKcal) or nameof(FoodEnergyUnit)) OnPropertyChanged(nameof(FoodEnergyPreview));
         if (loading) return;
         TrackWeightChange(e.PropertyName);
@@ -407,6 +408,7 @@ public sealed partial class MainViewModel : ObservableObject
         loading = true;
         var mealId = EntryMeal?.Id;
         editingEntry = null; ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; sourceUnitProtein = null; savedSource = "用户录入";
+        EntryDateInputValid = true; EntryValidationMessage = "";
         EntryDate = SelectedDate; EntryTime = ""; EntryName = ""; EntryPreparation = ""; EntryNote = "";
         DirectKcal = ""; Weight = ""; UnitKcal = ""; WeightUnit = "g"; WeightMode = journal.Settings().DefaultWeightMode; SetWeightCalculation(null);
         EntryEnergyUnit = "大卡"; DirectEnergyUnit = "大卡"; UnitProtein = ""; DirectProtein = "";
@@ -475,6 +477,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void SaveEntry()
     {
+        ValidateRequiredEntryFields();
         Validation.Require(EntryMeal is not null, "请选择餐次。");
         var source = savedSource;
         if (sourceUnitKcal is not null && WeightMode && ReadUnitKcal() != sourceUnitKcal && !source.Contains("本次单位热量已调整", StringComparison.Ordinal)) source += " · 本次单位热量已调整";

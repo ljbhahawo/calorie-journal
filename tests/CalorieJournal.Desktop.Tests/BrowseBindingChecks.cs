@@ -56,7 +56,7 @@ internal static class BrowseBindingChecks
         var add = ListedButton(list, vm.BrowseDays[1], "AddListedEntryButton"); Click(add);
         Assert.AreEqual(DateTime.Today.AddDays(-1), vm.EntryDate);
         var rice = journal.Foods("长粒白米饭").Single();
-        ((ComboBox)window.FindName("FoodChoiceBox")).SelectedItem = vm.FoodChoices.Single(x => x.Id == rice.Id);
+        vm.ChosenFood = vm.FoodChoices.Single(x => x.Id == rice.Id);
         ((TextBox)window.FindName("WeightBox")).Text = "150"; Pump(); Click(window, "SaveEntryButton");
         var entry = journal.Entries(today.AddDays(-1)).Single();
         Assert.AreEqual(195m, entry.EnergyKcal);

@@ -50,6 +50,8 @@ public static class BindingCheckProgram
                     ("personal", () => Sync(PersonalBindingChecks.Verify), "wpf_personal_*", ["statistics"]),
                     ("nutrition", () => Sync(NutritionBindingChecks.Verify), "wpf_nutrition_*", ["personal"]),
                     ("sheet", () => Sync(SheetBindingChecks.Verify), "wpf_sheet_*", ["nutrition"])
+                    ,("form", () => Sync(FormExperienceChecks.Verify), null, ["bindings"])
+                    ,("trend", () => Sync(BodyTrendChecks.Verify), null, ["bindings"])
                 };
                 var requested = args is ["--check", var name] ? name : args.Length == 0 ? "all" : throw new InvalidOperationException("未知WPF检查参数。");
                 var selected = new HashSet<string>();

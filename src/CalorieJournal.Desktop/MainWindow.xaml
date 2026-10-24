@@ -37,33 +37,37 @@
               </StackPanel>
               <ScrollViewer x:Name="EntryFormScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20,0,17,0">
                 <StackPanel>
-                  <TextBlock Text="记录日期" Style="{StaticResource FieldLabel}" />
+                  <TextBlock Text="记录日期 · 必填" Style="{StaticResource FieldLabel}" />
                   <DatePicker x:Name="EntryDatePicker" SelectedDate="{Binding EntryDate}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" SelectedDateFormat="Short" AutomationProperties.Name="记录日期" />
                   <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,10,0"><TextBlock Text="餐次" Style="{StaticResource FieldLabel}" /><ComboBox x:Name="EntryMealBox" ItemsSource="{Binding EntryMeals}" SelectedItem="{Binding EntryMeal}" DisplayMemberPath="Name" AutomationProperties.Name="餐次" /></StackPanel>
-                    <StackPanel Grid.Column="1"><TextBlock Text="时间 · 可选 HH:mm" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryTimeBox" Text="{Binding EntryTime, UpdateSourceTrigger=PropertyChanged}" MaxLength="5" AutomationProperties.Name="时间" /></StackPanel>
+                    <StackPanel Margin="0,0,10,0"><TextBlock Text="餐次 · 必填" Style="{StaticResource FieldLabel}" /><ComboBox x:Name="EntryMealBox" ItemsSource="{Binding EntryMeals}" SelectedItem="{Binding EntryMeal}" DisplayMemberPath="Name" AutomationProperties.Name="餐次" /></StackPanel>
+                    <StackPanel Grid.Column="1"><TextBlock Text="时间 · 选填 HH:mm" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryTimeBox" Text="{Binding EntryTime, UpdateSourceTrigger=PropertyChanged}" MaxLength="5" AutomationProperties.Name="时间" /></StackPanel>
                   </Grid>
-                  <TextBlock Text="从食物库查找" Style="{StaticResource FieldLabel}" />
-                  <TextBox x:Name="EntrySearchBox" Text="{Binding EntryFoodQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="支持中文、别名和英文；多个词以空格分隔" AutomationProperties.Name="搜索食物库" Margin="0,5,0,5" />
-                  <ComboBox x:Name="FoodChoiceBox" ItemsSource="{Binding FoodChoices}" SelectedItem="{Binding ChosenFood}" DisplayMemberPath="Name" ToolTip="选择后带入单位热量；修改只影响本次记录" AutomationProperties.Name="选择食物" />
-                  <TextBlock Text="食物名称" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryNameBox" Text="{Binding EntryName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" AutomationProperties.Name="食物名称" />
-                  <TextBlock Text="生熟、品牌或加工状态" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryPreparationBox" Text="{Binding EntryPreparation, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" AutomationProperties.Name="食物状态" />
+                  <TextBlock Text="搜索个人食物库 · 选填" Style="{StaticResource FieldLabel}" />
+                  <TextBox x:Name="EntrySearchBox" Text="{Binding EntryFoodQuery, UpdateSourceTrigger=PropertyChanged}" TextChanged="EntrySearchChanged" GotKeyboardFocus="EntrySearchFocused" PreviewKeyDown="EntrySearchKeyDown" LostKeyboardFocus="EntrySearchFocusLeft" ToolTip="输入中文、别名或英文，选择下拉候选；可清空重搜" AutomationProperties.Name="搜索食物库" Margin="0,5,0,13" />
+                  <Popup x:Name="EntrySearchPopup" PlacementTarget="{Binding ElementName=EntrySearchBox}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True"><Border Background="White" BorderBrush="{StaticResource Accent}" BorderThickness="1" Padding="6" MinWidth="278" MaxWidth="440"><StackPanel>
+                    <TextBlock Text="个人食物库 · Enter或点击候选引用" Style="{StaticResource Caption}" Margin="4"/>
+                    <ListBox x:Name="FoodChoiceBox" ItemsSource="{Binding FoodChoices}" MaxHeight="250" PreviewKeyDown="EntryChoiceKeyDown" PreviewMouseLeftButtonUp="EntryChoiceMouseUp" LostKeyboardFocus="EntrySearchFocusLeft" AutomationProperties.Name="食物搜索候选"><ListBox.ItemTemplate><DataTemplate><StackPanel Margin="4"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Text="{Binding Preparation}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding OriginalName}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding KcalPer100g, StringFormat={}{0:F2} 大卡/100g}" Style="{StaticResource Caption}"/><TextBlock Text="{Binding SourceSummary}" TextTrimming="CharacterEllipsis" MaxWidth="400" ToolTip="{Binding SourceSummary}" Style="{StaticResource Caption}"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox>
+                    <TextBlock x:Name="EntrySearchEmpty" Text="没有匹配食物，可换词搜索或手动填写下方资料。"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding FoodChoices.Count}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                  </StackPanel></Border></Popup>
+                  <TextBlock Text="食物名称 · 必填" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryNameBox" Text="{Binding EntryName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" AutomationProperties.Name="食物名称" />
+                  <TextBlock Text="生熟、品牌或加工状态 · 选填" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryPreparationBox" Text="{Binding EntryPreparation, UpdateSourceTrigger=PropertyChanged}" MaxLength="200" AutomationProperties.Name="食物状态" />
                   <Button Content="改为手动来源" Command="{Binding ClearFoodCommand}" HorizontalAlignment="Left" FontSize="12" MinHeight="30" Padding="10,5" Margin="0,0,0,14" />
                   <CheckBox x:Name="WeightModeBox" Content="按重量计算热量" IsChecked="{Binding WeightMode}" />
                   <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="78" /></Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,10,0"><TextBlock Text="重量" Style="{StaticResource FieldLabel}" /><TextBox x:Name="WeightBox" Text="{Binding Weight, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="重量" /></StackPanel>
-                    <StackPanel Grid.Column="1"><TextBlock Text="单位" Style="{StaticResource FieldLabel}" /><ComboBox x:Name="WeightUnitBox" ItemsSource="{Binding WeightUnits}" SelectedItem="{Binding WeightUnit}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="重量单位" /></StackPanel>
+                    <StackPanel Margin="0,0,10,0"><TextBlock Text="可食重量 · 重量模式必填" Style="{StaticResource FieldLabel}" /><TextBox x:Name="WeightBox" Text="{Binding Weight, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="重量" /></StackPanel>
+                    <StackPanel Grid.Column="1"><TextBlock Text="单位 · 必选" Style="{StaticResource FieldLabel}" /><ComboBox x:Name="WeightUnitBox" ItemsSource="{Binding WeightUnits}" SelectedItem="{Binding WeightUnit}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="重量单位" /></StackPanel>
                   </Grid>
-                  <TextBlock Text="每100克能量" Style="{StaticResource FieldLabel}"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="82"/></Grid.ColumnDefinitions>
+                  <TextBlock Text="每100克能量 · 重量模式必填" Style="{StaticResource FieldLabel}"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="82"/></Grid.ColumnDefinitions>
                     <TextBox x:Name="UnitKcalBox" Text="{Binding UnitKcal, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="每100克能量" Margin="0,0,8,8"/>
                     <ComboBox x:Name="EntryEnergyUnitBox" Grid.Column="1" ItemsSource="{Binding EnergyUnits}" SelectedItem="{Binding EntryEnergyUnit}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="每100克能量单位"/>
                   </Grid><TextBlock Text="{Binding UnitEnergyPreview}" Style="{StaticResource Caption}"/>
                   <TextBlock Text="每100克蛋白质 · g · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="UnitProteinBox" Text="{Binding UnitProtein, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding WeightMode}" AutomationProperties.Name="每100克蛋白质g"/>
                   <TextBlock Text="{Binding WeightCalculationDescription}" Style="{StaticResource Caption}" Margin="0,0,0,8"/><Button x:Name="WeightConversionButton" Content="换算可食重量 / 常用份量" Command="{Binding OpenWeightConversionCommand}" IsEnabled="{Binding WeightMode}" HorizontalAlignment="Left" Margin="0,0,0,10"/>
                   <Button x:Name="OpenTemplatesButton" Content="餐食模板 · 整餐核对" Command="{Binding OpenTemplatesCommand}" HorizontalAlignment="Left" Margin="0,0,0,14"/>
-                  <TextBlock Text="直接输入本项热量 · 点击后切换模式" Style="{StaticResource FieldLabel}"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="82"/></Grid.ColumnDefinitions>
+                  <TextBlock Text="本项热量 · 直接模式必填 · 点击切换" Style="{StaticResource FieldLabel}"/><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="82"/></Grid.ColumnDefinitions>
                     <TextBox x:Name="DirectKcalBox" Text="{Binding DirectKcal, UpdateSourceTrigger=PropertyChanged}" PreviewMouseLeftButtonDown="DirectEnergyClicked" GotKeyboardFocus="DirectEnergyFocused" AutomationProperties.Name="直接输入本项热量" Margin="0,0,8,8"/>
                     <ComboBox x:Name="DirectEnergyUnitBox" Grid.Column="1" ItemsSource="{Binding EnergyUnits}" SelectedItem="{Binding DirectEnergyUnit}" AutomationProperties.Name="本项热量单位"/>
                   </Grid><TextBlock Text="本项蛋白质 · g · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="DirectProteinBox" Text="{Binding DirectProtein, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DirectProteinEnabled}" AutomationProperties.Name="本项蛋白质g"/>
@@ -73,12 +77,13 @@
                   <TextBlock Text="备注 · 可选" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryNoteBox" Text="{Binding EntryNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60" MaxLength="1000" TextWrapping="Wrap" AutomationProperties.Name="摄入备注" />
                 </StackPanel>
               </ScrollViewer>
-              <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="20,14">
+              <Border Grid.Row="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="20,14"><StackPanel>
+                <TextBlock x:Name="EntryValidationText" Text="{Binding EntryValidationMessage}" Foreground="#A44036" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                  <Button x:Name="SaveEntryButton" Content="保存摄入" Command="{Binding SaveEntryCommand}" Style="{StaticResource PrimaryButton}" />
+                  <Button x:Name="SaveEntryButton" Content="保存摄入" Command="{Binding SaveEntryCommand}" Click="ValidateEntryDateInput" Style="{StaticResource PrimaryButton}" />
                   <Button x:Name="NewEntryButton" Grid.Column="1" Content="新建 / 取消" Command="{Binding NewEntryCommand}" Margin="0" ToolTip="放弃当前修改并新建记录" />
                 </Grid>
-              </Border>
+              </StackPanel></Border>
             </Grid>
           </Border>
           <Grid Grid.Column="2">
@@ -355,9 +360,9 @@
               <DatePicker x:Name="BodyFromPicker" SelectedDate="{Binding BodyFrom}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="128" Margin="0,0,6,8" AutomationProperties.Name="身体查询开始日期"/>
               <DatePicker x:Name="BodyToPicker" SelectedDate="{Binding BodyTo}" DisplayDateEnd="{Binding TodayDate, Mode=OneWay}" Width="128" Margin="0,0,6,8" AutomationProperties.Name="身体查询结束日期"/>
               <Button x:Name="QueryBodyButton" Content="查询" Command="{Binding QueryBodyCommand}" Margin="0,0,0,8"/>
-            </WrapPanel><TextBlock Text="{Binding BodySummary}" TextWrapping="Wrap" Foreground="{StaticResource Accent}" Margin="0,0,0,10"/></StackPanel>
-            <TextBlock Grid.Row="1" Text="BMI为kg÷m²，仅显示数值。代谢参考为Mifflin–St Jeor静息估算（原研究19–78岁），非实测值或每日摄入目标；资料不全时未估算。" Style="{StaticResource Caption}" Margin="0,0,0,10"/>
-            <DataGrid x:Name="BodyGrid" Grid.Row="2" ItemsSource="{Binding BodyRows}" SelectedItem="{Binding SelectedBody}" MinHeight="70" AutomationProperties.Name="身体测量历史"><DataGrid.Columns>
+            </WrapPanel><TextBlock Text="{Binding BodySummary}" TextWrapping="Wrap" Foreground="{StaticResource Accent}" Margin="0,0,0,10"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding SelectedIndex, ElementName=BodyViews}" Value="1"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></StackPanel>
+            <TextBlock Grid.Row="1" Text="BMI为kg÷m²，仅显示数值。代谢参考为Mifflin–St Jeor静息估算（原研究19–78岁），非实测值或每日摄入目标；资料不全时未估算。" Margin="0,0,0,10"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Style.Triggers><DataTrigger Binding="{Binding SelectedIndex, ElementName=BodyViews}" Value="1"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+            <TabControl x:Name="BodyViews" Grid.Row="2" MinHeight="70"><TabItem Header="测量明细"><DataGrid x:Name="BodyGrid" ItemsSource="{Binding BodyRows}" SelectedItem="{Binding SelectedBody}" MinHeight="70" AutomationProperties.Name="身体测量历史"><DataGrid.Columns>
               <DataGridTextColumn Header="日期" Binding="{Binding Date, StringFormat=yyyy-MM-dd}" Width="108"/>
               <DataGridTextColumn Header="体重 kg" Binding="{Binding WeightKg, StringFormat=F2}" Width="82"/>
               <DataGridTextColumn Header="BMI" Binding="{Binding BmiText}" Width="85"/>
@@ -367,7 +372,11 @@
               <DataGridTextColumn Header="公式" Binding="{Binding FormulaSexText}" Width="85"/>
               <DataGridTextColumn Header="腰围 cm" Binding="{Binding WaistCm, StringFormat=F1, TargetNullValue=—}" Width="85"/>
               <DataGridTextColumn Header="备注" Binding="{Binding Note}" Width="160"/>
-            </DataGrid.Columns></DataGrid>
+            </DataGrid.Columns></DataGrid></TabItem><TabItem x:Name="BodyTrendTab" Header="体重与腰围趋势"><ScrollViewer x:Name="BodyTrendScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="6,10">
+              <TextBlock Text="圆点为实际测量，按真实日期间隔排列；连线不代表额外测量。未测不补零，腰围缺失处断线。两图纵轴分别缩放，请按单位和数值核对明细。" Style="{StaticResource Caption}" Margin="0,0,0,10"/>
+              <local:BodyTrendChart x:Name="BodyWeightChart" Records="{Binding BodyRows}" Height="160" AutomationProperties.Name="体重趋势kg，数值可在测量明细核对"/>
+              <local:BodyTrendChart x:Name="BodyWaistChart" Records="{Binding BodyRows}" Waist="True" Height="160" Margin="0,12,0,0" AutomationProperties.Name="腰围趋势cm，缺失不计为零"/>
+            </StackPanel></ScrollViewer></TabItem></TabControl>
             <StackPanel Grid.Row="3"><WrapPanel Margin="0,10,0,0"><Button x:Name="EditBodyButton" Content="修改身体记录" Command="{Binding EditBodyCommand}"/><Button x:Name="DeleteBodyButton" Content="删除身体记录" Command="{Binding DeleteBodyCommand}" Style="{StaticResource DangerButton}"/></WrapPanel>
               <TextBlock Text="公式：CDC BMI · Mifflin等1990，PMID 2305711；详细来源见包内使用说明。" Style="{StaticResource Caption}"/>
             </StackPanel>

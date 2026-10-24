@@ -53,7 +53,7 @@
                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
           <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
-            <Button x:Name="ClearTextButton" Grid.Column="1" Content="×" Width="26" Height="28" MinHeight="0" Margin="0,3,4,3" Padding="0" VerticalAlignment="Top" Focusable="False" IsTabStop="False" ToolTip="清空内容" AutomationProperties.Name="清空内容" Command="{x:Static local:TextInputCommands.Clear}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"/>
+            <Button x:Name="ClearTextButton" Grid.Column="1" Content="×" Width="26" Height="28" MinHeight="0" Margin="0,3,4,3" Padding="0" VerticalAlignment="Center" Focusable="False" IsTabStop="False" ToolTip="清空内容" AutomationProperties.Name="清空内容" Command="{x:Static local:TextInputCommands.Clear}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"/>
           </Grid>
         </Border>
         <ControlTemplate.Triggers>

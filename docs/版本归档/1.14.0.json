@@ -1,0 +1,58 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.14.0",
+  "Success": true,
+  "VerificationDate": "2026-10-24",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 8,
+  "BackupFormatVersion": 8,
+  "FoodPackageVersion": "usda-sr-2018-04.zh.1",
+  "ChineseIndexVersion": "usda-zh-2026-10-23.3",
+  "ProteinSupplementVersion": "protein-2026-10-23.1",
+  "Package": {
+    "Bytes": 69738678,
+    "Sha256": "3CFABEA2E3D3419A836606248F21CEC69DA7D8588EBAE8A0D2EAB0ADB1C9B021",
+    "FileName": "每日热量记录_1.14.0_win-x64.zip"
+  },
+  "Checks": {
+    "EmptyDateRejected": true,
+    "LargeExplicitSnapshotRoundTrip": true,
+    "PreviousStablePackagesUnchanged": true,
+    "LargeSnapshotRecords": 14000,
+    "PreviousStablePackageCount": 16,
+    "BodyActualDates": true,
+    "BodyCrudRestoreAndRestart": true,
+    "PersonalLibrarySearchCandidates": true,
+    "RollbackTo": "1.13.0",
+    "RequiredFieldFocusAndScroll": true,
+    "ExistingFoodCatalogsUnchanged": true,
+    "FormLayoutChecks": 8,
+    "ArchivedSourceRebuild": true,
+    "ExplicitZeroAccepted": true,
+    "AllNewDataArchivedAndRestored": true,
+    "ActuallyTestedRollbackSchemas": [
+      8
+    ],
+    "ClearButtonsCentered": true,
+    "WpfLayoutChecks": 452,
+    "DependencyLocksUnchanged": true,
+    "SettingsRetained": true,
+    "CompatibleProgramRollback": true,
+    "BusinessAndRealSqliteTestsPassed": 83,
+    "LargeSnapshotBytes": 65600395,
+    "RealDesktopOperations": true,
+    "WaistUnknownDistinctFromZero": true,
+    "BodyTrendLayoutChecks": 12,
+    "AllNineCollectionsIdentical": true,
+    "SelfContainedStartupAndBackupRestore": true,
+    "ChineseQueryCasesPassed": 140
+  },
+  "EnvironmentLimits": {
+    "CrossMonitorDpiSwitchTested": false,
+    "StatisticsPerformanceRemeasured": false,
+    "OneGiBActualFileTested": false,
+    "EmptyDependencyCacheTested": false,
+    "ActualMonitorDpiX": 144,
+    "OtherCleanWindowsMachineTested": false
+  }
+}

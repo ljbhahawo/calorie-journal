@@ -1,5 +1,7 @@
 using System.IO;
 using System.Windows.Controls;
+using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 using CalorieJournal.Core;
 using CalorieJournal.Desktop;
@@ -51,8 +53,9 @@ public sealed class BindingTests
         Assert.HasCount(1, store.ReadSnapshot().Entries);
         Assert.IsTrue(vm.Status.Contains("请填写") || vm.Status.Contains("有效数字"));
 
-        var choice = (ComboBox)window.FindName("FoodChoiceBox");
+        var choice = (ListBox)window.FindName("FoodChoiceBox");
         choice.SelectedItem = vm.FoodChoices.Single(x => x.Name == "长粒白米饭（熟）"); Pump();
+        choice.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window), 0, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent }); Pump();
         Assert.IsTrue(vm.WeightMode);
         ((TextBox)window.FindName("WeightBox")).Text = "150"; Pump();
         Assert.IsTrue(vm.EnergyPreview.Contains("195.0"));
