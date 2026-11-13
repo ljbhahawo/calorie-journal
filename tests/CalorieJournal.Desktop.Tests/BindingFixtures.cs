@@ -1,9 +1,12 @@
 using System.IO;
+using System.Windows.Controls;
 
 namespace CalorieJournal.Desktop.Tests;
 
 internal static class BindingFixtures
 {
+    public static TextBox EntryName(MainWindow window) => (TextBox)((FoodNameInput)window.FindName("EntryNameBox")).FindName("NameInput");
+
     private static readonly Dictionary<string, string> Paths = [];
     public static string Get(string name) => Paths.TryGetValue(name, out var path) ? path : throw new InvalidOperationException($"本次运行未生成{name}资料，请执行明确的前置检查。");
     public static void Register(string name, string pattern, HashSet<string> before)

@@ -25,7 +25,7 @@ internal static class BrowseBindingChecks
         var vm = new MainViewModel(journal, new BackupService(store, Path.Combine(directory, "recovery")), directory);
         var window = new MainWindow(vm); window.Show(); Pump();
         var datePicker = (DatePicker)window.FindName("SelectedDatePicker");
-        var name = (TextBox)window.FindName("EntryNameBox");
+        var name = BindingFixtures.EntryName(window);
         var energy = (TextBox)window.FindName("DirectKcalBox");
         name.Text = "连续列表明确测试输入"; energy.Text = "80"; Pump();
         Assert.IsFalse(((Button)window.FindName("NextDayButton")).IsEnabled);
@@ -56,7 +56,7 @@ internal static class BrowseBindingChecks
         var add = ListedButton(list, vm.BrowseDays[1], "AddListedEntryButton"); Click(add);
         Assert.AreEqual(DateTime.Today.AddDays(-1), vm.EntryDate);
         var rice = journal.Foods("长粒白米饭").Single();
-        vm.ChosenFood = vm.FoodChoices.Single(x => x.Id == rice.Id);
+        vm.UseFood(rice);
         ((TextBox)window.FindName("WeightBox")).Text = "150"; Pump(); Click(window, "SaveEntryButton");
         var entry = journal.Entries(today.AddDays(-1)).Single();
         Assert.AreEqual(195m, entry.EnergyKcal);

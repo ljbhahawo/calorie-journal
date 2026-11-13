@@ -30,20 +30,41 @@ internal static class FormExperienceChecks
         var date = (DatePicker)window.FindName("EntryDatePicker"); date.SelectedDate = null; Pump(); Save();
         Assert.IsTrue(date.IsKeyboardFocusWithin); Assert.IsTrue(vm.EntryValidationMessage.Contains("日期")); Assert.HasCount(2, store.ReadSnapshot().Entries);
         date.SelectedDate = DateTime.Today; vm.NewEntryCommand.Execute(null); Pump();
-        var search = (TextBox)window.FindName("EntrySearchBox"); search.BringIntoView(); search.Focus(); search.Text = "米饭"; Pump();
-        var popup = (Popup)window.FindName("EntrySearchPopup"); var choices = (ListBox)window.FindName("FoodChoiceBox");
-        Assert.IsTrue(popup.IsOpen); Assert.IsGreaterThan(0, choices.Items.Count); Assert.AreEqual("", vm.EntryName);
-        Press(search, Key.Down); Assert.AreEqual("", vm.EntryName); Press(choices, Key.Escape); Assert.IsFalse(popup.IsOpen); Assert.AreEqual("", vm.EntryName);
-        search.Focus(); search.Text = "长粒白米饭"; Pump(); Press(search, Key.Down); Press(choices, Key.Enter);
-        Assert.AreEqual("长粒白米饭（熟）", vm.EntryName); Assert.IsFalse(popup.IsOpen); Assert.IsTrue(vm.EntrySource.Contains("USDA")); Assert.HasCount(2, store.ReadSnapshot().Entries);
-        search.Focus(); search.Text = "明确不存在的食物关键词"; Pump(); Assert.IsTrue(popup.IsOpen); Assert.AreEqual(0, choices.Items.Count); Assert.IsTrue(((TextBlock)window.FindName("EntrySearchEmpty")).IsVisible); Press(search, Key.Escape);
+        var input = (FoodNameInput)window.FindName("EntryNameBox");
+        var search = BindingFixtures.EntryName(window); search.BringIntoView(); search.Focus(); search.Text = "米饭"; Pump();
+        var popup = (Popup)input.FindName("SuggestionsPopup"); var choices = (ListBox)input.FindName("SuggestionsList");
+        Assert.IsTrue(popup.IsOpen); Assert.IsGreaterThan(0, choices.Items.Count); Assert.AreEqual("米饭", vm.EntryName);
+        Assert.AreEqual("", vm.UnitKcal); Assert.AreEqual(-1, choices.SelectedIndex);
+        Press(search, Key.Down); Assert.AreEqual(0, choices.SelectedIndex); Assert.IsTrue(search.IsKeyboardFocused);
+        Assert.AreEqual("米饭", vm.EntryName); Press(search, Key.Escape); Assert.IsFalse(popup.IsOpen); Assert.AreEqual("米饭", vm.EntryName);
+        search.Text = "长粒白米饭"; Pump(); Press(search, Key.Down); Press(search, Key.Enter);
+        var rice = journal.Foods("长粒白米饭").Single();
+        Assert.AreEqual(rice.Name, vm.EntryName); Assert.IsFalse(popup.IsOpen); Assert.IsTrue(vm.EntrySource.Contains("USDA"));
+        Assert.AreEqual("130.00", vm.UnitKcal); Assert.IsTrue(vm.WeightMode); Assert.HasCount(2, store.ReadSnapshot().Entries);
+        search.Text = "明确不存在的食物关键词"; Pump();
+        Assert.IsTrue(popup.IsOpen); Assert.AreEqual(0, choices.Items.Count); Assert.IsTrue(((TextBlock)input.FindName("NoMatches")).IsVisible);
+        Assert.AreEqual("用户录入", vm.EntrySource); Assert.AreEqual("明确不存在的食物关键词", vm.EntryName);
+        search.ApplyTemplate();
+        ((IInvokeProvider)new ButtonAutomationPeer((Button)search.Template.FindName("ClearTextButton", search)).GetPattern(PatternInterface.Invoke)).Invoke();
+        Pump(); Assert.IsFalse(popup.IsOpen); Assert.AreEqual("", vm.EntryName);
+        search.Text = rice.OriginalName; Pump(); Assert.IsTrue(popup.IsOpen);
+        choices.ScrollIntoView(rice); choices.UpdateLayout(); Pump();
+        var item = (ListBoxItem)choices.ItemContainerGenerator.ContainerFromItem(rice);
+        item.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
+        {
+            RoutedEvent = Mouse.PreviewMouseUpEvent, Source = item
+        });
+        Pump(); Assert.AreEqual(rice.Name, vm.EntryName); Assert.IsFalse(popup.IsOpen); Assert.HasCount(2, store.ReadSnapshot().Entries);
+        search.Text = "确认手动填写"; Pump(); vm.EnterDirectEnergy(); vm.DirectKcal = "12.5"; Save();
+        var manual = store.ReadSnapshot().Entries.Single(x => x.FoodNameSnapshot == "确认手动填写");
+        Assert.IsNull(manual.FoodId); Assert.AreEqual(12.5m, manual.EnergyKcal); Assert.IsFalse(popup.IsOpen);
         var checks = new List<object>(); var page = (Grid)window.Content;
         foreach (var scale in new[] {1.0,1.25,1.5,2.0})
         {
             window.Width = 920 * scale; window.Height = 600 * scale; page.LayoutTransform = new ScaleTransform(scale, scale); Pump();
             foreach (var name in new[] {"EntryNameBox","EntryNoteBox"})
             {
-                var box = (TextBox)window.FindName(name); box.Text = "居中与清空检查"; box.Height = name == "EntryNoteBox" ? 80 : 46; box.BringIntoView(); box.ApplyTemplate(); Pump();
+                var box = name == "EntryNameBox" ? search : (TextBox)window.FindName(name); box.Text = "居中与清空检查"; box.Height = name == "EntryNoteBox" ? 80 : 46; box.BringIntoView(); box.ApplyTemplate(); Pump();
                 var clear = (Button)box.Template.FindName("ClearTextButton", box); var bounds = clear.TransformToAncestor(box).TransformBounds(new Rect(clear.RenderSize));
                 Assert.IsLessThan(1.0, Math.Abs(bounds.Top + bounds.Height / 2 - box.ActualHeight / 2));
                 Assert.IsTrue(clear.IsVisible); checks.Add(new {Scale=scale,Control=name,CenterError=Math.Abs(bounds.Top + bounds.Height/2-box.ActualHeight/2)});
@@ -51,7 +72,7 @@ internal static class FormExperienceChecks
         }
         page.LayoutTransform = Transform.Identity; window.Width = 1240; window.Height = 820;
         Assert.AreEqual(1, ConfirmationChecks.Respond(() => window.Close(), true));
-        JsonFiles.WriteNew(Path.Combine(root, "form-experience-checks.json"), new { Success=true, RequiredFocusAndScroll=true, RepeatedSubmissionRetainsDraft=true, EmptyDateRejected=true, ExplicitZeroAccepted=true, SearchKeyboardAndCancel=true, UnmatchedSearchVisible=true, SourceRetained=true, ClearCenteredSingleAndMultiline=true, LayoutChecks=checks });
+        JsonFiles.WriteNew(Path.Combine(root, "form-experience-checks.json"), new { Success=true, RequiredFocusAndScroll=true, RepeatedSubmissionRetainsDraft=true, EmptyDateRejected=true, ExplicitZeroAccepted=true, SearchKeyboardAndCancel=true, SearchMouseSelection=true, UnmatchedSearchVisible=true, SourceRetained=true, ManualEntryAfterLookup=true, ClearCenteredSingleAndMultiline=true, LayoutChecks=checks });
         void Save() { ((IInvokeProvider)new ButtonAutomationPeer((Button)window.FindName("SaveEntryButton")).GetPattern(PatternInterface.Invoke)).Invoke(); Pump(); }
         void SaveMissing(string name) { var count=store.ReadSnapshot().Entries.Length; Save(); var box=(Control)window.FindName(name); Assert.IsTrue(box.IsKeyboardFocusWithin, name+"没有获得焦点"); var rect=box.TransformToAncestor(window).TransformBounds(new Rect(box.RenderSize)); Assert.IsTrue(rect.Top>=0 && rect.Bottom<=window.ActualHeight); Assert.IsTrue(vm.EntryValidationMessage.Length>0); Assert.AreEqual(count,store.ReadSnapshot().Entries.Length); }
     }

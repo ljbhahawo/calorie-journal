@@ -34,31 +34,9 @@ public partial class MainWindow : Window
     private void FocusMissingEntry(EntryInputField field) => Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
     {
         Control control = field switch { EntryInputField.Date => EntryDatePicker, EntryInputField.Meal => EntryMealBox, EntryInputField.Name => EntryNameBox, EntryInputField.Weight => WeightBox, EntryInputField.UnitEnergy => UnitKcalBox, _ => DirectKcalBox };
-        control.BringIntoView(); control.Focus();
+        control.BringIntoView();
+        if (control is FoodNameInput name) { name.FocusName(); return; }
+        control.Focus();
         if (control is DatePicker date) { date.ApplyTemplate(); (date.Template.FindName("PART_TextBox", date) as Control)?.Focus(); }
     }));
-    private void EntrySearchChanged(object sender, TextChangedEventArgs e) { if (EntrySearchBox.IsKeyboardFocusWithin) OpenEntrySearch(); }
-    private void EntrySearchFocused(object sender, KeyboardFocusChangedEventArgs e) => OpenEntrySearch();
-    private void OpenEntrySearch() => Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => { if (EntrySearchBox.IsKeyboardFocusWithin) { FoodChoiceBox.SelectedIndex = -1; EntrySearchPopup.IsOpen = true; } }));
-    private void EntrySearchKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Down && EntrySearchPopup.IsOpen && FoodChoiceBox.Items.Count > 0) { FoodChoiceBox.SelectedIndex = 0; FoodChoiceBox.Focus(); e.Handled = true; }
-        else if (e.Key == Key.Escape) { EntrySearchPopup.IsOpen = false; e.Handled = true; }
-    }
-    private void EntryChoiceKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter) { ChooseEntryFood(); e.Handled = true; }
-        else if (e.Key == Key.Escape) { EntrySearchPopup.IsOpen = false; EntryNameBox.Focus(); e.Handled = true; }
-    }
-    private void EntryChoiceMouseUp(object sender, MouseButtonEventArgs e)
-    {
-        if (ItemsControl.ContainerFromElement(FoodChoiceBox, e.OriginalSource as DependencyObject) is ListBoxItem item) { FoodChoiceBox.SelectedItem = item.DataContext; ChooseEntryFood(); e.Handled = true; }
-    }
-    private void ChooseEntryFood()
-    {
-        if (FoodChoiceBox.SelectedItem is not FoodItem food) return;
-        ((MainViewModel)DataContext).ChosenFood = food; EntrySearchPopup.IsOpen = false; EntryNameBox.Focus();
-    }
-    private void EntrySearchFocusLeft(object sender, KeyboardFocusChangedEventArgs e) => Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
-    { if (!EntrySearchBox.IsKeyboardFocusWithin && !FoodChoiceBox.IsKeyboardFocusWithin) EntrySearchPopup.IsOpen = false; }));
 }

@@ -32,7 +32,7 @@ internal static class SettingsMealBindingChecks
         vm.TabIndex = 6; Pump(); ((CheckBox)window.FindName("DefaultWeightSettingBox")).IsChecked = false;
         ((ComboBox)window.FindName("NewFoodPolicyBox")).SelectedIndex = 0; Click("SaveSettingsButton"); Assert.IsTrue(vm.WeightMode, "设置不能改写现有草稿方式");
         vm.TabIndex = 0; vm.NewEntryCommand.Execute(null); Assert.IsFalse(vm.WeightMode);
-        ((TextBox)window.FindName("EntryNameBox")).Text = "只有总大卡"; ((TextBox)window.FindName("DirectKcalBox")).Text = "10";
+        BindingFixtures.EntryName(window).Text = "只有总大卡"; ((TextBox)window.FindName("DirectKcalBox")).Text = "10";
         Assert.AreEqual(0, ConfirmationChecks.RespondChoice(() => vm.SaveEntryCommand.Execute(null), 6)); Assert.IsTrue(vm.Status.Contains("未生成每100克资料")); Assert.HasCount(62, journal.Foods());
         var saved = store.ReadSnapshot().Entries.First(x => x.FoodId is not null); vm.SelectedEntry = vm.DayEntries.Single(x => x.Id == saved.Id); vm.EditEntryCommand.Execute(null); Assert.IsTrue(vm.WeightMode);
         vm.SaveEntryCommand.Execute(null); Assert.AreEqual(6, store.ReadSnapshot().Entries.Length);

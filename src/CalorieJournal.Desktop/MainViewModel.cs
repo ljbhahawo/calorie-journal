@@ -13,7 +13,7 @@ using Microsoft.Win32;
 
 namespace CalorieJournal.Desktop;
 
-public sealed partial class MainViewModel : ObservableObject
+public sealed partial class MainViewModel : ObservableObject, IEntryFoodLookup
 {
     private readonly JournalService journal;
     private readonly BackupService backups;
@@ -37,7 +37,6 @@ public sealed partial class MainViewModel : ObservableObject
     public string DataDirectory { get; }
     public string VersionText => "版本 " + typeof(MainViewModel).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion + $" · 数据库 {SqliteJournalStore.SchemaVersion} · 备份格式 {SqliteJournalStore.BackupFormatVersion}";
     public string FoodAttribution => "内置数据来源：USDA FoodData Central / SR Legacy 2018-04 · CC0\n中文名称为应用整理，数值按每100克可食部分。请区分生熟、品牌和实际份量。";
-    public ObservableCollection<FoodItem> FoodChoices { get; } = [];
     public ObservableCollection<FoodItem> LibraryFoods { get; } = [];
     public ObservableCollection<MealCategory> AllMeals { get; } = [];
     public ObservableCollection<MealCategory> EntryMeals { get; } = [];
@@ -61,8 +60,6 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string weight = "";
     [ObservableProperty] private string weightUnit = "g";
     [ObservableProperty] private string unitKcal = "";
-    [ObservableProperty] private string entryFoodQuery = "";
-    [ObservableProperty] private FoodItem? chosenFood;
     [ObservableProperty] private string libraryQuery = "";
     [ObservableProperty] private string foodName = "";
     [ObservableProperty] private string foodOriginalName = "";
@@ -175,10 +172,7 @@ public sealed partial class MainViewModel : ObservableObject
         }));
         SaveEntryCommand = new RelayCommand(() => Run(SaveEntry));
         DeleteEntryCommand = new RelayCommand(() => Run(() => DeleteEntry(SelectedEntry)));
-        ClearFoodCommand = new RelayCommand(() =>
-        {
-            ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; sourceUnitProtein = null; savedSource = "用户录入"; entryDirty = true; OnPropertyChanged(nameof(EntrySource));
-        });
+        ClearFoodCommand = new RelayCommand(DetachEntryFood);
         NewFoodCommand = new RelayCommand(() => Run(() =>
         {
             if (foodDirty && !Confirm("放弃未保存的食物修改？")) return;
@@ -198,7 +192,7 @@ public sealed partial class MainViewModel : ObservableObject
             Validation.Require(!foodDirty, "请先保存或取消食物修改，再引用食物库条目。");
             if (SheetMode) { AddSheetFood(SelectedLibraryFood!); return; }
             if (!ConfirmEntryDiscard()) return;
-            ResetEntry(); EntryFoodQuery = ""; ChosenFood = SelectedLibraryFood; TabIndex = 0;
+            ResetEntry(); UseFood(SelectedLibraryFood!); TabIndex = 0;
         }));
         NewMealCommand = new RelayCommand(() =>
         {
@@ -276,6 +270,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (e.PropertyName is nameof(EntryDate) or nameof(EntryMeal) or nameof(EntryName) or nameof(Weight) or nameof(UnitKcal) or nameof(DirectKcal) or nameof(WeightMode)) EntryValidationMessage = "";
         if (e.PropertyName is nameof(FoodUnitKcal) or nameof(FoodEnergyUnit)) OnPropertyChanged(nameof(FoodEnergyPreview));
         if (loading) return;
+        if (e.PropertyName == nameof(EntryName) && savedFoodId is not null) DetachEntryFood();
         TrackWeightChange(e.PropertyName);
         if (e.PropertyName is nameof(EntryEnergyUnit) or nameof(DirectEnergyUnit) or nameof(UnitProtein) or nameof(DirectProtein)) entryDirty = true;
         if (e.PropertyName is nameof(FoodEnergyUnit) or nameof(FoodProtein)) foodDirty = true;
@@ -284,7 +279,6 @@ public sealed partial class MainViewModel : ObservableObject
         if (e.PropertyName is nameof(MealName) or nameof(MealOrder) or nameof(MealActive)) mealDirty = true;
     }
 
-    partial void OnEntryFoodQueryChanged(string value) => Run(() => Fill(FoodChoices, journal.Foods(value)));
     partial void OnLibraryQueryChanged(string value) => Run(() => Fill(LibraryFoods, journal.Foods(value)));
     partial void OnTabIndexChanged(int value)
     {
@@ -293,13 +287,25 @@ public sealed partial class MainViewModel : ObservableObject
         if (value == 5) Run(RefreshPersonal);
         if (value == 0 && SheetMode) Run(RefreshSheet);
     }
-    partial void OnChosenFoodChanged(FoodItem? value)
+    FoodItem[] IEntryFoodLookup.Suggest(string query) => journal.Foods(query);
+    void IEntryFoodLookup.ReportLookupError(string message) => Status = "查库未完成：" + message;
+
+    private void DetachEntryFood()
     {
-        if (value is null || loading) return;
+        savedFoodId = null; sourceUnitKcal = null; sourceUnitProtein = null;
+        savedSource = "用户录入"; entryDirty = true;
+        OnPropertyChanged(nameof(EntrySource));
+    }
+
+    public void UseFood(FoodItem value)
+    {
+        Validation.Require(journal.Foods().Contains(value), "食物资料已更改或删除，请重新搜索。");
         SetWeightCalculation(null);
-        EntryName = value.Name; EntryPreparation = value.Preparation;
         var wasLoading = loading; loading = true;
-        try { EntryEnergyUnit = value.KilojoulesPer100gHundredths is null ? "大卡" : "kJ";
+        try
+        {
+            EntryName = value.Name; EntryPreparation = value.Preparation;
+            EntryEnergyUnit = value.KilojoulesPer100gHundredths is null ? "大卡" : "kJ";
             UnitKcal = ((value.KilojoulesPer100gHundredths ?? value.KcalPer100gHundredths) / 100m).ToString("0.00", CultureInfo.InvariantCulture);
             UnitProtein = value.ProteinPer100gHundredths is { } protein ? (protein / 100m).ToString("0.00", CultureInfo.InvariantCulture) : ""; WeightMode = true; }
         finally { loading = wasLoading; }
@@ -355,7 +361,7 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     private static void Fill<T>(ObservableCollection<T> target, IEnumerable<T> values) { target.Clear(); foreach (var value in values) target.Add(value); }
-    private void RefreshFoods() { Fill(FoodChoices, journal.Foods(EntryFoodQuery)); Fill(LibraryFoods, journal.Foods(LibraryQuery)); }
+    private void RefreshFoods() => Fill(LibraryFoods, journal.Foods(LibraryQuery));
     private void RefreshMeals()
     {
         var wasLoading = loading; loading = true;
@@ -407,7 +413,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         loading = true;
         var mealId = EntryMeal?.Id;
-        editingEntry = null; ChosenFood = null; savedFoodId = null; sourceUnitKcal = null; sourceUnitProtein = null; savedSource = "用户录入";
+        editingEntry = null; savedFoodId = null; sourceUnitKcal = null; sourceUnitProtein = null; savedSource = "用户录入";
         EntryDateInputValid = true; EntryValidationMessage = "";
         EntryDate = SelectedDate; EntryTime = ""; EntryName = ""; EntryPreparation = ""; EntryNote = "";
         DirectKcal = ""; Weight = ""; UnitKcal = ""; WeightUnit = "g"; WeightMode = journal.Settings().DefaultWeightMode; SetWeightCalculation(null);
@@ -439,7 +445,7 @@ public sealed partial class MainViewModel : ObservableObject
         loading = true;
         try
         {
-            editingEntry = asNew ? null : row; ChosenFood = null;
+            editingEntry = asNew ? null : row;
             if (asNew) newEntryId = Guid.NewGuid();
             savedFoodId = missingFood ? null : row.FoodId;
             sourceUnitKcal = row.KcalPer100gHundredthsSnapshot;
@@ -499,7 +505,7 @@ public sealed partial class MainViewModel : ObservableObject
             Note = EntryNote, SourceSnapshot = source, CreatedAtUtc = editingEntry?.CreatedAtUtc ?? DateTimeOffset.UtcNow
         };
         if (!SaveWithFoodPolicy(entry, out var foodMessage, out var foodAdded)) { Status = "已取消保存，草稿保留。"; return; }
-        if (foodAdded) { Fill(FoodChoices, journal.Foods(EntryFoodQuery)); if (!foodDirty) Fill(LibraryFoods, journal.Foods(LibraryQuery)); }
+        if (foodAdded && !foodDirty) RefreshFoods();
         entryDirty = false;
         if (SelectedDate.Date != EntryDate.Date) { selectedDate = EntryDate.Date; OnPropertyChanged(nameof(SelectedDate)); }
         ResetEntry(); RefreshDay(); RefreshHistory();

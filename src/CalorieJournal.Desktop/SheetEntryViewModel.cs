@@ -7,7 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace CalorieJournal.Desktop;
 
-public sealed partial class SheetEntryViewModel : ObservableObject
+public sealed partial class SheetEntryViewModel : ObservableObject, IEntryFoodLookup
 {
     private readonly JournalService journal;
     private bool loading;
@@ -112,7 +112,8 @@ public sealed partial class SheetEntryViewModel : ObservableObject
         finally { loading = false; }
         OnPropertyChanged(nameof(Meals)); OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(HasDraft)); OnPropertyChanged(nameof(DiscardText)); OnPropertyChanged(nameof(WeightDescription));
     }
-    public FoodItem[] Suggest(string query) => string.IsNullOrWhiteSpace(query) ? [] : journal.Foods(query).Take(12).ToArray();
+    FoodItem[] IEntryFoodLookup.Suggest(string query) => journal.Foods(query);
+    void IEntryFoodLookup.ReportLookupError(string message) => Message = "查库未完成：" + message;
     public void UseFood(FoodItem food)
     {
         Validation.Require(journal.Foods().Any(x => x.Id == food.Id), "食物已删除，请重新选择。");

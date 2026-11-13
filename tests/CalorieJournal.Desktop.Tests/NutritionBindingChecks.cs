@@ -42,7 +42,7 @@ internal static class NutritionBindingChecks
         var templateVm = new TemplateViewModel(journal, DateTime.Today); var templateWindow = new TemplateWindow(templateVm); templateWindow.Show(); templateVm.Selected = journal.Templates().Single(x => x.Id == template.Id); templateVm.BeginReview();
         templateVm.ReviewItems[0].Amount = "200"; templateVm.ReviewMeal = templateVm.Meals[0]; Assert.IsTrue(templateVm.ReviewTotal.Contains("80.00")); templateVm.SaveBatch(); templateWindow.Close();
         var batchEntry = store.ReadSnapshot().Entries.Single(x => x.FoodId == food.Id && x.WeightGramsTenths == 2000); Assert.AreEqual(8000L, batchEntry.ProteinGramsHundredths); Assert.AreEqual(41840L, batchEntry.KilojoulesHundredthsSnapshot);
-        vm.TabIndex = 0; vm.ChosenFood = journal.Foods().Single(x => x.Id == food.Id); Text("WeightBox", "10000"); Text("UnitKcalBox", "1.00"); Text("UnitProteinBox", "0.01"); Click("SaveEntryButton");
+        vm.TabIndex = 0; vm.UseFood(journal.Foods().Single(x => x.Id == food.Id)); Text("WeightBox", "10000"); Text("UnitKcalBox", "1.00"); Text("UnitProteinBox", "0.01"); Click("SaveEntryButton");
         Assert.IsTrue(vm.DayEntries.Any(x => x.WeightGramsTenths == 100000 && x.EnergyKcalTenths == 239 && x.ProteinGramsHundredths == 100));
         var snapshot = store.ReadSnapshot(); backups.Export(Path.Combine(root, "nutrition-complete.calorie-backup.json"));
         var layout = new List<object>(); var page = (Grid)window.Content;
@@ -59,7 +59,7 @@ internal static class NutritionBindingChecks
         page.LayoutTransform = Transform.Identity; window.Width = 1240; window.Height = 820; Pump(); Assert.IsTrue(vm.CanClose()); window.Close();
         var restart = new SqliteJournalStore(store.DatabasePath).ReadSnapshot(); Assert.AreEqual(JsonSerializer.Serialize(snapshot.Entries), JsonSerializer.Serialize(restart.Entries));
         JsonFiles.WriteNew(Path.Combine(root, "nutrition-checks.json"), new { Success = true, RealLibraryAndWeightProtein = true, MouseAndKeyboardDirectMode = true, SettingsDefaultUnchanged = true, HiddenWeightFieldsIgnored = true, DirectKilojoules = true, HistoricalCopySnapshots = true, FoodEditsDoNotRecalculateHistory = true, TemplateNutrition = true, SingleRounding = true, MissingAndZeroProtein = true, FullBackupAndRestart = true, LayoutChecks = layout });
-        void Text(string name, string value) { ((TextBox)window.FindName(name)).Text = value; Pump(); }
+        void Text(string name, string value) { (name == "EntryNameBox" ? BindingFixtures.EntryName(window) : (TextBox)window.FindName(name)).Text = value; Pump(); }
         void Click(string name) { var button = (Button)window.FindName(name); ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke(); Pump(); }
     }
     private static void Pump() { var frame = new DispatcherFrame(); Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() => frame.Continue = false)); Dispatcher.PushFrame(frame); }

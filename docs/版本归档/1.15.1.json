@@ -1,0 +1,29 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.15.1",
+  "Success": true,
+  "VerificationDate": "2026-11-13",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 9,
+  "BackupFormatVersion": 9,
+  "Package": {
+    "FileName": "每日热量记录_1.15.1_win-x64.zip",
+    "Bytes": 69771406,
+    "Sha256": "622896BA34A188A50D1EB44D92560F8BCB8929B27F8FC0CA3A7B9788F1106D1E"
+  },
+  "SourceZipSha256": "9B8196A1431397B866BA1957411ED0E0BE2FEDEA51E8202B9FF18886CF0540C7",
+  "Checks": {
+    "BusinessAndRealSqliteTestsPassed": 84,
+    "WpfStages": 15,
+    "ArchivedSourceRebuild": true,
+    "FiveLocksUnchanged": true,
+    "SelfContainedStartupAndBackupRestore": true,
+    "RealDesktopOperations": true,
+    "MouseAndKeyboardSelectionWithoutAutosave": true,
+    "ManualFallbackAndClear": true,
+    "NativeSavedAndReadBack": { "Entries": 1, "Grams": 150, "EnergyKcal": 195, "ProteinGrams": 4.04 },
+    "RollbackTo": "1.15.0",
+    "CompatibleRoundTripEntries": 43,
+    "AllNineCollectionsAndSettingsPreserved": true
+  }
+}

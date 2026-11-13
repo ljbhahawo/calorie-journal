@@ -39,7 +39,7 @@ public sealed class BindingTests
         Trace("Window已创建");
         window.Show(); Pump(); Trace("真实窗口显示与绑定初始化完成");
 
-        var entryName = (TextBox)window.FindName("EntryNameBox");
+        var entryName = BindingFixtures.EntryName(window);
         var directKcal = (TextBox)window.FindName("DirectKcalBox");
         entryName.Text = "WPF绑定验证输入"; directKcal.Text = "123.4"; Pump();
         Trace("输入绑定完成");
@@ -53,9 +53,7 @@ public sealed class BindingTests
         Assert.HasCount(1, store.ReadSnapshot().Entries);
         Assert.IsTrue(vm.Status.Contains("请填写") || vm.Status.Contains("有效数字"));
 
-        var choice = (ListBox)window.FindName("FoodChoiceBox");
-        choice.SelectedItem = vm.FoodChoices.Single(x => x.Name == "长粒白米饭（熟）"); Pump();
-        choice.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window), 0, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent }); Pump();
+        vm.UseFood(service.Foods("长粒白米饭").Single()); Pump();
         Assert.IsTrue(vm.WeightMode);
         ((TextBox)window.FindName("WeightBox")).Text = "150"; Pump();
         Assert.IsTrue(vm.EnergyPreview.Contains("195.0"));

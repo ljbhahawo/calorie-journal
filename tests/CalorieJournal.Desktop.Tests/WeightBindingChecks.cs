@@ -22,7 +22,7 @@ internal static class WeightBindingChecks
         var journal = new JournalService(store); var food = journal.Foods("长粒白米饭").Single();
         var main = new MainViewModel(journal, new BackupService(store, Path.Combine(directory, "recovery")), directory);
         var mainWindow = new MainWindow(main); mainWindow.Show(); Pump();
-        main.ChosenFood = main.FoodChoices.Single(x => x.Id == food.Id); Pump();
+        main.UseFood(food); Pump();
         Assert.IsTrue(((Button)mainWindow.FindName("WeightConversionButton")).IsEnabled);
         var vm = new WeightConversionViewModel(journal, food.Id, food.KcalPer100gHundredths, null);
         var window = new WeightConversionWindow(vm, journal); window.Show(); Pump();
@@ -69,7 +69,7 @@ internal static class WeightBindingChecks
         var portionVm = new WeightConversionViewModel(journal, food.Id, food.KcalPer100gHundredths, null) { UsePortion = true, PortionCount = "1.5" };
         var portionWindow = new WeightConversionWindow(portionVm, journal); portionWindow.Show(); Pump();
         Click(portionWindow, "ApplyWeightButton"); Assert.IsNotNull(portionWindow.Result);
-        main.ChosenFood = main.FoodChoices.Single(x => x.Id == food.Id);
+        main.UseFood(food);
         main.ApplyWeightCalculation(portionWindow.Result); main.SaveEntryCommand.Execute(null); Pump();
         var saved = store.ReadSnapshot().Entries.Single(x => x.WeightCalculation?.Kind == "portion");
         Assert.AreEqual(2925L, saved.EnergyKcalTenths);

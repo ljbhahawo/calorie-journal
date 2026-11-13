@@ -47,7 +47,7 @@ internal static class WindowLayoutChecks
         var entryHeading = Descendants<TextBlock>(window).Single(x => x.Text == vm.EntryHeading);
         Assert.IsTrue(entryHeading.Foreground is SolidColorBrush { Color.A: > 0 } headingBrush && headingBrush.Color != Colors.White,
             "选中导航的白色标题不能传播到页面正文。");
-        var name = (TextBox)window.FindName("EntryNameBox");
+        var name = BindingFixtures.EntryName(window);
         name.Focus(); Pump();
         Assert.IsTrue(name.IsKeyboardFocusWithin);
         Assert.IsTrue(name.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next)));
