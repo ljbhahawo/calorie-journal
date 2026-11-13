@@ -6,6 +6,16 @@
   "SdkVersion": "10.0.402",
   "SchemaVersion": 9,
   "BackupFormatVersion": 9,
+  "Publication": {
+    "ReleaseId": 443739900,
+    "Url": "https://github.com/ljbhahawo/calorie-journal/releases/tag/v1.15.1",
+    "Public": true,
+    "Draft": false,
+    "Commit": "cd4a710b7c43232c4e4dde024dcf3ee3012cd20d",
+    "AnnotatedTag": "v1.15.1",
+    "TagObject": "51cff69387d3df44d6995bcb3b44824b918a08db",
+    "AllThreeAssetsSizeAndSha256Verified": true
+  },
   "Package": {
     "FileName": "每日热量记录_1.15.1_win-x64.zip",
     "Bytes": 69771406,
