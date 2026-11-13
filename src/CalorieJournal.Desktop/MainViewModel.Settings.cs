@@ -77,7 +77,13 @@ public sealed partial class MainViewModel
 
     private bool SaveWithFoodPolicy(IntakeEntry entry, out string message, out bool added)
     {
-        Validation.Entry(entry); message = ""; added = false; var policy = journal.Settings().NewFoodMode;
+        Validation.Entry(entry); message = ""; added = false;
+        if (FoodReferenceHit.IsIntakeReference(entry.SourceSnapshot))
+        {
+            journal.SaveEntry(entry);
+            return true;
+        }
+        var policy = journal.Settings().NewFoodMode;
         var candidate = policy == "never" ? null : journal.UnlistedFood(entry);
         var add = candidate is not null && policy == "auto";
         if (candidate is not null && policy == "ask")

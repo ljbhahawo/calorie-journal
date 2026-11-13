@@ -17,6 +17,7 @@ public sealed partial class MainViewModel : ObservableObject, IEntryFoodLookup
 {
     private readonly JournalService journal;
     private readonly BackupService backups;
+    private readonly EntryFoodSearch entryFoodSearch;
     private bool loading;
     private bool entryDirty;
     private bool foodDirty;
@@ -158,6 +159,7 @@ public sealed partial class MainViewModel : ObservableObject, IEntryFoodLookup
     public MainViewModel(JournalService journal, BackupService backups, string dataDirectory)
     {
         this.journal = journal; this.backups = backups; DataDirectory = dataDirectory;
+        entryFoodSearch = new(journal, new FoodLookupService(Path.Combine(AppContext.BaseDirectory, "data", "lookup"), Path.Combine(DataDirectory, "lookup")));
         PreviousDayCommand = new RelayCommand(() => Run(() => SelectedDate = SelectedDate.AddDays(-1)), () => SelectedDate.Date > DateTime.MinValue.Date);
         NextDayCommand = new RelayCommand(() => Run(() => SelectedDate = SelectedDate.AddDays(1)), () => SelectedDate.Date < DateTime.Today);
         TodayCommand = new RelayCommand(() => Run(() => SelectedDate = DateTime.Today));
@@ -270,7 +272,7 @@ public sealed partial class MainViewModel : ObservableObject, IEntryFoodLookup
         if (e.PropertyName is nameof(EntryDate) or nameof(EntryMeal) or nameof(EntryName) or nameof(Weight) or nameof(UnitKcal) or nameof(DirectKcal) or nameof(WeightMode)) EntryValidationMessage = "";
         if (e.PropertyName is nameof(FoodUnitKcal) or nameof(FoodEnergyUnit)) OnPropertyChanged(nameof(FoodEnergyPreview));
         if (loading) return;
-        if (e.PropertyName == nameof(EntryName) && savedFoodId is not null) DetachEntryFood();
+        if (e.PropertyName == nameof(EntryName) && (savedFoodId is not null || FoodReferenceHit.IsIntakeReference(savedSource))) DetachEntryFood();
         TrackWeightChange(e.PropertyName);
         if (e.PropertyName is nameof(EntryEnergyUnit) or nameof(DirectEnergyUnit) or nameof(UnitProtein) or nameof(DirectProtein)) entryDirty = true;
         if (e.PropertyName is nameof(FoodEnergyUnit) or nameof(FoodProtein)) foodDirty = true;
@@ -287,8 +289,13 @@ public sealed partial class MainViewModel : ObservableObject, IEntryFoodLookup
         if (value == 5) Run(RefreshPersonal);
         if (value == 0 && SheetMode) Run(RefreshSheet);
     }
-    FoodItem[] IEntryFoodLookup.Suggest(string query) => journal.Foods(query);
+    EntryFoodSearchResult IEntryFoodLookup.Suggest(string query) => entryFoodSearch.Find(query);
     void IEntryFoodLookup.ReportLookupError(string message) => Status = "查库未完成：" + message;
+    void IEntryFoodLookup.UseSuggestion(EntryFoodSuggestion suggestion)
+    {
+        if (suggestion.LibraryFood is { } food) UseFood(food);
+        else ApplyEntryFood(suggestion.CreateReferenceDraft(), null, suggestion.Reference!.IntakeSource);
+    }
 
     private void DetachEntryFood()
     {
@@ -300,6 +307,11 @@ public sealed partial class MainViewModel : ObservableObject, IEntryFoodLookup
     public void UseFood(FoodItem value)
     {
         Validation.Require(journal.Foods().Contains(value), "食物资料已更改或删除，请重新搜索。");
+        ApplyEntryFood(value, value.Id, value.SourceSummary + " " + value.SourceUrl);
+    }
+
+    private void ApplyEntryFood(FoodItem value, Guid? foodId, string source)
+    {
         SetWeightCalculation(null);
         var wasLoading = loading; loading = true;
         try
@@ -310,7 +322,7 @@ public sealed partial class MainViewModel : ObservableObject, IEntryFoodLookup
             UnitProtein = value.ProteinPer100gHundredths is { } protein ? (protein / 100m).ToString("0.00", CultureInfo.InvariantCulture) : ""; WeightMode = true; }
         finally { loading = wasLoading; }
         entryDirty = true;
-        savedFoodId = value.Id; savedSource = value.SourceSummary + " " + value.SourceUrl;
+        savedFoodId = foodId; savedSource = source;
         sourceUnitKcal = value.KcalPer100gHundredths;
         sourceUnitProtein = value.ProteinPer100gHundredths;
         OnPropertyChanged(nameof(EntrySource));
@@ -486,11 +498,12 @@ public sealed partial class MainViewModel : ObservableObject, IEntryFoodLookup
         ValidateRequiredEntryFields();
         Validation.Require(EntryMeal is not null, "请选择餐次。");
         Validation.Require(ProteinEnabled || editingEntry?.ProteinGramsHundredths is null || WeightMode == (editingEntry.InputMode == "weight"), "此记录已有蛋白质，切换录入方式前请在设置启用蛋白质。");
-        Validation.Require(ProteinEnabled || editingEntry?.ProteinGramsHundredths is null || (EntryName == editingEntry.FoodNameSnapshot && EntryPreparation == editingEntry.PreparationSnapshot && savedFoodId == editingEntry.FoodId), "此记录已有蛋白质，修改食物名称或来源前请在设置启用蛋白质，以核对营养资料。");
+        Validation.Require(ProteinEnabled || editingEntry?.ProteinGramsHundredths is null || (EntryName == editingEntry.FoodNameSnapshot && EntryPreparation == editingEntry.PreparationSnapshot && savedFoodId == editingEntry.FoodId && savedSource == editingEntry.SourceSnapshot), "此记录已有蛋白质，修改食物名称或来源前请在设置启用蛋白质，以核对营养资料。");
         var source = savedSource;
+        var hasSource = savedFoodId is not null || FoodReferenceHit.IsIntakeReference(source);
         if (sourceUnitKcal is not null && WeightMode && ReadUnitKcal() != sourceUnitKcal && !source.Contains("本次单位热量已调整", StringComparison.Ordinal)) source += " · 本次单位热量已调整";
-        if (savedFoodId is not null && WeightMode && ReadUnitProtein() != sourceUnitProtein && !source.Contains("本次单位蛋白质已调整", StringComparison.Ordinal)) source += " · 本次单位蛋白质已调整";
-        if (savedFoodId is not null && !WeightMode && !source.Contains("本项直接录入", StringComparison.Ordinal)) source += " · 本项直接录入，热量及蛋白质请核对";
+        if (hasSource && WeightMode && ProteinEnabled && ReadUnitProtein() != sourceUnitProtein && !source.Contains("本次单位蛋白质已调整", StringComparison.Ordinal)) source += " · 本次单位蛋白质已调整";
+        if (hasSource && !WeightMode && !source.Contains("本项直接录入", StringComparison.Ordinal)) source += " · 本项直接录入，热量及蛋白质请核对";
         var entry = new IntakeEntry
         {
             Id = editingEntry?.Id ?? newEntryId, EntryDate = DateOnly.FromDateTime(EntryDate), LocalTime = EntryTime.Trim(),

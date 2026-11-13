@@ -6,15 +6,23 @@
            TextChanged="NameChanged" PreviewKeyDown="NameKeyDown" LostKeyboardFocus="FocusLeft" MaxLength="100"
            Style="{Binding EditorStyle, RelativeSource={RelativeSource AncestorType=UserControl}}"
            AutomationProperties.Name="{Binding Path=(AutomationProperties.Name), RelativeSource={RelativeSource AncestorType=UserControl}}"
-           ToolTip="输入中文、别名或英文搜索食物库，也可直接填写名称"/>
+           ToolTip="用中文、常用别名或英文查个人库、USDA 和 TFDA，也可手动填写"/>
   <Popup x:Name="SuggestionsPopup" PlacementTarget="{Binding ElementName=NameInput}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
    <Border Background="White" BorderBrush="{StaticResource Accent}" BorderThickness="1" Padding="4" MinWidth="300" MaxWidth="480">
     <StackPanel>
-     <TextBlock x:Name="SuggestionsHint" Text="个人食物库 · 方向键浏览，回车或点击引用" TextWrapping="Wrap" Style="{StaticResource Caption}" Margin="4"/>
+     <TextBlock x:Name="SuggestionsHint" Text="本机资料 · 方向键浏览，回车或点击带入" TextWrapping="Wrap" Style="{StaticResource Caption}" Margin="4"/>
+     <TextBlock x:Name="LookupWarning" Visibility="Collapsed" TextWrapping="Wrap" MaxHeight="60" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Foreground="#A44036" Margin="4" AutomationProperties.LiveSetting="Polite"/>
      <ListBox x:Name="SuggestionsList" MaxHeight="240" BorderThickness="0" PreviewMouseUp="ChooseByMouse" PreviewKeyDown="SuggestionKeyDown" LostKeyboardFocus="FocusLeft" AutomationProperties.Name="食物联想候选">
-      <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="4"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Text="{Binding Preparation}" TextWrapping="Wrap" Style="{StaticResource Caption}"/><TextBlock Text="{Binding OriginalName}" TextWrapping="Wrap" Style="{StaticResource Caption}"/><TextBlock Style="{StaticResource Caption}"><Run Text="{Binding KcalPer100g, Mode=OneWay, StringFormat=F2}"/><Run Text=" 大卡/100g · 蛋白质 "/><Run Text="{Binding ProteinText, Mode=OneWay}"/></TextBlock><TextBlock Text="{Binding SourceSummary}" TextTrimming="CharacterEllipsis" MaxWidth="440" ToolTip="{Binding SourceSummary}" Style="{StaticResource Caption}"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+      <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding AccessibleName}"/></Style></ListBox.ItemContainerStyle>
+      <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="4">
+       <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+       <TextBlock Foreground="{StaticResource Accent}" FontWeight="SemiBold"><Run Text="{Binding SourceLabel, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding KcalPer100g, Mode=OneWay, StringFormat=F2}"/><Run Text=" 大卡/100g"/></TextBlock>
+       <TextBlock Text="{Binding Preparation}" TextTrimming="CharacterEllipsis" MaxWidth="440" ToolTip="{Binding Preparation}" Style="{StaticResource Caption}"/>
+       <TextBlock Text="{Binding OriginalName}" TextTrimming="CharacterEllipsis" MaxWidth="440" ToolTip="{Binding OriginalName}" Style="{StaticResource Caption}"/>
+       <TextBlock Text="{Binding SourceSummary}" TextTrimming="CharacterEllipsis" MaxWidth="440" ToolTip="{Binding SourceSummary}" Style="{StaticResource Caption}"/>
+      </StackPanel></DataTemplate></ListBox.ItemTemplate>
      </ListBox>
-     <TextBlock x:Name="NoMatches" Text="食物库没有匹配项，可继续手动填写。" Visibility="Collapsed" TextWrapping="Wrap" Style="{StaticResource Caption}" Margin="4" AutomationProperties.LiveSetting="Polite"/>
+     <TextBlock x:Name="NoMatches" Text="本机资料没有匹配项，可继续手动填写。" Visibility="Collapsed" TextWrapping="Wrap" Style="{StaticResource Caption}" Margin="4" AutomationProperties.LiveSetting="Polite"/>
     </StackPanel>
    </Border>
   </Popup>

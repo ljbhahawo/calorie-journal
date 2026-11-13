@@ -1,0 +1,31 @@
+{
+  "Application": "CalorieJournal",
+  "Version": "1.16.0",
+  "Success": true,
+  "VerificationDate": "2026-11-13",
+  "SdkVersion": "10.0.402",
+  "SchemaVersion": 9,
+  "BackupFormatVersion": 9,
+  "Package": {
+    "FileName": "每日热量记录_1.16.0_win-x64.zip",
+    "Bytes": 69781044,
+    "Sha256": "4B727ABF7E35E7D63A76C9B78F93EBC2BA53C3B556CAAF080DB909B2A48A641B"
+  },
+  "SourceZipSha256": "1E1607B9598A405FA58069E5AB2D17520A0AB162BAA477BB7773B7DB568959A1",
+  "Checks": {
+    "BusinessAndRealSqliteTestsPassed": 84,
+    "WpfStages": 15,
+    "ArchivedSourceRebuild": true,
+    "FiveLocksUnchanged": true,
+    "SelfContainedStartupAndBackupRestore": true,
+    "RealDesktopOperations": true,
+    "ChineseAliasesWithThreeSources": true,
+    "ReferenceDraftDoesNotWrite": true,
+    "FormAutoAddAndSheetAskBypassed": true,
+    "DamagedTfdaLeavesOtherSourcesAvailable": true,
+    "NativeSavedAndReadBack": { "Alias": "西红柿", "Source": "TFDA", "Grams": 150, "EnergyKcal": 28.5, "PersonalFoodsUnchanged": 60 },
+    "RollbackTo": "1.15.1",
+    "CompatibleRoundTripEntries": 44,
+    "ReferenceProvenanceAndAllNineCollectionsAndSettingsPreserved": true
+  }
+}

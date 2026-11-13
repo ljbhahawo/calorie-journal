@@ -54,6 +54,8 @@ public sealed record FoodReferenceCatalog
 
 public sealed record FoodReferenceHit(FoodReferenceCatalog Catalog, FoodReference Food)
 {
+    public const string IntakeSourcePrefix = "本机参考 · ";
+    public static bool IsIntakeReference(string source) => source.StartsWith(IntakeSourcePrefix, StringComparison.Ordinal);
     public string Name => Food.Name;
     public string Provider => Catalog.Provider;
     public decimal KcalPer100g => Food.KcalPer100gHundredths / 100m;
@@ -62,6 +64,9 @@ public sealed record FoodReferenceHit(FoodReferenceCatalog Catalog, FoodReferenc
     public string SourceUrl => Provider == "USDA SR Legacy"
         ? $"https://fdc.nal.usda.gov/food-details/{Food.SourceId}/nutrients" : Catalog.SourceUrl;
     public string Details => $"{Food.OriginalName}\n{Food.Aliases}\n{Food.Preparation}\n{Provider} · {Food.SourceId} · {Catalog.Version}\n资料获取：{Catalog.RetrievedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm}（非检测日期）\n{Food.SourceNote}\n{SourceUrl}\n授权：{Catalog.LicenseUrl}";
+    public string IntakeSource => $"{IntakeSourcePrefix}{Provider} · {Food.SourceId} · {Catalog.Version} · {SourceUrl}\n原名：{(Food.OriginalName.Length == 0 ? Food.Name : Food.OriginalName)}" +
+        (Food.Name.Trim().Length > 100 && Food.OriginalName != Food.Name ? "\n完整名称：" + Food.Name : "") +
+        (Food.Preparation.Trim().Length > 200 ? "\n完整状态：" + Food.Preparation : "") + "\n" + Food.SourceNote;
     public FoodItem CreateFood() => new()
     {
         Id = Guid.NewGuid(), Name = Food.Name, OriginalName = Food.OriginalName, Aliases = Food.Aliases,

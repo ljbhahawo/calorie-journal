@@ -14,15 +14,29 @@ public sealed class FoodLookupService(string catalogDirectory, string cacheDirec
     private const int MaximumDownloadBytes = 12 * 1024 * 1024;
     private readonly string cachePath = Path.Combine(cacheDirectory, "tfda-protein-v1.json");
     private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(60) };
+    private FoodReferenceCatalog? usda;
+    private (string Path, DateTime Modified, long Length, FoodReferenceCatalog Catalog)? tfda;
 
-    public FoodReferenceCatalog[] Load(bool bundledOnly = false)
+    public FoodReferenceCatalog[] Load(bool bundledOnly = false) => [LoadUsda(), LoadTfda(bundledOnly)];
+
+    public FoodReferenceCatalog LoadUsda()
     {
         var usdaPath = Path.Combine(catalogDirectory, "usda.json");
-        var usda = ProteinSupplement.Apply(ChineseFoodIndex.Apply(LoadOne(usdaPath, "USDA SR Legacy"), Path.Combine(catalogDirectory, "usda-zh.json"), usdaPath), catalogDirectory, true);
+        return usda ??= ProteinSupplement.Apply(ChineseFoodIndex.Apply(LoadOne(usdaPath, "USDA SR Legacy"), Path.Combine(catalogDirectory, "usda-zh.json"), usdaPath), catalogDirectory, true);
+    }
+
+    public FoodReferenceCatalog LoadTfda(bool bundledOnly = false)
+    {
+        var bundledPath = Path.Combine(catalogDirectory, "tfda.json");
         var legacyCache = Path.Combine(cacheDirectory, "tfda.json");
-        var tfdaPath = !bundledOnly && File.Exists(cachePath) ? cachePath : !bundledOnly && File.Exists(legacyCache) ? legacyCache : Path.Combine(catalogDirectory, "tfda.json");
-        var tfda = ProteinSupplement.Apply(LoadOne(tfdaPath, "TFDA"), catalogDirectory, tfdaPath == Path.Combine(catalogDirectory, "tfda.json"));
-        return [usda, tfda];
+        var path = !bundledOnly && File.Exists(cachePath) ? cachePath : !bundledOnly && File.Exists(legacyCache) ? legacyCache : bundledPath;
+        var info = new FileInfo(path);
+        var modified = info.LastWriteTimeUtc;
+        var length = info.Length;
+        if (tfda is { } current && current.Path == path && current.Modified == modified && current.Length == length) return current.Catalog;
+        var catalog = ProteinSupplement.Apply(LoadOne(path, "TFDA"), catalogDirectory, path == bundledPath);
+        tfda = (path, modified, length, catalog);
+        return catalog;
     }
 
     private static FoodReferenceCatalog LoadOne(string path, string provider)

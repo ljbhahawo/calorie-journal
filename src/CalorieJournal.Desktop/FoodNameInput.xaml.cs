@@ -2,14 +2,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using CalorieJournal.Core;
 
 namespace CalorieJournal.Desktop;
 
 internal interface IEntryFoodLookup
 {
-    FoodItem[] Suggest(string query);
-    void UseFood(FoodItem food);
+    EntryFoodSearchResult Suggest(string query);
+    void UseSuggestion(EntryFoodSuggestion suggestion);
     void ReportLookupError(string message);
 }
 
@@ -35,7 +34,7 @@ public partial class FoodNameInput : UserControl
     public void FocusName() { NameInput.Focus(); NameInput.CaretIndex = NameInput.Text.Length; }
     public bool ChooseOnEnter()
     {
-        if (SuggestionsPopup.IsOpen && SuggestionsList.SelectedItem is FoodItem) { Choose(); return true; }
+        if (SuggestionsPopup.IsOpen && SuggestionsList.SelectedItem is EntryFoodSuggestion) { Choose(); return true; }
         CloseSuggestions(); return false;
     }
     private void CloseSuggestions() { SuggestionsPopup.IsOpen = false; SuggestionsList.SelectedIndex = -1; }
@@ -50,14 +49,17 @@ public partial class FoodNameInput : UserControl
         if (DataContext is not IEntryFoodLookup lookup || string.IsNullOrWhiteSpace(NameInput.Text)) { CloseSuggestions(); return; }
         try
         {
-            SuggestionsList.ItemsSource = lookup.Suggest(NameInput.Text).Take(12).ToArray();
+            var result = lookup.Suggest(NameInput.Text);
+            SuggestionsList.ItemsSource = result.Items;
+            LookupWarning.Text = result.Warning;
+            LookupWarning.Visibility = result.Warning.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
             SuggestionsList.SelectedIndex = -1;
             var hasMatches = SuggestionsList.Items.Count > 0;
             SuggestionsHint.Visibility = SuggestionsList.Visibility = hasMatches ? Visibility.Visible : Visibility.Collapsed;
             NoMatches.Visibility = hasMatches ? Visibility.Collapsed : Visibility.Visible;
             SuggestionsPopup.IsOpen = true;
         }
-        catch (Exception ex) when (IsLookupError(ex)) { CloseSuggestions(); lookup.ReportLookupError(ex.Message); }
+        catch (Exception ex) when (EntryFoodSearch.IsExpectedError(ex)) { CloseSuggestions(); lookup.ReportLookupError(ex.Message); }
     }
     private void NameKeyDown(object sender, KeyEventArgs e)
     {
@@ -86,13 +88,12 @@ public partial class FoodNameInput : UserControl
     }
     private void Choose()
     {
-        if (SuggestionsList.SelectedItem is not FoodItem food || DataContext is not IEntryFoodLookup lookup) return;
+        if (SuggestionsList.SelectedItem is not EntryFoodSuggestion suggestion || DataContext is not IEntryFoodLookup lookup) return;
         choosing = true;
-        try { lookup.UseFood(food); CloseSuggestions(); FocusName(); }
-        catch (Exception ex) when (IsLookupError(ex)) { CloseSuggestions(); FocusName(); lookup.ReportLookupError(ex.Message); }
+        try { lookup.UseSuggestion(suggestion); CloseSuggestions(); FocusName(); }
+        catch (Exception ex) when (EntryFoodSearch.IsExpectedError(ex)) { CloseSuggestions(); FocusName(); lookup.ReportLookupError(ex.Message); }
         finally { choosing = false; }
     }
-    private static bool IsLookupError(Exception ex) => ex is ValidationException or System.IO.IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException;
     private void FocusLeft(object sender, KeyboardFocusChangedEventArgs e) => Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
     { if (!NameInput.IsKeyboardFocusWithin && !SuggestionsList.IsKeyboardFocusWithin) CloseSuggestions(); }));
 }

@@ -70,7 +70,7 @@
                   </Grid><StackPanel Visibility="{Binding ProteinVisibility}"><TextBlock Text="本项蛋白质 · g · 可选" Style="{StaticResource FieldLabel}"/><TextBox x:Name="DirectProteinBox" Text="{Binding DirectProtein, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DirectProteinEnabled}" AutomationProperties.Name="本项蛋白质g"/></StackPanel>
                   <TextBlock Text="{Binding ProteinPreview}" Style="{StaticResource DailyProteinCaption}" Margin="0,0,0,6"/>
                   <Border Background="#EFF5EB" CornerRadius="7" Padding="12,10" Margin="0,0,0,10"><TextBlock Text="{Binding EnergyPreview}" Foreground="{StaticResource Accent}" FontWeight="SemiBold" TextWrapping="Wrap" /></Border>
-                  <TextBlock Text="{Binding EntrySource}" Style="{StaticResource Caption}" FontSize="11" Margin="0,0,0,14" />
+                  <TextBlock Text="{Binding EntrySource}" TextWrapping="Wrap" Style="{StaticResource Caption}" FontSize="11" Margin="0,0,0,14" />
                   <TextBlock Text="备注 · 可选" Style="{StaticResource FieldLabel}" /><TextBox x:Name="EntryNoteBox" Text="{Binding EntryNote, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinHeight="60" MaxLength="1000" TextWrapping="Wrap" AutomationProperties.Name="摄入备注" />
                 </StackPanel>
               </ScrollViewer>

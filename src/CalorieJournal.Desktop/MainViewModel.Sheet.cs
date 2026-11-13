@@ -103,7 +103,7 @@ public sealed partial class MainViewModel
             if (present.Add(values[index])) target.Insert(index, values[index]); else target.Move(target.IndexOf(values[index]), index);
         }
     }
-    private SheetEntryViewModel CreateSheetRow(DateOnly date, MealCategory meal, IntakeEntry? entry, MealCategory[]? knownMeals = null) => new(journal, date, meal, entry,
+    private SheetEntryViewModel CreateSheetRow(DateOnly date, MealCategory meal, IntakeEntry? entry, MealCategory[]? knownMeals = null) => new(journal, entryFoodSearch, date, meal, entry,
         row => Run(() =>
         {
             try

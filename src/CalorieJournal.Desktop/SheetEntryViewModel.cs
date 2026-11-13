@@ -10,6 +10,7 @@ namespace CalorieJournal.Desktop;
 public sealed partial class SheetEntryViewModel : ObservableObject, IEntryFoodLookup
 {
     private readonly JournalService journal;
+    private readonly EntryFoodSearch entryFoodSearch;
     private bool loading;
     private Guid? foodId;
     private string referencedName = "";
@@ -67,10 +68,10 @@ public sealed partial class SheetEntryViewModel : ObservableObject, IEntryFoodLo
     public IRelayCommand ConvertWeightCommand { get; }
     public IRelayCommand ManualSourceCommand { get; }
 
-    public SheetEntryViewModel(JournalService journal, DateOnly date, MealCategory meal, IntakeEntry? original,
+    internal SheetEntryViewModel(JournalService journal, EntryFoodSearch entryFoodSearch, DateOnly date, MealCategory meal, IntakeEntry? original,
         Action<SheetEntryViewModel> save, Action<SheetEntryViewModel> cancel, Action<SheetEntryViewModel> delete, MealCategory[]? knownMeals = null)
     {
-        this.journal = journal; Id = original?.Id ?? Guid.NewGuid(); RefreshProteinSetting();
+        this.journal = journal; this.entryFoodSearch = entryFoodSearch; Id = original?.Id ?? Guid.NewGuid(); RefreshProteinSetting();
         SaveCommand = new RelayCommand(() => save(this)); CancelCommand = new RelayCommand(() => cancel(this)); DeleteCommand = new RelayCommand(() => delete(this));
         ManualSourceCommand = new RelayCommand(DetachFood);
         ConvertWeightCommand = new RelayCommand(() =>
@@ -112,19 +113,30 @@ public sealed partial class SheetEntryViewModel : ObservableObject, IEntryFoodLo
         finally { loading = false; }
         OnPropertyChanged(nameof(Meals)); OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(HasDraft)); OnPropertyChanged(nameof(DiscardText)); OnPropertyChanged(nameof(WeightDescription));
     }
-    FoodItem[] IEntryFoodLookup.Suggest(string query) => journal.Foods(query);
+    EntryFoodSearchResult IEntryFoodLookup.Suggest(string query) => entryFoodSearch.Find(query);
     void IEntryFoodLookup.ReportLookupError(string message) => Message = "查库未完成：" + message;
+    void IEntryFoodLookup.UseSuggestion(EntryFoodSuggestion suggestion)
+    {
+        if (suggestion.LibraryFood is { } food) UseFood(food);
+        else ApplyFood(suggestion.CreateReferenceDraft(), null, suggestion.Reference!.IntakeSource);
+    }
+
     public void UseFood(FoodItem food)
     {
-        Validation.Require(journal.Foods().Any(x => x.Id == food.Id), "食物已删除，请重新选择。");
+        Validation.Require(journal.Foods().Contains(food), "食物资料已更改或删除，请重新搜索。");
+        ApplyFood(food, food.Id, food.SourceSummary + " " + food.SourceUrl);
+    }
+
+    private void ApplyFood(FoodItem food, Guid? linkedId, string source)
+    {
         loading = true;
         try
         {
-            Name = food.Name; Preparation = food.Preparation; foodId = food.Id; referencedName = food.Name;
+            Name = food.Name; Preparation = food.Preparation; foodId = linkedId; referencedName = food.Name;
             referencedEnergy = food.KcalPer100gHundredths; referencedProtein = food.ProteinPer100gHundredths; referencedKj = food.KilojoulesPer100gHundredths;
             UnitEnergyType = referencedKj is null ? "大卡" : "kJ"; UnitEnergy = Format(referencedKj ?? food.KcalPer100gHundredths, 100, "0.00");
             UnitProtein = referencedProtein is { } protein ? Format(protein, 100, "0.00") : ""; WeightMode = true;
-            Source = food.SourceSummary + " " + food.SourceUrl; calculation = null;
+            Source = source; calculation = null;
         }
         finally { loading = false; }
         Dirty = true; OnPropertyChanged(nameof(WeightDescription)); Message = "已引用食物，请填写重量并保存本行。";
@@ -142,7 +154,7 @@ public sealed partial class SheetEntryViewModel : ObservableObject, IEntryFoodLo
             if (loading) return;
             if (MessageIsError) Message = "";
             Dirty = true;
-            if (e.PropertyName == nameof(Name) && foodId is not null && Name != referencedName) DetachFood();
+            if (e.PropertyName == nameof(Name) && (foodId is not null || FoodReferenceHit.IsIntakeReference(Source)) && Name != referencedName) DetachFood();
             if (e.PropertyName is nameof(Weight) or nameof(WeightUnit)) { calculation = null; OnPropertyChanged(nameof(WeightDescription)); }
         }
     }
@@ -169,10 +181,11 @@ public sealed partial class SheetEntryViewModel : ObservableObject, IEntryFoodLo
         Validation.Require(dateInputValid, "请填写有效日期。");
         Validation.Text(Name, "食物名称", 100, true);
         Validation.Require(ProteinEnabled || Original?.ProteinGramsHundredths is null || WeightMode == (Original.InputMode == "weight"), "此记录已有蛋白质，切换录入方式前请在设置启用蛋白质。");
-        Validation.Require(ProteinEnabled || Original?.ProteinGramsHundredths is null || (Name == Original.FoodNameSnapshot && Preparation == Original.PreparationSnapshot && foodId == Original.FoodId), "此记录已有蛋白质，修改食物名称或来源前请在设置启用蛋白质，以核对营养资料。");
+        Validation.Require(ProteinEnabled || Original?.ProteinGramsHundredths is null || (Name == Original.FoodNameSnapshot && Preparation == Original.PreparationSnapshot && foodId == Original.FoodId && Source == Original.SourceSnapshot), "此记录已有蛋白质，修改食物名称或来源前请在设置启用蛋白质，以核对营养资料。");
         var source = Source;
-        if (foodId is not null && WeightMode && (ReadUnitEnergy() != referencedEnergy || ReadUnitProtein() != referencedProtein || ReadKj() != referencedKj) && !source.Contains("本次单位营养资料已调整", StringComparison.Ordinal)) source += " · 本次单位营养资料已调整";
-        if (foodId is not null && !WeightMode && !source.Contains("本项直接录入", StringComparison.Ordinal)) source += " · 本项直接录入，热量及蛋白质请核对";
+        var hasSource = foodId is not null || FoodReferenceHit.IsIntakeReference(source);
+        if (hasSource && WeightMode && (ReadUnitEnergy() != referencedEnergy || ProteinEnabled && ReadUnitProtein() != referencedProtein || ReadKj() != referencedKj) && !source.Contains("本次单位营养资料已调整", StringComparison.Ordinal)) source += " · 本次单位营养资料已调整";
+        if (hasSource && !WeightMode && !source.Contains("本项直接录入", StringComparison.Ordinal)) source += " · 本项直接录入，热量及蛋白质请核对";
         var entry = new IntakeEntry { Id = Id, EntryDate = DateOnly.FromDateTime(Date), MealCategoryId = Meal.Id,
             MealNameSnapshot = Original is { } original && original.MealCategoryId == Meal.Id ? original.MealNameSnapshot : Meal.Name,
             LocalTime = Time, FoodId = foodId, FoodNameSnapshot = Name, PreparationSnapshot = Preparation, Note = Note,
