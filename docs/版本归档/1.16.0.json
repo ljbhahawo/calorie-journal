@@ -6,6 +6,16 @@
   "SdkVersion": "10.0.402",
   "SchemaVersion": 9,
   "BackupFormatVersion": 9,
+  "Publication": {
+    "ReleaseId": 443838005,
+    "Url": "https://github.com/ljbhahawo/calorie-journal/releases/tag/v1.16.0",
+    "Public": true,
+    "Draft": false,
+    "Commit": "417f4024905020750e6eebc55a9deb232d0a5f6f",
+    "AnnotatedTag": "v1.16.0",
+    "TagObject": "a34be20ce868b97db4a382c61ea7b2c95e500d08",
+    "AllThreeAssetsSizeAndSha256Verified": true
+  },
   "Package": {
     "FileName": "每日热量记录_1.16.0_win-x64.zip",
     "Bytes": 69781044,
