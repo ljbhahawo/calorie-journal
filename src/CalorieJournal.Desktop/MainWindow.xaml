@@ -278,6 +278,8 @@
       </TabItem>
 
       <TabItem Header="历史查询">
+        <TabControl x:Name="HistoryViews" SelectedIndex="{Binding HistoryViewIndex}" AutomationProperties.Name="历史查询方式">
+          <TabItem Header="按日期">
         <Border Style="{StaticResource Card}" Padding="0">
           <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
             <StackPanel Margin="22,20,22,8">
@@ -294,6 +296,83 @@
             <Border Grid.Row="2" Padding="22,14" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0"><DockPanel LastChildFill="False"><Button x:Name="OpenHistoryDayButton" Content="查看选中日期的明细" Command="{Binding OpenHistoryDayCommand}" /><TextBlock Text="“未记录”不代表实际摄入为零" Style="{StaticResource Caption}" VerticalAlignment="Center" DockPanel.Dock="Right" /></DockPanel></Border>
           </Grid>
         </Border>
+          </TabItem>
+          <TabItem Header="按食物">
+            <Border Style="{StaticResource Card}" Padding="16,12">
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="3*" />
+                  <ColumnDefinition Width="*" MinWidth="195" MaxWidth="320" />
+                </Grid.ColumnDefinitions>
+                <DockPanel Grid.ColumnSpan="2" Margin="0,0,0,10">
+                  <Button x:Name="FoodHistoryQueryButton" DockPanel.Dock="Right" Content="搜索" Command="{Binding QueryFoodHistoryCommand}" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
+                  <TextBlock DockPanel.Dock="Left" Text="食物名称" VerticalAlignment="Center" Margin="0,0,10,0" />
+                  <TextBox x:Name="FoodHistoryQueryBox" Text="{Binding FoodHistoryQuery, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" AutomationProperties.Name="历史食物名称">
+                    <TextBox.InputBindings><KeyBinding Key="Return" Command="{Binding QueryFoodHistoryCommand}" /></TextBox.InputBindings>
+                  </TextBox>
+                </DockPanel>
+                <DataGrid x:Name="FoodHistoryGrid" Grid.Row="1" ItemsSource="{Binding FoodHistoryRows}" SelectedItem="{Binding SelectedFoodHistory}"
+                          CanUserSortColumns="False" RowHeight="34" ColumnHeaderHeight="32" AutomationProperties.Name="每次摄入的食物历史">
+                  <DataGrid.Columns>
+                    <DataGridTextColumn Header="食物" Binding="{Binding Entry.FoodNameSnapshot}" Width="2*" />
+                    <DataGridTextColumn Header="大卡" Binding="{Binding Entry.EnergyKcal, StringFormat=0.0}" Width="78" />
+                    <DataGridTextColumn Header="日期" Binding="{Binding Entry.EntryDate, StringFormat=yyyy-MM-dd}" Width="106" />
+                    <DataGridTextColumn Header="时间" Binding="{Binding TimeText}" Width="70" />
+                    <DataGridTextColumn Header="餐次" Binding="{Binding Entry.MealNameSnapshot}" Width="*" />
+                    <DataGridTextColumn Header="重量" Binding="{Binding WeightText}" Width="92" />
+                  </DataGrid.Columns>
+                </DataGrid>
+                <Border Grid.Row="1" Grid.Column="1" Margin="12,0,0,0" Padding="12,6,0,0" BorderBrush="{StaticResource Line}" BorderThickness="1,0,0,0">
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="单次摄入明细" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="选中一条记录，查看来源和备注。" TextWrapping="Wrap">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                          <Setter Property="Visibility" Value="Collapsed" />
+                          <Style.Triggers><DataTrigger Binding="{Binding SelectedFoodHistory}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <ContentControl x:Name="FoodHistoryDetail" Content="{Binding SelectedFoodHistory}">
+                      <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                          <Style.Triggers><Trigger Property="Content" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></Trigger></Style.Triggers>
+                        </Style>
+                      </ContentControl.Style>
+                      <ContentControl.ContentTemplate>
+                        <DataTemplate DataType="{x:Type local:FoodHistoryRow}">
+                          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                              <TextBlock Text="{Binding Entry.FoodNameSnapshot}" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,6" />
+                              <TextBlock TextWrapping="Wrap"><Run Text="计算  " /><Run Text="{Binding Entry.Calculation, Mode=OneWay}" /></TextBlock>
+                              <TextBlock TextWrapping="Wrap"><Run Text="加工状态  " /><Run Text="{Binding PreparationText, Mode=OneWay}" /></TextBlock>
+                              <TextBlock TextWrapping="Wrap"><Run Text="蛋白质  " /><Run Text="{Binding Entry.ProteinText, Mode=OneWay}" /></TextBlock>
+                              <TextBlock TextWrapping="Wrap"><Run Text="来源  " /><Run Text="{Binding SourceText, Mode=OneWay}" /></TextBlock>
+                              <TextBlock TextWrapping="Wrap"><Run Text="备注  " /><Run Text="{Binding NoteText, Mode=OneWay}" /></TextBlock>
+                            </StackPanel>
+                          </ScrollViewer>
+                        </DataTemplate>
+                      </ContentControl.ContentTemplate>
+                    </ContentControl>
+                  </DockPanel>
+                </Border>
+                <DockPanel Grid.Row="2" Grid.ColumnSpan="2" Margin="0,10,0,0">
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="PreviousFoodHistoryButton" Content="上一页" Command="{Binding PreviousFoodHistoryCommand}" Margin="0,0,8,0" />
+                    <Button x:Name="NextFoodHistoryButton" Content="下一页" Command="{Binding NextFoodHistoryCommand}" />
+                  </StackPanel>
+                  <TextBlock x:Name="FoodHistorySummaryLabel" Text="{Binding FoodHistorySummary}" TextWrapping="Wrap" VerticalAlignment="Center"
+                             Style="{StaticResource Caption}" AutomationProperties.LiveSetting="Polite" />
+                </DockPanel>
+              </Grid>
+            </Border>
+          </TabItem>
+        </TabControl>
       </TabItem>
 
       <TabItem x:Name="SettingsTab" Header="设置与数据">

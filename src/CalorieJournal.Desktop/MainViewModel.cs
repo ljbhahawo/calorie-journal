@@ -404,6 +404,7 @@ public sealed partial class MainViewModel : ObservableObject, IEntryFoodLookup
     private void RefreshHistory()
     {
         Fill(HistoryRows, journal.History(appliedHistoryFrom, appliedHistoryTo));
+        if (TabIndex == 2 && HistoryViewIndex == 1) RefreshFoodHistory();
         if (ContinuousMode) RefreshBrowse();
         if (SheetMode) RefreshSheet();
         RefreshStatistics();

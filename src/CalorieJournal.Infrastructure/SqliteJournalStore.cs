@@ -181,7 +181,11 @@ public sealed partial class SqliteJournalStore : IJournalStore
         using var command = Command(connection, transaction, "SELECT * FROM entries WHERE entry_date >= $from AND entry_date <= $to AND ($id IS NULL OR id=$id)", ("$from", from.ToString("yyyy-MM-dd")), ("$to", to.ToString("yyyy-MM-dd")), ("$id", id?.ToString()));
         using var reader = command.ExecuteReader();
         var values = new List<IntakeEntry>();
-        while (reader.Read()) values.Add(new IntakeEntry
+        while (reader.Read()) values.Add(ReadEntry(reader));
+        return values.ToArray();
+    }
+
+    private static IntakeEntry ReadEntry(SqliteDataReader reader) => new()
         {
             Id = Guid.Parse(reader.GetString(0)), EntryDate = DateOnly.ParseExact(reader.GetString(1), "yyyy-MM-dd", CultureInfo.InvariantCulture),
             LocalTime = reader.GetString(2), MealCategoryId = Guid.Parse(reader.GetString(3)), MealNameSnapshot = reader.GetString(4),
@@ -194,8 +198,21 @@ public sealed partial class SqliteJournalStore : IJournalStore
             ProteinPer100gHundredthsSnapshot = reader.FieldCount < 20 || reader.IsDBNull(17) ? null : reader.GetInt64(17),
             ProteinGramsHundredths = reader.FieldCount < 20 || reader.IsDBNull(18) ? null : reader.GetInt64(18),
             KilojoulesHundredthsSnapshot = reader.FieldCount < 20 || reader.IsDBNull(19) ? null : reader.GetInt64(19)
-        });
-        return values.ToArray();
+        };
+
+    public IntakeEntry[] ReadEntryHistory(Func<string, bool> matchesName, int skip, int take)
+    {
+        using var connection = Open();
+        using var command = Command(connection, null, "SELECT * FROM entries ORDER BY entry_date DESC, local_time DESC, created_at DESC, id");
+        using var reader = command.ExecuteReader();
+        var entries = new List<IntakeEntry>(take);
+        while (entries.Count < take && reader.Read())
+        {
+            if (!matchesName(reader.GetString(6))) continue;
+            if (skip > 0) { skip--; continue; }
+            entries.Add(ReadEntry(reader));
+        }
+        return entries.ToArray();
     }
 
     public FoodItem[] ReadFoods(bool includeDeleted = false) { using var connection = Open(); return Foods(connection, null, includeDeleted); }

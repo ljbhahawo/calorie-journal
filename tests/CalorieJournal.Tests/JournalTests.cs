@@ -47,6 +47,60 @@ public sealed class JournalTests
     }
 
     [TestMethod]
+    public void FoodHistorySearchesSavedOccurrencesWithoutTheFoodLibrary()
+    {
+        var linked = Rice() with { EntryDate = Today.AddDays(-120), Note = "半碗米饭" };
+        service.SaveEntry(linked);
+        var food = service.Foods("长粒白米饭").Single();
+        service.SaveFood(food with { Name = "当前库中的另一个名字", UserModified = true });
+        service.DeleteFood(service.Foods("当前库中的另一个名字").Single());
+        var lunch = service.Meals()[1];
+        var first = Direct(0) with { FoodNameSnapshot = "番茄", LocalTime = "08:15" };
+        var second = Direct(370) with { FoodNameSnapshot = "西红柿", LocalTime = "12:45",
+            MealCategoryId = lunch.Id, MealNameSnapshot = lunch.Name, Note = "带皮" };
+        var other = Direct() with { FoodNameSnapshot = "Oat Bar", Note = "与番茄无关" };
+        store.AppendEntries([first, second, other]);
+        var reopened = new JournalService(new SqliteJournalStore(Path.Combine(directory, "journal.db")));
+
+        var tomatoes = reopened.SearchIntakeHistory("  西红柿  ");
+        CollectionAssert.AreEqual(new[] { second.Id, first.Id }, tomatoes.Entries.Select(entry => entry.Id).ToArray());
+        Assert.AreEqual("12:45", tomatoes.Entries[0].LocalTime);
+        Assert.AreEqual(lunch.Name, tomatoes.Entries[0].MealNameSnapshot);
+        Assert.AreEqual("带皮", tomatoes.Entries[0].Note);
+        Assert.AreEqual(0m, tomatoes.Entries[1].EnergyKcal);
+        Assert.IsNull(tomatoes.Entries[1].WeightGramsTenths);
+        var savedRice = reopened.SearchIntakeHistory("长粒白米").Entries.Single();
+        Assert.AreEqual(linked.Id, savedRice.Id);
+        Assert.AreEqual(1500L, savedRice.WeightGramsTenths!.Value);
+        Assert.AreEqual(linked.SourceSnapshot, savedRice.SourceSnapshot);
+        Assert.AreEqual("半碗米饭", savedRice.Note);
+        Assert.AreEqual(other.Id, reopened.SearchIntakeHistory("oat").Entries.Single().Id);
+        Assert.HasCount(0, reopened.SearchIntakeHistory("当前库中的另一个名字").Entries);
+        reopened.DeleteEntry(second.Id);
+        Assert.AreEqual(first.Id, reopened.SearchIntakeHistory("番茄").Entries.Single().Id);
+    }
+
+    [TestMethod]
+    public void FoodHistoryPagesStableOccurrencesWithIdenticalDatesAndTimes()
+    {
+        var sample = Direct() with { FoodNameSnapshot = "燕麦", LocalTime = "08:00" };
+        var sameTime = Enumerable.Range(0, 103).Select(i => sample with { Id = Guid.NewGuid(), Note = $"明细 {i}" }).ToArray();
+        var older = sample with { Id = Guid.NewGuid(), EntryDate = Today.AddDays(-1), LocalTime = "23:00" };
+        store.AppendEntries([.. sameTime, older, sample with { Id = Guid.NewGuid(), FoodNameSnapshot = "无匹配" }]);
+        var first = service.SearchIntakeHistory("燕麦");
+        var second = service.SearchIntakeHistory("燕麦", 2);
+        Assert.HasCount(100, first.Entries);
+        Assert.IsTrue(first.HasNext);
+        Assert.HasCount(4, second.Entries);
+        Assert.AreEqual(older.Id, second.Entries[^1].Id);
+        Assert.IsFalse(second.HasNext);
+        CollectionAssert.AreEquivalent(sameTime.Append(older).Select(entry => entry.Id).ToArray(),
+            first.Entries.Concat(second.Entries).Select(entry => entry.Id).ToArray());
+        Assert.IsTrue(service.SearchIntakeHistory("").HasNext);
+        Assert.Throws<ValidationException>(() => service.SearchIntakeHistory("燕麦", 0));
+    }
+
+    [TestMethod]
     public void DecimalCalculationAndPrecisionAreExact()
     {
         Assert.AreEqual(1852L, Validation.CalculateEnergy(1500, 12345));

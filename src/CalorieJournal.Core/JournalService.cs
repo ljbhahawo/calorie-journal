@@ -17,6 +17,7 @@ public interface IJournalStore
     FoodItem[] ReadFoods(bool includeDeleted = false);
     MealCategory[] ReadMeals();
     IntakeEntry[] ReadEntries(DateOnly from, DateOnly to);
+    IntakeEntry[] ReadEntryHistory(Func<string, bool> matchesName, int skip, int take);
     IntakeEntry? FindEntry(Guid id);
     void SaveFood(FoodItem value);
     void SaveMeal(MealCategory value);
